@@ -1,0 +1,2061 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/icon.png">
+  <link rel="apple-touch-icon" sizes="167x167" href="/icon.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="/icon.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="/icon.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="KidStuff">
+  <meta name="theme-color" content="#4F6EF7">
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="KidStuff"/>
+<title>KidStuff</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Baloo+2:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:#F0F4FF;--card:#FFF;--primary:#4F6EF7;--primary-dark:#3451D1;
+  --green:#2ECC71;--green-dark:#27AE60;--yellow:#F7C948;--red:#FF6B6B;
+  --text:#1A1F36;--muted:#7A859E;--border:#E2E8F8;
+  --shadow:0 4px 20px rgba(79,110,247,0.10);--radius:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+.screen{display:none!important;}
+.screen.active{display:block!important;}
+#screen-landing.active,#screen-kid-select.active,#screen-pin.active{display:flex!important;}
+#screen-landing,#screen-kid-select,#screen-pin{min-height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;}
+#screen-landing{background:linear-gradient(135deg,#4F6EF7 0%,#7C3AED 100%);}
+#screen-kid-select{background:linear-gradient(135deg,#4F6EF7 0%,#7C3AED 100%);}
+#screen-pin{background:linear-gradient(135deg,#1A1F36,#2D3561);}
+.app-header{background:var(--primary);color:white;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(79,110,247,0.3);}
+.app-header.dark{background:linear-gradient(135deg,#1A1F36,#2D3561);}
+.logo{font-family:'Baloo 2',cursive;font-size:26px;font-weight:800;}
+.logo span{color:var(--yellow);}
+.header-sub{font-size:13px;opacity:0.85;}
+.back-btn{background:rgba(255,255,255,0.2);border:none;color:white;padding:6px 14px;border-radius:20px;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;font-size:14px;}
+.back-btn:hover{background:rgba(255,255,255,0.35);}
+.landing-logo{font-family:'Baloo 2',cursive;font-size:56px;font-weight:800;color:white;text-align:center;margin-bottom:6px;}
+.landing-logo span{color:var(--yellow);}
+.landing-tagline{color:rgba(255,255,255,0.8);font-size:18px;font-weight:600;margin-bottom:50px;}
+.landing-cards{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;width:100%;max-width:600px;}
+.landing-card{background:white;border-radius:24px;padding:36px 28px;text-align:center;cursor:pointer;flex:1;min-width:200px;box-shadow:0 8px 32px rgba(0,0,0,0.18);transition:transform 0.2s;}
+.landing-card:hover{transform:translateY(-6px);}
+.landing-card .icon{font-size:52px;margin-bottom:14px;}
+.landing-card h2{font-family:'Baloo 2',cursive;font-size:22px;color:var(--text);margin-bottom:6px;}
+.landing-card p{color:var(--muted);font-size:14px;}
+.kid-select-title{font-family:'Baloo 2',cursive;font-size:32px;font-weight:800;color:white;margin-bottom:8px;}
+.kid-select-sub{color:rgba(255,255,255,0.75);font-size:16px;margin-bottom:40px;}
+.kid-avatars{display:flex;gap:24px;flex-wrap:wrap;justify-content:center;}
+.kid-avatar-btn{background:white;border:none;border-radius:24px;padding:32px 28px;text-align:center;cursor:pointer;min-width:160px;box-shadow:0 8px 32px rgba(0,0,0,0.15);transition:transform 0.2s;}
+.kid-avatar-btn:hover{transform:translateY(-5px);}
+.kid-avatar-btn .avatar-emoji{font-size:56px;margin-bottom:12px;}
+.kid-avatar-btn .avatar-name{font-family:'Baloo 2',cursive;font-size:20px;color:var(--text);font-weight:700;}
+.kid-avatar-btn .avatar-coins{color:var(--primary);font-size:14px;font-weight:700;margin-top:4px;}
+.back-link{color:rgba(255,255,255,0.75);margin-top:30px;cursor:pointer;font-size:15px;font-weight:600;}
+.content{max-width:800px;margin:0 auto;padding:24px 16px;}
+.card{background:var(--card);border-radius:var(--radius);padding:22px 20px;box-shadow:var(--shadow);margin-bottom:18px;}
+.card-title{font-family:'Baloo 2',cursive;font-size:20px;font-weight:700;color:var(--text);margin-bottom:16px;}
+.kid-hero{background:linear-gradient(135deg,#4F6EF7,#7C3AED);border-radius:var(--radius);padding:24px 20px;color:white;margin-bottom:18px;display:flex;align-items:center;gap:18px;}
+.kid-hero-avatar{font-size:52px;}
+.kid-hero-name{font-family:'Baloo 2',cursive;font-size:26px;font-weight:800;}
+.kid-hero-coins{font-size:18px;font-weight:700;opacity:0.9;margin-top:2px;}
+.kid-hero-progress{font-size:13px;opacity:0.8;margin-top:4px;}
+.subject-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;}
+.subject-card{background:white;border-radius:var(--radius);padding:20px 16px;box-shadow:var(--shadow);cursor:pointer;transition:transform 0.2s;border:2px solid transparent;text-align:center;}
+.subject-card:hover{transform:translateY(-3px);}
+.subject-card.completed{border-color:var(--green);background:#F0FBF4;}
+.subject-card .subj-icon{font-size:38px;margin-bottom:10px;}
+.subject-card .subj-name{font-family:'Baloo 2',cursive;font-size:17px;font-weight:700;}
+.subject-card .subj-status{font-size:12px;color:var(--muted);margin-top:4px;}
+.subject-card .subj-score{font-size:13px;font-weight:800;color:var(--green);margin-top:4px;}
+.progress-bar-wrap{background:#E2E8F8;border-radius:20px;height:10px;margin:8px 0;overflow:hidden;}
+.progress-bar-fill{height:100%;border-radius:20px;background:linear-gradient(90deg,#4F6EF7,#7C3AED);transition:width 0.5s ease;}
+.lesson-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.lesson-progress{font-size:13px;color:var(--muted);font-weight:700;}
+.question-card{background:white;border-radius:var(--radius);padding:28px 24px;box-shadow:var(--shadow);margin-bottom:18px;}
+.question-text{font-size:20px;font-weight:800;color:var(--text);margin-bottom:20px;line-height:1.4;}
+.question-sub{font-size:14px;color:var(--muted);margin-bottom:16px;}
+.passage-box{background:#FAFBFF;border:2px solid var(--border);border-radius:14px;padding:20px;margin-bottom:20px;font-size:16px;line-height:1.8;max-height:220px;overflow-y:auto;}
+.options-list{display:flex;flex-direction:column;gap:10px;}
+.option-btn{background:var(--bg);border:2px solid var(--border);border-radius:12px;padding:14px 18px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:600;color:var(--text);cursor:pointer;text-align:left;transition:all 0.2s;}
+.option-btn:hover{border-color:var(--primary);background:#EEF2FF;}
+.option-btn.correct{border-color:var(--green);background:#E8F8EE;color:var(--green-dark);}
+.option-btn.wrong{border-color:var(--red);background:#FFF0F0;color:var(--red);}
+.answer-input{width:100%;padding:14px 16px;border:2px solid var(--border);border-radius:12px;font-family:'Nunito',sans-serif;font-size:18px;font-weight:700;color:var(--text);outline:none;transition:border-color 0.2s;}
+.answer-input:focus{border-color:var(--primary);}
+.answer-input.correct{border-color:var(--green);background:#E8F8EE;}
+.answer-input.wrong{border-color:var(--red);background:#FFF0F0;}
+.feedback-box{border-radius:12px;padding:14px 18px;margin-top:14px;font-weight:700;font-size:15px;display:none;}
+.feedback-box.correct{background:#E8F8EE;color:var(--green-dark);display:block;}
+.feedback-box.wrong{background:#FFF0F0;color:var(--red);display:block;}
+.speak-btn{background:var(--primary);color:white;border:none;padding:16px 28px;border-radius:14px;font-family:'Baloo 2',cursive;font-size:20px;cursor:pointer;display:flex;align-items:center;gap:10px;margin:0 auto 20px;box-shadow:0 4px 16px rgba(79,110,247,0.3);transition:transform 0.15s;}
+.speak-btn:hover{transform:scale(1.04);}
+.btn-primary{background:var(--primary);color:white;border:none;padding:14px 28px;border-radius:12px;font-family:'Nunito',sans-serif;font-weight:800;font-size:16px;cursor:pointer;width:100%;margin-top:8px;transition:background 0.2s;}
+.btn-primary:hover{background:var(--primary-dark);}
+.btn-primary:disabled{background:#C5CFE8;cursor:not-allowed;}
+.btn-danger{background:var(--red);color:white;border:none;padding:7px 14px;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:700;font-size:13px;cursor:pointer;}
+.btn-approve{background:var(--green);color:white;border:none;padding:7px 14px;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:700;font-size:13px;cursor:pointer;margin-right:6px;}
+.results-card{background:linear-gradient(135deg,#4F6EF7,#7C3AED);border-radius:var(--radius);padding:32px 24px;color:white;text-align:center;margin-bottom:18px;}
+.results-score{font-family:'Baloo 2',cursive;font-size:72px;font-weight:800;line-height:1;}
+.results-label{font-size:18px;opacity:0.85;margin-top:4px;}
+.results-coins{font-size:22px;font-weight:800;margin-top:16px;background:rgba(255,255,255,0.2);border-radius:20px;padding:8px 20px;display:inline-block;}
+.breakdown-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:15px;}
+.breakdown-row:last-child{border-bottom:none;}
+.writing-prompt{background:linear-gradient(135deg,#FFF8E1,#FFFDE7);border:2px solid var(--yellow);border-radius:14px;padding:20px;margin-bottom:20px;font-size:17px;font-weight:700;line-height:1.5;}
+.lined-area{background:white;border:2px solid var(--border);border-radius:12px;padding:16px;min-height:160px;background-image:repeating-linear-gradient(transparent,transparent 31px,#E2E8F8 31px,#E2E8F8 32px);line-height:32px;font-size:18px;font-family:'Nunito',sans-serif;color:var(--text);outline:none;width:100%;resize:none;}
+.pin-box{background:white;border-radius:28px;padding:40px 36px;text-align:center;max-width:340px;width:100%;box-shadow:0 16px 48px rgba(0,0,0,0.25);}
+.pin-box h2{font-family:'Baloo 2',cursive;font-size:26px;margin-bottom:6px;}
+.pin-box p{color:var(--muted);font-size:14px;margin-bottom:24px;}
+.pin-dots{display:flex;gap:14px;justify-content:center;margin-bottom:28px;}
+.pin-dot{width:18px;height:18px;border-radius:50%;border:2.5px solid var(--border);background:white;transition:all 0.2s;}
+.pin-dot.filled{background:var(--primary);border-color:var(--primary);}
+.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.pin-key{background:var(--bg);border:none;border-radius:14px;padding:16px;font-family:'Baloo 2',cursive;font-size:22px;font-weight:700;color:var(--text);cursor:pointer;transition:background 0.15s;}
+.pin-key:hover{background:var(--border);}
+.pin-key.delete{font-size:18px;color:var(--red);}
+.pin-error{color:var(--red);font-size:14px;font-weight:700;margin-top:14px;min-height:20px;}
+.parent-header{background:linear-gradient(135deg,#1A1F36,#2D3561);border-radius:var(--radius);padding:22px 20px;color:white;margin-bottom:18px;}
+.parent-header h2{font-family:'Baloo 2',cursive;font-size:24px;margin-bottom:4px;}
+.parent-header p{opacity:0.7;font-size:14px;}
+.tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+.tab-btn{padding:9px 18px;border:2px solid var(--border);background:white;border-radius:20px;font-family:'Nunito',sans-serif;font-weight:700;font-size:14px;cursor:pointer;color:var(--muted);transition:all 0.2s;}
+.tab-btn.active{background:var(--primary);border-color:var(--primary);color:white;}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+.kid-summary-cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;}
+.kid-summary-card{background:var(--card);border-radius:var(--radius);padding:18px 16px;box-shadow:var(--shadow);text-align:center;}
+.kid-summary-card .ks-emoji{font-size:36px;margin-bottom:6px;}
+.kid-summary-card .ks-name{font-family:'Baloo 2',cursive;font-size:18px;font-weight:700;}
+.kid-summary-card .ks-coins{font-size:22px;font-weight:800;color:var(--primary);margin-top:4px;}
+.form-row{margin-bottom:14px;}
+.form-row label{display:block;font-weight:700;font-size:13px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px;}
+.form-row input,.form-row select{width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:15px;color:var(--text);background:white;outline:none;transition:border-color 0.2s;}
+.form-row input:focus,.form-row select:focus{border-color:var(--primary);}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.reward-item{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);}
+.reward-item:last-child{border-bottom:none;}
+.reward-icon{font-size:30px;}
+.reward-info{flex:1;}
+.reward-name{font-weight:700;font-size:15px;}
+.reward-cost{font-size:13px;color:var(--muted);margin-top:2px;}
+.redeem-btn{background:var(--primary);color:white;border:none;padding:8px 16px;border-radius:20px;font-family:'Nunito',sans-serif;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;}
+.redeem-btn:disabled{background:#C5CFE8;cursor:not-allowed;}
+.approval-item{display:flex;align-items:flex-start;gap:12px;padding:16px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.approval-item:last-child{border-bottom:none;}
+.approval-info{flex:1;min-width:200px;}
+.sync-bar{background:#1A1F36;color:white;text-align:center;padding:6px;font-size:12px;font-weight:700;letter-spacing:0.5px;}
+.sync-bar.syncing{background:var(--primary);}
+.sync-bar.error{background:var(--red);}
+.generating-overlay{position:fixed;inset:0;background:rgba(26,31,54,0.88);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:500;color:white;text-align:center;padding:20px;}
+.generating-overlay h2{font-family:'Baloo 2',cursive;font-size:28px;margin-top:24px;margin-bottom:10px;}
+.generating-overlay p{opacity:0.75;font-size:16px;}
+.spinner{width:52px;height:52px;border:5px solid rgba(255,255,255,0.2);border-top-color:white;border-radius:50%;animation:spin 0.9s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes popIn{0%{transform:scale(0.5);opacity:0}70%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+@keyframes bounceIn{0%{transform:translateY(40px);opacity:0}60%{transform:translateY(-10px)}100%{transform:translateY(0);opacity:1}}
+@keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
+@keyframes starPop{0%{transform:scale(0) rotate(0deg)}60%{transform:scale(1.3) rotate(10deg)}100%{transform:scale(1) rotate(0deg)}}
+.pop-in{animation:popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;}
+.bounce-in{animation:bounceIn 0.5s ease forwards;}
+.results-card{transition:all 0.3s;}
+.results-score{animation:popIn 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.2s both;}
+.subject-card{transition:transform 0.2s,box-shadow 0.2s;}
+.subject-card:hover{transform:translateY(-5px) scale(1.02);box-shadow:0 8px 28px rgba(79,110,247,0.2);}
+.option-btn{transition:all 0.15s;}
+.option-btn.correct{animation:popIn 0.3s ease forwards;}
+#toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(80px);background:#1A1F36;color:white;padding:14px 28px;border-radius:30px;font-weight:700;font-size:15px;box-shadow:0 8px 32px rgba(0,0,0,0.25);z-index:1000;transition:transform 0.35s cubic-bezier(0.34,1.56,0.64,1);white-space:nowrap;}
+#toast.show{transform:translateX(-50%) translateY(0);}
+.empty-state{text-align:center;padding:32px 16px;color:var(--muted);}
+.empty-state .empty-icon{font-size:44px;margin-bottom:10px;}
+@media(max-width:480px){.form-grid{grid-template-columns:1fr;}}
+</style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+</head>
+<body>
+
+<div id="sync-bar" class="sync-bar" style="display:none"></div>
+<div id="toast"></div>
+<canvas id="confetti-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999;display:none;"></canvas>
+<div id="generating-overlay" class="generating-overlay" style="display:none">
+  <div class="spinner"></div>
+  <h2>Building Curriculum...</h2>
+  <p>Generating Cobb County 3rd grade lessons for<br><strong id="gen-kid-name"></strong></p>
+</div>
+
+<!-- LANDING -->
+<div id="screen-landing" class="screen active">
+  <div class="landing-logo">Kid<span>Stuff</span> ⭐</div>
+  <div class="landing-tagline">Learn. Earn. Grow.</div>
+  <div class="landing-cards">
+    <div class="landing-card" onclick="studentLogin()">
+      <div class="icon">🎒</div><h2>I'm a Student</h2><p>Do my lessons &amp; earn rewards</p>
+    </div>
+    <div class="landing-card" onclick="showScreen('screen-pin')" id="parent-landing-btn">
+      <div class="icon">🔐</div><h2>Parent Dashboard</h2><p>Manage lessons &amp; rewards</p>
+    </div>
+  </div>
+  <div id="sync-status-landing" style="color:rgba(255,255,255,0.6);font-size:12px;margin-top:20px;text-align:center;"></div>
+</div>
+
+<!-- KID SELECT -->
+<div id="screen-kid-select" class="screen">
+  <div class="kid-select-title">Who's learning today?</div>
+  <div class="kid-select-sub">Tap your name!</div>
+  <div class="kid-avatars" id="kid-avatars-container"></div>
+  <label style="display:flex;align-items:center;gap:10px;color:rgba(255,255,255,0.85);font-size:15px;font-weight:700;margin-top:28px;cursor:pointer;">
+    <input type="checkbox" id="remember-me-checkbox" style="width:20px;height:20px;accent-color:#4F6EF7;cursor:pointer;"/>
+    Remember me on this device
+  </label>
+  <div class="back-link" onclick="showScreen('screen-landing')">← Back</div>
+</div>
+
+<!-- KID DASHBOARD -->
+<div id="screen-kid" class="screen">
+  <div class="app-header">
+    <div><div class="logo">Kid<span>Stuff</span></div><div class="header-sub" id="kid-header-sub">Today's Lessons</div></div>
+    <button class="back-btn" onclick="showScreen('screen-kid-select')">Switch</button>
+  </div>
+  <div class="content">
+    <div class="kid-hero">
+      <div class="kid-hero-avatar" id="kid-dash-avatar">🎒</div>
+      <div>
+        <div class="kid-hero-name" id="kid-dash-name">Name</div>
+        <div class="kid-hero-coins" id="kid-dash-coins">⭐ 0 coins</div>
+        <div class="kid-hero-progress" id="kid-dash-progress">0 of 4 done today</div>
+      </div>
+    </div>
+    <div id="no-content-msg" style="display:none">
+      <div class="card" style="text-align:center;padding:40px 20px">
+        <div style="font-size:48px;margin-bottom:12px">📚</div>
+        <div style="font-family:'Baloo 2',cursive;font-size:20px;margin-bottom:8px">No lessons yet!</div>
+        <div style="color:var(--muted)">Ask a parent to generate this week's curriculum.</div>
+      </div>
+    </div>
+    <div class="subject-grid" id="subject-grid"></div>
+    <div class="card"><div class="card-title">🎁 Rewards Shop</div><div id="kid-rewards-list"></div></div>
+  </div>
+</div>
+
+<!-- LESSON -->
+<div id="screen-lesson" class="screen">
+  <div class="app-header">
+    <div><div class="logo">Kid<span>Stuff</span></div><div class="header-sub" id="lesson-header-sub">Lesson</div></div>
+    <button class="back-btn" onclick="exitLesson()">Exit</button>
+  </div>
+  <div class="content">
+    <div class="lesson-header">
+      <div id="lesson-title" style="font-family:'Baloo 2',cursive;font-size:22px;font-weight:800"></div>
+      <div class="lesson-progress" id="lesson-progress">Q 1 of 10</div>
+    </div>
+    <div class="progress-bar-wrap"><div class="progress-bar-fill" id="lesson-progress-bar" style="width:0%"></div></div>
+    <div style="height:16px"></div>
+    <div id="lesson-content"></div>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div id="screen-results" class="screen">
+  <div class="app-header"><div><div class="logo">Kid<span>Stuff</span></div></div><button class="back-btn" onclick="showScreen('screen-kid')">Done</button></div>
+  <div class="content">
+    <div class="results-card">
+      <div style="font-size:48px;margin-bottom:8px" id="results-emoji">🌟</div>
+      <div class="results-score" id="results-score">80%</div>
+      <div class="results-label" id="results-label">Great job!</div>
+      <div class="results-coins" id="results-coins">+20 ⭐ coins</div>
+    </div>
+    <div class="card"><div class="card-title">📊 Results</div><div id="results-breakdown-list"></div>
+      <div id="results-wrong-answers" style="display:none;margin-top:16px"></div></div>
+    <button class="btn-primary" onclick="showScreen('screen-kid')" style="margin-bottom:30px">Back to Dashboard</button>
+  </div>
+</div>
+
+<!-- PIN -->
+<div id="screen-pin" class="screen">
+  <div class="pin-box">
+    <div style="font-size:40px;margin-bottom:10px">🔐</div>
+    <h2>Parent Access</h2><p>Enter your 4-digit PIN</p>
+    <div class="pin-dots" id="pin-dots">
+      <div class="pin-dot" id="dot-0"></div><div class="pin-dot" id="dot-1"></div>
+      <div class="pin-dot" id="dot-2"></div><div class="pin-dot" id="dot-3"></div>
+    </div>
+    <div class="pin-keypad">
+      <button class="pin-key" onclick="pinKey('1')">1</button><button class="pin-key" onclick="pinKey('2')">2</button><button class="pin-key" onclick="pinKey('3')">3</button>
+      <button class="pin-key" onclick="pinKey('4')">4</button><button class="pin-key" onclick="pinKey('5')">5</button><button class="pin-key" onclick="pinKey('6')">6</button>
+      <button class="pin-key" onclick="pinKey('7')">7</button><button class="pin-key" onclick="pinKey('8')">8</button><button class="pin-key" onclick="pinKey('9')">9</button>
+      <button class="pin-key" onclick="pinKey('0')" style="grid-column:2">0</button>
+      <button class="pin-key delete" onclick="pinDelete()">⌫</button>
+    </div>
+    <div class="pin-error" id="pin-error"></div>
+    <div style="margin-top:16px"><button class="back-btn" style="background:#EEF2FF;color:var(--primary);padding:9px 20px;" onclick="showScreen('screen-landing')">← Back</button></div>
+  </div>
+</div>
+
+<!-- PARENT -->
+<div id="screen-parent" class="screen">
+  <div class="app-header dark">
+    <div><div class="logo">Kid<span>Stuff</span></div><div class="header-sub">Parent Dashboard</div></div>
+    <button class="back-btn" onclick="showScreen('screen-landing')">Sign Out</button>
+  </div>
+  <div class="content">
+    <div class="parent-header"><h2>👋 Parent Dashboard</h2><p>Generate curriculum, review writing, manage rewards.</p></div>
+    <div class="kid-summary-cards" id="parent-kid-summary"></div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('tab-curriculum',this)">📚 Curriculum</button>
+      <button class="tab-btn" onclick="switchTab('tab-writing',this)">✍️ Writing</button>
+      <button class="tab-btn" id="tab-btn-redemptions" onclick="switchTab('tab-redemptions',this)">🎁 Rewards</button>
+      <button class="tab-btn" onclick="switchTab('tab-rewards',this)">⚙️ Manage Rewards</button>
+      <button class="tab-btn" onclick="switchTab('tab-progress',this)">📊 Progress</button>
+      <button class="tab-btn" onclick="switchTab('tab-flagged',this)">🚩 Flagged</button>
+      <button class="tab-btn" onclick="switchTab('tab-settings',this)">⚙️ Settings</button>
+    </div>
+
+    <div class="tab-panel active" id="tab-curriculum">
+      <div class="card">
+        <div class="card-title">🤖 Generate Weekly Curriculum</div>
+        <p style="color:var(--muted);font-size:14px;margin-bottom:18px">Creates a full week of Cobb County 3rd grade 2nd semester lessons. Content adapts to each child's difficulty level.</p>
+        <button class="btn-primary" onclick="generateCurriculum('lauren')" style="background:linear-gradient(135deg,#4F6EF7,#7C3AED);margin-bottom:10px">✨ Generate Lauren's Week</button>
+        <button class="btn-primary" onclick="generateCurriculum('andrew')" style="background:linear-gradient(135deg,#FF6B6B,#FF9F43)">✨ Generate Andrew's Week</button>
+      </div>
+      <div class="card"><div class="card-title">📋 Status</div><div id="curriculum-overview"></div></div>
+    </div>
+
+    <div class="tab-panel" id="tab-writing">
+      <div class="card"><div class="card-title">✍️ Writing to Review</div><div id="writing-approvals-list"></div></div>
+    </div>
+
+    <div class="tab-panel" id="tab-redemptions">
+      <div class="card"><div class="card-title">🎁 Reward Redemptions</div><div id="redemptions-list"></div></div>
+    </div>
+
+    <div class="tab-panel" id="tab-flagged">
+      <div class="card"><div class="card-title">🚩 Flagged Questions</div><div id="flagged-list"></div></div>
+    </div>
+
+    <div class="tab-panel" id="tab-rewards">
+      <div class="card">
+        <div class="card-title">➕ Add Reward</div>
+        <div class="form-row"><label>For</label><select id="r-kid" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"></select></div>
+        <div class="form-row"><label>Name</label><input id="r-name" type="text" placeholder="e.g. 30 min extra screen time"/></div>
+        <div class="form-grid">
+          <div class="form-row"><label>Coin Cost</label><input id="r-cost" type="number" placeholder="50"/></div>
+          <div class="form-row"><label>Emoji</label><input id="r-emoji" type="text" placeholder="📺" maxlength="2"/></div>
+        </div>
+        <button class="btn-primary" onclick="addReward()">Add Reward</button>
+      </div>
+      <div class="card"><div class="card-title">🎁 Rewards by Child</div><div id="parent-rewards-list"></div></div>
+    </div>
+
+    <div class="tab-panel" id="tab-progress"><div id="progress-overview"></div></div>
+
+    <div class="tab-panel" id="tab-settings">
+      <div class="card">
+        <div class="card-title">⚙️ Settings</div>
+        <div class="form-row"><label>Change PIN</label><input id="new-pin" type="password" maxlength="4" placeholder="New 4-digit PIN"/></div>
+        <button class="btn-primary" onclick="changePin()">Update PIN</button>
+        <div style="height:18px"></div>
+        <div class="form-grid">
+          <div class="form-row"><label>Adjust Coins For</label><select id="coin-kid-select"></select></div>
+          <div class="form-row"><label>Amount</label><input id="coin-adjust" type="number" placeholder="+10 or -5"/></div>
+        </div>
+        <button class="btn-primary" onclick="adjustCoins()">Adjust Coins</button>
+        <div style="height:18px"></div>
+        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
+          <div style="font-weight:800;margin-bottom:10px">🏆 Max Coins Per Lesson</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Set the max coins a kid can earn on their first attempt at each subject (score% × max).</div>
+          <div class="form-row"><label>Kid</label><select id="coinmax-kid-select" onchange="renderCoinMaxInputs()"></select></div>
+          <div id="coinmax-inputs" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px"></div>
+          <button class="btn-primary" style="margin-top:12px" onclick="saveCoinMax()">Save Coin Limits</button>
+        </div>
+        <div style="height:18px"></div>
+        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
+          <div style="font-weight:800;margin-bottom:8px">☁️ Cloud Sync ID</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Share this ID with any device to sync data. Scan the QR code or paste the ID manually on another device.</div>
+          <div id="bin-id-display" style="font-family:monospace;font-size:12px;background:white;border:1px solid var(--border);padding:10px;border-radius:8px;word-break:break-all;margin-bottom:10px">Loading...</div>
+          <div style="margin-bottom:12px">
+            <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;text-align:center">📷 Scan with another device to connect</div>
+            <div id="sync-qr-code" style="display:flex;justify-content:center;padding:12px;background:white;border-radius:12px;border:2px solid var(--border)"></div>
+          </div>
+        </div>
+        <div style="height:10px"></div>
+        <div class="form-row"><label>Connect to Existing Sync ID</label><input id="import-bin-id" type="text" placeholder="Paste Sync ID here"/></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-primary" style="background:#2ECC71;flex:1" onclick="connectBinId()">Connect &amp; Sync</button>
+          <button class="btn-primary" style="background:#7C3AED;flex:1" onclick="startQRScan()">📷 Scan QR Code</button>
+        </div>
+        <!-- QR Scanner -->
+        <div id="qr-scanner-container" style="display:none;margin-top:12px;border-radius:12px;overflow:hidden;border:2px solid var(--border)">
+          <div style="background:#1e1b4b;color:white;font-size:13px;font-weight:700;padding:8px 12px;display:flex;justify-content:space-between;align-items:center">
+            <span>📷 Point camera at QR code</span>
+            <button onclick="stopQRScan()" style="background:none;border:none;color:white;font-size:18px;cursor:pointer;padding:0">✕</button>
+          </div>
+          <video id="qr-video" style="width:100%;display:block;max-height:260px;object-fit:cover" playsinline autoplay muted></video>
+          <canvas id="qr-canvas" style="display:none"></canvas>
+          <div id="qr-scan-status" style="text-align:center;padding:8px;font-size:13px;color:var(--muted)">Scanning...</div>
+        </div>
+        <div style="height:18px"></div>
+        <div style="height:10px"></div>
+        <div class="card" style="background:#FFF5F5;box-shadow:none;border:2px solid #FCA5A5">
+          <div style="font-weight:800;margin-bottom:8px">🗑️ Reset Lesson Progress</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Clears today's completions and coins earned from lessons. Curriculum and rewards are kept.</div>
+          <div class="form-row"><label>For</label><select id="reset-progress-kid" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"></select></div>
+          <button class="btn-danger" onclick="resetProgress()" style="width:100%;padding:12px;margin-top:8px">🗑️ Reset Progress &amp; Coins</button>
+        </div>
+        <div style="height:10px"></div>
+        <button class="btn-danger" onclick="resetAll()" style="width:100%;padding:12px">⚠️ Reset All Data</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_KEY = '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';
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const JSONBIN_API = 'https://api.jsonbin.io/v3';
+// Free JSONBin master key - app creates its own bin on first load
+const JSONBIN_KEY = '$2a$10$sydM3nGoNHAf9PtvxleqcuyyFAmFSm6TTYMxsu3RxguX73/UCwMPm';
+
+const DEFAULT_STATE = {
+  pin:'2730',
+  kids:[{id:'lauren',name:'Lauren',emoji:'👧🏾',coins:0},{id:'andrew',name:'Andrew',emoji:'🧒🏾',coins:0}],
+  rewards:{
+    lauren:[
+      {id:'r1',name:'30 min extra screen time',cost:40,emoji:'📺'},
+      {id:'r2',name:'Choose dinner',cost:60,emoji:'🍕'},
+      {id:'r3',name:'$1 allowance bonus',cost:80,emoji:'💵'}
+    ],
+    andrew:[
+      {id:'r1',name:'30 min extra screen time',cost:40,emoji:'📺'},
+      {id:'r2',name:'Choose dinner',cost:60,emoji:'🍕'},
+      {id:'r3',name:'$1 allowance bonus',cost:80,emoji:'💵'}
+    ]
+  },
+  curriculum:{lauren:null,andrew:null},
+  progress:{lauren:{},andrew:{}},
+  writingQueue:[],
+  difficultyLevel:{lauren:2,andrew:2},
+  usedTopics:{lauren:[],andrew:[]},
+  coinMax:{lauren:{spelling:30,math:30,reading:30,writing:30},andrew:{spelling:30,math:30,reading:30,writing:30}},
+  redemptionQueue:[]
+};
+
+let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+let binId = localStorage.getItem('kidstuff_binId') || null;
+let isSyncing = false;
+let currentKidId = null;
+let pinEntry = '';
+let lessonState = null;
+let syncTimer = null;
+
+// ── CLOUD SYNC ─────────────────────────────────────────
+function initSync() {
+  loadLocalFallback();
+  if (binId) {
+    pullState().catch(e => console.warn('Sync failed:', e));
+  } else {
+    createBin().catch(e => { console.warn('Bin failed:', e); setSyncBar('','hide'); });
+  }
+}
+
+async function createBin() {
+  setSyncBar('⏳ Setting up cloud sync...', '');
+  try {
+    const res = await fetch(JSONBIN_API + '/b', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','X-Master-Key':JSONBIN_KEY,'X-Bin-Name':'KidStuff','X-Bin-Private':'true'},
+      body: JSON.stringify(DEFAULT_STATE)
+    });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch(pe) {
+      setSyncBar('❌ Sync error: bad response — ' + text.slice(0,80), 'error');
+      return;
+    }
+    if (!res.ok) {
+      setSyncBar('❌ Sync error ' + res.status + ': ' + (data.message || text.slice(0,80)), 'error');
+      console.error('createBin failed:', res.status, data);
+      return;
+    }
+    if (data.metadata && data.metadata.id) {
+      binId = data.metadata.id;
+      localStorage.setItem('kidstuff_binId', binId);
+      state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+      setSyncBar('✅ Cloud sync ready', '');
+      updateBinIdDisplay();
+      document.getElementById('sync-status-landing').textContent = '☁️ Cloud sync active · ID: ' + binId.slice(-6);
+    } else {
+      setSyncBar('❌ Sync error: no bin ID in response', 'error');
+      console.error('createBin no ID:', data);
+    }
+  } catch(e) {
+    setSyncBar('❌ Sync error: ' + e.message, 'error');
+    console.error('createBin exception:', e);
+    loadLocalFallback();
+  }
+}
+
+async function pullState() {
+  try {
+    isSyncing = true;
+    setSyncBar('⟳ Syncing...', 'syncing');
+    const res = await fetch(JSONBIN_API + '/b/' + binId + '/latest', {
+      headers: {'X-Master-Key': JSONBIN_KEY}
+    });
+    const data = await res.json();
+    if (data.record) {
+      state = Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATE)), data.record);
+      localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+      setSyncBar('✅ Synced', '');
+      updateBinIdDisplay();
+      document.getElementById('sync-status-landing').textContent = '☁️ Cloud sync active · ID: ' + binId.slice(-6);
+    }
+  } catch(e) {
+    console.error('pullState error:', e);
+    loadLocalFallback();
+    setSyncBar('⚠️ Using cached data', 'error');
+  } finally {
+    isSyncing = false;
+  }
+}
+
+async function pushState() {
+  if (!binId) { localStorage.setItem('kidstuff_cache', JSON.stringify(state)); return; }
+  try {
+    setSyncBar('⟳ Saving...', 'syncing');
+    const res = await fetch(JSONBIN_API + '/b/' + binId, {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json','X-Master-Key':JSONBIN_KEY},
+      body: JSON.stringify(state)
+    });
+    if (!res.ok) throw new Error('Push failed');
+    localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+    setSyncBar('✅ Saved', '');
+    setTimeout(() => setSyncBar('', 'hide'), 2000);
+  } catch(e) {
+    localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+    setSyncBar('⚠️ Saved locally (no connection)', 'error');
+  }
+}
+
+function saveState() {
+  localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+  updateParentBadge();
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(pushState, 800);
+}
+
+function loadLocalFallback() {
+  try {
+    const cached = localStorage.getItem('kidstuff_cache');
+    if (cached) state = Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATE)), JSON.parse(cached));
+  } catch(e) { state = JSON.parse(JSON.stringify(DEFAULT_STATE)); }
+}
+
+function setSyncBar(msg, type) {
+  const bar = document.getElementById('sync-bar');
+  if (!msg || type === 'hide') { bar.style.display = 'none'; return; }
+  bar.style.display = 'block';
+  bar.textContent = msg;
+  bar.className = 'sync-bar' + (type ? ' ' + type : '');
+}
+
+function updateBinIdDisplay() {
+  const el = document.getElementById('bin-id-display');
+  if (el) el.textContent = binId || 'Not initialized';
+  const qrDiv = document.getElementById('sync-qr-code');
+  if (qrDiv) {
+    qrDiv.innerHTML = '';
+    if (binId) {
+      new QRCode(qrDiv, {
+        text: binId,
+        width: 200,
+        height: 200,
+        colorDark: '#1e1b4b',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
+  }
+}
+
+function copyBinId() {
+  if (!binId) return;
+  navigator.clipboard.writeText(binId).then(() => showToast('📋 Sync ID copied!'));
+}
+
+function startQRScan() {
+  const container = document.getElementById('qr-scanner-container');
+  const video = document.getElementById('qr-video');
+  const status = document.getElementById('qr-scan-status');
+  if (!container || !video) return;
+  container.style.display = 'block';
+  if (status) status.textContent = 'Starting camera...';
+  window._qrScanning = true;
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+    .then(function(stream) {
+      video._stream = stream;
+      video.srcObject = stream;
+      video.onloadedmetadata = function() {
+        video.play();
+        requestAnimationFrame(scanQRFrame);
+      };
+    })
+    .catch(function(e) {
+      window._qrScanning = false;
+      if (status) status.textContent = '❌ Camera access denied — allow camera in Safari Settings.';
+    });
+}
+
+function stopQRScan() {
+  window._qrScanning = false;
+  const video = document.getElementById('qr-video');
+  const container = document.getElementById('qr-scanner-container');
+  if (video && video._stream) {
+    video._stream.getTracks().forEach(function(t){ t.stop(); });
+    video._stream = null;
+    video.srcObject = null;
+  }
+  if (container) container.style.display = 'none';
+}
+
+function scanQRFrame() {
+  if (!window._qrScanning) return;
+  const video = document.getElementById('qr-video');
+  const canvas = document.getElementById('qr-canvas');
+  const status = document.getElementById('qr-scan-status');
+  if (!video || !canvas || !video._stream) return;
+  if (video.readyState < video.HAVE_ENOUGH_DATA) {
+    requestAnimationFrame(scanQRFrame);
+    return;
+  }
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  if (typeof jsQR === 'undefined') {
+    if (status) status.textContent = '⚠️ Scanner not loaded yet — try again in a moment.';
+    return;
+  }
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+  if (code) {
+    document.getElementById('import-bin-id').value = code.data;
+    if (status) status.textContent = '✅ Scanned!';
+    showToast('✅ Sync ID scanned — tap Connect & Sync!');
+    setTimeout(stopQRScan, 600);
+  } else {
+    if (status) status.textContent = '📷 Point camera at QR code...';
+    requestAnimationFrame(scanQRFrame);
+  }
+}
+
+async function connectBinId() {
+  const val = document.getElementById('import-bin-id').value.trim();
+  if (!val) { showToast('⚠️ Paste a Sync ID first.'); return; }
+  binId = val;
+  localStorage.setItem('kidstuff_binId', binId);
+  document.getElementById('import-bin-id').value = '';
+  await pullState();
+  renderParentDashboard();
+  showToast('✅ Connected and synced!');
+}
+
+// ── SCREENS ─────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (id === 'screen-kid-select') {
+    pullState().then(() => {
+      renderKidSelect();
+      const remembered = localStorage.getItem('kidstuff_rememberedKid');
+      const cb = document.getElementById('remember-me-checkbox');
+      if (cb && remembered) cb.checked = true;
+    });
+  }
+  if (id === 'screen-kid') renderKidDashboard();
+  if (id === 'screen-parent') { pullState().then(renderParentDashboard); }
+  if (id === 'screen-pin') { pinEntry = ''; updatePinDots(); document.getElementById('pin-error').textContent = ''; }
+  window.scrollTo(0,0);
+}
+
+// ── PIN ──────────────────────────────────────────────────
+function pinKey(d) {
+  if (pinEntry.length >= 4) return;
+  pinEntry += d; updatePinDots();
+  if (pinEntry.length === 4) {
+    setTimeout(() => {
+      if (pinEntry === state.pin) showScreen('screen-parent');
+      else { document.getElementById('pin-error').textContent = 'Incorrect PIN.'; pinEntry = ''; updatePinDots(); }
+    }, 200);
+  }
+}
+function pinDelete() { pinEntry = pinEntry.slice(0,-1); updatePinDots(); document.getElementById('pin-error').textContent = ''; }
+function updatePinDots() { for(let i=0;i<4;i++) document.getElementById('dot-'+i).classList.toggle('filled', i < pinEntry.length); }
+
+// ── KID SELECT ───────────────────────────────────────────
+function renderKidSelect() {
+  document.getElementById('kid-avatars-container').innerHTML = state.kids.map(k =>
+    `<button class="kid-avatar-btn" onclick="selectKid('${k.id}')">
+      <div class="avatar-emoji">${k.emoji}</div>
+      <div class="avatar-name">${k.name}</div>
+      <div class="avatar-coins">⭐ ${k.coins} coins</div>
+    </button>`).join('');
+}
+function selectKid(id) {
+  currentKidId = id;
+  const cb = document.getElementById('remember-me-checkbox');
+  if (cb && cb.checked) {
+    localStorage.setItem('kidstuff_rememberedKid', id);
+  } else {
+    localStorage.removeItem('kidstuff_rememberedKid');
+  }
+  showScreen('screen-kid');
+}
+function updateParentBadge() {
+  const btn = document.getElementById('parent-landing-btn');
+  if (!btn) return;
+  const pendingRedemptions = (state.redemptionQueue||[]).filter(function(r){ return r.status==='pending'; }).length;
+  const pendingWriting = (state.writingQueue||[]).filter(function(w){ return w.status==='pending'; }).length;
+  const pendingFlagged = (state.flaggedReview||[]).filter(function(f){ return f.status==='pending'; }).length;
+  const total = pendingRedemptions + pendingWriting + pendingFlagged;
+  let badge = btn.querySelector('.parent-badge');
+  if (total > 0) {
+    if (!badge) {
+      badge = document.createElement('div');
+      badge.className = 'parent-badge';
+      badge.style.cssText = 'position:absolute;top:-8px;right:-8px;background:#EF4444;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;';
+      btn.style.position = 'relative';
+      btn.appendChild(badge);
+    }
+    badge.textContent = total;
+  } else if (badge) {
+    badge.remove();
+  }
+}
+
+function studentLogin() {
+  const remembered = localStorage.getItem('kidstuff_rememberedKid');
+  if (remembered && state.kids.find(k => k.id === remembered)) {
+    currentKidId = remembered;
+    pullState().then(() => showScreen('screen-kid'));
+  } else {
+    showScreen('screen-kid-select');
+  }
+}
+
+function getTodayKey() { return new Date().toDateString(); }
+
+
+function getRewardsForKid(kidId) {
+  if (!state.rewards) return [];
+  if (Array.isArray(state.rewards)) return state.rewards; // legacy
+  return state.rewards[kidId] || [];
+}
+function setRewardsForKid(kidId, arr) {
+  if (!state.rewards || Array.isArray(state.rewards)) state.rewards = {};
+  state.rewards[kidId] = arr;
+}
+// ── KID DASHBOARD ────────────────────────────────────────
+function renderKidDashboard() {
+  const kid = state.kids.find(k => k.id === currentKidId);
+  if (!kid) return;
+  document.getElementById('kid-header-sub').textContent = kid.name + "'s Lessons";
+  document.getElementById('kid-dash-avatar').textContent = kid.emoji;
+  document.getElementById('kid-dash-name').textContent = kid.name;
+  document.getElementById('kid-dash-coins').textContent = '⭐ ' + kid.coins + ' coins';
+  const curriculum = state.curriculum[currentKidId];
+  const progress = state.progress[currentKidId] || {};
+  const grid = document.getElementById('subject-grid');
+  const noContent = document.getElementById('no-content-msg');
+  if (!curriculum || !curriculum.subjects) {
+    noContent.style.display = 'block'; grid.innerHTML = '';
+    document.getElementById('kid-dash-progress').textContent = 'No lessons yet';
+  } else {
+    noContent.style.display = 'none';
+    const todayKey = getTodayKey();
+    let done = 0;
+    grid.innerHTML = '';
+    const subjectArt = {spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'};
+    const subjectColors = {
+      spelling:'linear-gradient(135deg,#667eea,#764ba2)',
+      math:'linear-gradient(135deg,#f093fb,#f5576c)',
+      reading:'linear-gradient(135deg,#4facfe,#00f2fe)',
+      writing:'linear-gradient(135deg,#43e97b,#38f9d7)'
+    };
+    curriculum.subjects.forEach(function(s) {
+      const p = progress[s.id]; const d = p && p.date === todayKey; if(d) done++;
+      const art = subjectArt[s.id] || s.icon;
+      const col = subjectColors[s.id] || 'linear-gradient(135deg,#4F6EF7,#7C3AED)';
+      const div = document.createElement('div');
+      div.className = 'subject-card' + (d?' completed':'');
+      div.style.cssText = 'position:relative;overflow:hidden;';
+      div.innerHTML = '<div style="width:72px;height:72px;border-radius:50%;background:' + col + ';display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 12px;box-shadow:0 4px 16px rgba(0,0,0,0.15);">' + art + '</div>'
+        + '<div class="subj-name">' + s.name + '</div>'
+        + (d ? '<div class="subj-score" style="margin-top:6px">✓ ' + p.score + '%</div>' : '<div class="subj-status">' + (s.questions||[]).length + ' questions · ~' + (s.duration||7) + ' min</div>')
+        + (d ? '<div style="position:absolute;top:10px;right:10px;background:#2ECC71;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:14px;">✓</div>' : '');
+      div.onclick = (function(id){ return function(){ startLesson(id); }; })(s.id);
+      grid.appendChild(div);
+    });
+    const total_subjects = curriculum.subjects.length;
+    const prog_el = document.getElementById('kid-dash-progress');
+    if (done === total_subjects) {
+      prog_el.textContent = '🎉 All done for the week!';
+      prog_el.style.color = '#2ECC71';
+      prog_el.style.fontWeight = '800';
+    } else {
+      prog_el.textContent = done + ' of ' + total_subjects + ' done today';
+      prog_el.style.color = '';
+      prog_el.style.fontWeight = '';
+    }
+  }
+  const rewardsEl = document.getElementById('kid-rewards-list');
+  const kidRewards2 = getRewardsForKid(currentKidId);
+  if (!kidRewards2 || !kidRewards2.length) {
+    rewardsEl.innerHTML = '<div class="empty-state"><div class="empty-icon">🎁</div><p>No rewards yet.</p></div>';
+  } else {
+    rewardsEl.innerHTML = '';
+    kidRewards2.forEach(function(r) {
+      const item = document.createElement('div');
+      item.className = 'reward-item';
+      item.innerHTML = '<div class="reward-icon">' + r.emoji + '</div>'
+        + '<div class="reward-info"><div class="reward-name">' + r.name + '</div><div class="reward-cost">⭐ ' + r.cost + ' coins</div></div>';
+      const btn = document.createElement('button');
+      btn.className = 'redeem-btn';
+      btn.disabled = kid.coins < r.cost;
+      btn.textContent = kid.coins >= r.cost ? 'Redeem' : 'Need ' + (r.cost - kid.coins) + ' more';
+      btn.onclick = (function(rid){ return function(){ redeemReward(rid); }; })(r.id);
+      item.appendChild(btn);
+      rewardsEl.appendChild(item);
+    });
+  }
+}
+
+function redeemReward(id) {
+  const r = getRewardsForKid(currentKidId).find(x => x.id === id);
+  const kid = state.kids.find(k => k.id === currentKidId);
+  if (!r || !kid || kid.coins < r.cost) return;
+  kid.coins -= r.cost;
+  if (!state.redemptionQueue) state.redemptionQueue = [];
+  state.redemptionQueue.push({
+    id: 'rq' + Date.now(),
+    kidId: currentKidId,
+    rewardName: r.name,
+    rewardEmoji: r.emoji,
+    cost: r.cost,
+    date: new Date().toLocaleDateString(),
+    status: 'pending'
+  });
+  saveState(); playSound('coin'); showToast('🎁 Redeemed: ' + r.name + '! Your parent has been notified.'); renderKidDashboard();
+}
+
+// ── LESSON ENGINE ────────────────────────────────────────
+function startLesson(subjectId) {
+  const curriculum = state.curriculum[currentKidId];
+  if (!curriculum) return;
+  const subj = curriculum.subjects.find(s => s.id === subjectId);
+  if (!subj) return;
+  // Lock if already completed today
+  const prog = (state.progress[currentKidId]||{})[subjectId];
+  if (prog && prog.date === getTodayKey()) {
+    showLockedModal(subj, prog);
+    return;
+  }
+  lessonState = {
+    subjectId, subjectName: subj.name, subjectIcon: subj.icon, subjectType: subj.type,
+    questions: JSON.parse(JSON.stringify(subj.type === 'writing' ? [{type:'writing'}] : (subj.questions||[]))),
+    writingPrompt: subj.writingPrompt || null,
+    currentQ: 0, answers: [], correct: 0, streak: 0, missStreak: 0, wrongAnswers: [],
+    diffLevel: state.difficultyLevel[currentKidId] || 2,
+    startTime: Date.now()
+  };
+  showScreen('screen-lesson');
+  document.getElementById('lesson-title').textContent = sanitizeUnicode(subj.icon) + ' ' + subj.name;
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const ls = lessonState;
+  const total = ls.questions.length;
+  document.getElementById('lesson-progress').textContent = 'Q ' + (ls.currentQ+1) + ' of ' + total;
+  document.getElementById('lesson-header-sub').textContent = 'Question ' + (ls.currentQ+1) + ' of ' + total;
+  document.getElementById('lesson-progress-bar').style.width = Math.round((ls.currentQ/total)*100) + '%';
+  const c = document.getElementById('lesson-content');
+  const q = ls.questions[ls.currentQ];
+  if (!q) return;
+  if (q.type === 'writing') { renderWritingLesson(c); return; }
+  if (ls.subjectType === 'spelling') { renderSpellingQ(c, q); return; }
+  if (q.type === 'mc') { renderMCQ(c, q); return; }
+  if (q.type === 'short') {
+    // For reading: only use MC if options exist, otherwise fall back to short answer
+    if (ls.subjectType === 'reading' && q.options && q.options.length) { renderMCQ(c, q); return; }
+    renderShortQ(c, q); return;
+  }
+  renderTypedQ(c, q);
+}
+
+function renderSpellingQ(c, q) {
+  const w = q.word||'', h = escQ(q.hint||'');
+  c.innerHTML = `<div class="question-card">
+    <div class="question-text">🔊 Listen and spell the word</div>
+    <div class="question-sub">Press the button to hear the word, then type it below.</div>
+    <button class="speak-btn" onclick="speakWord('${w}')">🔊 Hear the Word</button>
+    <input class="answer-input" id="spell-input" type="text" placeholder="Type the word..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+    <div class="feedback-box" id="feedback"></div>
+    <button class="btn-primary" id="check-btn" onclick="checkSpelling('${w}','${h}')" style="margin-top:14px">Check Answer</button>
+  </div>`;
+  setTimeout(() => { speakWord(w); const el = document.getElementById('spell-input'); if(el) el.focus(); }, 400);
+}
+
+function speakWord(word) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(word);
+  u.rate = 0.75; window.speechSynthesis.speak(u);
+}
+
+function checkSpelling(word, hint) {
+  const input = document.getElementById('spell-input');
+  const val = (input.value||'').trim().toLowerCase();
+  const ok = val === word.toLowerCase();
+  input.className = 'answer-input ' + (ok?'correct':'wrong');
+  if (!ok && lessonState) {
+    const q = lessonState.questions[lessonState.currentQ];
+    lessonState.wrongAnswers.push({question: q.word || word, yourAnswer: val || '(blank)', correctAnswer: word, hint: hint||''});
+  }
+  showFeedback(ok, ok ? '✅ Correct! Great spelling!' : '❌ Correct spelling: "' + word + '"' + (hint?' — '+hint:''));
+  document.getElementById('check-btn').style.display='none';
+  recordAnswer(ok); showNextBtn();
+}
+
+function resolveAnswer(answer, options) {
+  const map = {A:0,B:1,C:2,D:3,a:0,b:1,c:2,d:3};
+  if (answer && answer.trim().length === 1 && map[answer.trim()] !== undefined) {
+    const idx = map[answer.trim()];
+    if (options && options[idx] !== undefined) return String(options[idx]);
+  }
+  return answer;
+}
+
+function renderMCQ(c, q) {
+  const cleanQ = sanitizeUnicode(q.question);
+  const cleanOpts = (q.options||[]).map(sanitizeUnicode);
+  const cleanAns = sanitizeUnicode(q.answer);
+  const cleanPassage = q.passage ? sanitizeUnicode(q.passage) : null;
+  const resolvedAns = resolveAnswer(cleanAns, cleanOpts);
+  c.innerHTML = `<div class="question-card">
+    ${cleanPassage ? `<div class="passage-box">${cleanPassage}</div>` : ''}
+    <div class="question-text">${cleanQ}</div>
+    <div class="options-list">${cleanOpts.map(o =>
+      `<button class="option-btn" onclick="selectOption(this,'${escQ(o)}','${escQ(resolvedAns)}')">${o}</button>`).join('')}
+    </div>
+    <div class="feedback-box" id="feedback"></div>
+  </div>`;
+}
+
+function renderShortQ(c, q) {
+  c.innerHTML = `<div class="question-card">
+    ${q.passage ? `<div class="passage-box">${q.passage}</div>` : ''}
+    <div class="question-text">${q.question}</div>
+    <div class="question-sub">Type your answer below.</div>
+    <textarea class="lined-area" id="short-input" rows="3" placeholder="Write your answer here..."></textarea>
+    <div class="feedback-box" id="feedback"></div>
+    <button class="btn-primary" id="check-btn" onclick="checkShortAnswer('${escQ(q.keywords||q.answer||'')}')">Submit</button>
+  </div>`;
+}
+
+function renderTypedQ(c, q) {
+  const cleanQ = sanitizeUnicode(q.question);
+  const cleanSub = q.sub ? sanitizeUnicode(q.sub) : null;
+  c.innerHTML = `<div class="question-card">
+    <div class="question-text">${cleanQ}</div>
+    ${cleanSub?`<div class="question-sub">${cleanSub}</div>`:''}
+    <input class="answer-input" id="typed-input" type="text" placeholder="Your answer..." autocomplete="off"/>
+    <div class="feedback-box" id="feedback"></div>
+    <button class="btn-primary" id="check-btn" onclick="checkTyped('${escQ(q.answer)}')">Check Answer</button>
+  </div>`;
+  setTimeout(() => { const el=document.getElementById('typed-input'); if(el) el.focus(); }, 200);
+}
+
+function renderWritingLesson(c) {
+  c.innerHTML = `<div class="question-card">
+    <div class="question-text">✍️ Writing Activity</div>
+    <div class="writing-prompt">${lessonState.writingPrompt||'Write 3–5 sentences about your favorite season. Use describing words!'}</div>
+    <div class="question-sub" style="margin-bottom:12px">Use your Apple Pencil to write below. Fill the lines!</div>
+    <div style="position:relative;margin-bottom:14px;">
+      <canvas id="writing-canvas" width="700" height="380"
+        style="width:100%;height:380px;border:2px solid var(--border);border-radius:12px;background:#FAFBFF;touch-action:none;cursor:crosshair;display:block;"></canvas>
+      <button onclick="clearCanvas()" style="position:absolute;top:8px;right:8px;background:rgba(255,255,255,0.9);border:1.5px solid var(--border);border-radius:8px;padding:5px 12px;font-family:Nunito,sans-serif;font-weight:700;font-size:12px;cursor:pointer;color:var(--muted);">🗑 Clear</button>
+    </div>
+    <div class="feedback-box" id="feedback"></div>
+    <button class="btn-primary" id="writing-submit-btn" onclick="submitWriting()">Submit for Review ✉️</button>
+  </div>`;
+  initCanvas();
+}
+
+function initCanvas() {
+  const canvas = document.getElementById('writing-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  // Draw lined paper background
+  function drawLines() {
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#FAFBFF';
+    ctx.fillRect(0, 0, w, h);
+    // Red margin line
+    ctx.strokeStyle = '#FFB3B3';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(48, 0); ctx.lineTo(48, h); ctx.stroke();
+    // Blue lines
+    ctx.strokeStyle = '#C5D0F0';
+    ctx.lineWidth = 1;
+    const lineSpacing = 44;
+    for (let y = lineSpacing; y < h; y += lineSpacing) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+  }
+  drawLines();
+
+  // Resize canvas to actual pixel dimensions
+  function resizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    canvas._scaleX = scaleX;
+    canvas._scaleY = scaleY;
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  let drawing = false;
+  let lastX = 0, lastY = 0;
+
+  function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas._scaleX || 1;
+    const scaleY = canvas._scaleY || 1;
+    if (e.touches) {
+      return [(e.touches[0].clientX - rect.left) * scaleX,
+              (e.touches[0].clientY - rect.top) * scaleY];
+    }
+    return [(e.clientX - rect.left) * scaleX,
+            (e.clientY - rect.top) * scaleY];
+  }
+
+  function startDraw(e) {
+    e.preventDefault();
+    drawing = true;
+    [lastX, lastY] = getPos(e);
+    ctx.beginPath();
+    ctx.arc(lastX, lastY, 1, 0, Math.PI*2);
+    ctx.fillStyle = '#1A1F36';
+    ctx.fill();
+  }
+
+  function draw(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    const [x, y] = getPos(e);
+    // Use pressure if available (Apple Pencil)
+    const pressure = e.touches && e.touches[0].force ? e.touches[0].force : 0.5;
+    const lineWidth = Math.max(1.5, pressure * 4);
+    ctx.strokeStyle = '#1A1F36';
+    ctx.lineWidth = lineWidth;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    [lastX, lastY] = [x, y];
+  }
+
+  function endDraw(e) {
+    drawing = false;
+  }
+
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', endDraw);
+  canvas.addEventListener('touchstart', startDraw, {passive:false});
+  canvas.addEventListener('touchmove', draw, {passive:false});
+  canvas.addEventListener('touchend', endDraw);
+
+  canvas._drawLines = drawLines;
+}
+
+function clearCanvas() {
+  const canvas = document.getElementById('writing-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (canvas._drawLines) canvas._drawLines();
+  else { ctx.clearRect(0,0,canvas.width,canvas.height); }
+}
+
+function submitWriting() {
+  const canvas = document.getElementById('writing-canvas');
+  if (!canvas) return;
+  // Check if anything was drawn by sampling pixels
+  const ctx = canvas.getContext('2d');
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  let hasDrawing = false;
+  for (let i = 3; i < imageData.length; i += 4) {
+    // Look for dark pixels (pen strokes)
+    if (imageData[i-3] < 100 && imageData[i] > 200) { hasDrawing = true; break; }
+  }
+  if (!hasDrawing) { showToast('✏️ Please write something first!'); return; }
+
+  const imageDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+  if (!state.writingQueue) state.writingQueue = [];
+  state.writingQueue.push({
+    id: 'w'+Date.now(), kidId: currentKidId,
+    prompt: lessonState.writingPrompt,
+    kidAnswer: imageDataUrl,
+    kidAnswerType: 'drawing',
+    status: 'pending', date: new Date().toLocaleDateString()
+  });
+  saveState();
+  showFeedback(true, '✅ Submitted! Your parent will review and award bonus coins.');
+  document.getElementById('writing-submit-btn').style.display='none';
+  recordAnswer(true); showNextBtn();
+}
+
+function selectOption(btn, selected, correct) {
+  document.querySelectorAll('.option-btn').forEach(b => b.disabled=true);
+  const ok = selected === correct;
+  btn.classList.add(ok?'correct':'wrong');
+  if (!ok) document.querySelectorAll('.option-btn').forEach(b => { if(b.textContent.trim()===correct) b.classList.add('correct'); });
+  if (!ok && lessonState) {
+    const q = lessonState.questions[lessonState.currentQ];
+    lessonState.wrongAnswers.push({question: q.question || q.word || '', yourAnswer: selected, correctAnswer: correct});
+  }
+  showFeedback(ok, ok ? '✅ Correct!' : '❌ The answer is: ' + correct);
+  recordAnswer(ok); showNextBtn();
+}
+
+function parseFraction(s) {
+  s = (s||'').trim().replace(/\s+/g,'');
+  if (s.includes('/')) {
+    const parts = s.split('/');
+    if (parts.length === 2) {
+      const n = parseFloat(parts[0]), d = parseFloat(parts[1]);
+      if (!isNaN(n) && !isNaN(d) && d !== 0) return n / d;
+    }
+  }
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+
+function answersMatch(val, answer) {
+  const vLow = (val||'').toLowerCase().trim();
+  const aLow = (answer||'').toLowerCase().trim();
+  if (vLow === aLow) return true;
+  // Numeric / fraction equivalence
+  const vNum = parseFraction(vLow);
+  const aNum = parseFraction(aLow);
+  if (vNum !== null && aNum !== null && Math.abs(vNum - aNum) < 0.0001) return true;
+  // Strip non-numeric chars and compare (handles "24 sq inches" vs "24")
+  const vStrip = vLow.replace(/[^0-9.\/]/g,'');
+  const aStrip = aLow.replace(/[^0-9.\/]/g,'');
+  if (vStrip && aStrip) {
+    if (vStrip === aStrip) return true;
+    const vn2 = parseFraction(vStrip), an2 = parseFraction(aStrip);
+    if (vn2 !== null && an2 !== null && Math.abs(vn2 - an2) < 0.0001) return true;
+  }
+  return false;
+}
+
+function checkTyped(answer) {
+  const input = document.getElementById('typed-input');
+  const val = (input.value||'').trim();
+  const ok = answersMatch(val, answer);
+  input.className = 'answer-input ' + (ok?'correct':'wrong');
+  if (!ok && lessonState) {
+    const q = lessonState.questions[lessonState.currentQ];
+    lessonState.wrongAnswers.push({question: q.question || '', yourAnswer: val || '(blank)', correctAnswer: answer});
+  }
+  showFeedback(ok, ok ? '✅ Correct!' : '❌ Correct answer: ' + answer);
+  document.getElementById('check-btn').style.display='none';
+  recordAnswer(ok); showNextBtn();
+}
+
+function checkShortAnswer(keywordsStr) {
+  const val = (document.getElementById('short-input').value||'').trim().toLowerCase();
+  const kws = keywordsStr.split(',').map(k=>k.trim().toLowerCase()).filter(Boolean);
+  const matched = kws.filter(k => k && val.includes(k)).length;
+  const ok = !kws.length || matched >= Math.ceil(kws.length * 0.4);
+  showFeedback(ok, ok ? '✅ Good answer! You included the key ideas.' : '❌ Try to include more details about: ' + keywordsStr);
+  document.getElementById('check-btn').style.display='none';
+  recordAnswer(ok); showNextBtn();
+}
+
+function showFeedback(ok, msg) {
+  const fb = document.getElementById('feedback');
+  if (!fb) return;
+  fb.className = 'feedback-box ' + (ok?'correct':'wrong');
+  fb.textContent = msg;
+  playSound(ok ? 'correct' : 'wrong');
+}
+
+function recordAnswer(ok, flagged) {
+  const ls = lessonState;
+  ls.answers.push({q: ls.currentQ, correct: ok, flagged: !!flagged});
+  if (flagged) ls.flagged = (ls.flagged||0) + 1;
+  if (ok) { ls.correct++; ls.streak++; ls.missStreak=0; }
+  else { ls.streak=0; ls.missStreak++; }
+  if (ls.streak >= 3 && ls.diffLevel < 3) { ls.diffLevel++; ls.streak=0; }
+  if (ls.missStreak >= 2 && ls.diffLevel > 1) { ls.diffLevel--; ls.missStreak=0; }
+}
+
+function showNextBtn(flagged) {
+  const ls = lessonState;
+  const isLast = ls.currentQ >= ls.questions.length-1;
+  const ex = document.getElementById('next-btn'); if(ex) ex.remove();
+  const exf = document.getElementById('flag-btn'); if(exf) exf.remove();
+  const qc = document.querySelector('#lesson-content .question-card');
+  if (!qc) return;
+
+  // Flag button (only show if not already flagged)
+  if (!flagged) {
+    const flagBtn = document.createElement('button');
+    flagBtn.id = 'flag-btn';
+    flagBtn.style.cssText = 'width:100%;margin-top:10px;padding:11px;border-radius:12px;border:2px solid #F7C948;background:#FFFBEA;color:#B45309;font-family:Nunito,sans-serif;font-weight:700;font-size:14px;cursor:pointer;';
+    flagBtn.textContent = '🚩 I do not understand this question';
+    flagBtn.onclick = flagQuestion;
+    qc.appendChild(flagBtn);
+  } else {
+    const flagged_msg = document.createElement('div');
+    flagged_msg.style.cssText = 'margin-top:10px;padding:10px;border-radius:10px;background:#FFF8E1;color:#B45309;font-size:13px;font-weight:700;text-align:center;';
+    flagged_msg.textContent = '🚩 Flagged for parent review';
+    qc.appendChild(flagged_msg);
+  }
+
+  const btn = document.createElement('button');
+  btn.id='next-btn'; btn.className='btn-primary'; btn.style.marginTop='8px';
+  btn.textContent = isLast ? '🎉 See My Results!' : 'Next Question →';
+  btn.onclick = isLast ? finishLesson : nextQuestion;
+  qc.appendChild(btn);
+}
+
+function flagQuestion() {
+  const ls = lessonState;
+  const q = ls.questions[ls.currentQ];
+  if (!ls.flaggedQuestions) ls.flaggedQuestions = [];
+  ls.flaggedQuestions.push({
+    qIndex: ls.currentQ,
+    question: q.question || q.word || 'Writing activity',
+    correctAnswer: q.answer || (q.options ? q.options.find(function(o){ return o; }) : '') || '',
+    subject: ls.subjectName
+  });
+  // Mark as wrong + flagged
+  recordAnswer(false, true);
+  showFeedback(false, '🚩 Flagged! This counts as incorrect but your parent will be notified.');
+  // Hide check buttons if still visible
+  const cb = document.getElementById('check-btn'); if(cb) cb.style.display='none';
+  // Disable all option buttons
+  document.querySelectorAll('.option-btn').forEach(b => b.disabled=true);
+  // Disable inputs
+  const si = document.getElementById('spell-input'); if(si) si.disabled=true;
+  const ti = document.getElementById('typed-input'); if(ti) ti.disabled=true;
+  const shi = document.getElementById('short-input'); if(shi) shi.disabled=true;
+  showNextBtn(true);
+}
+
+function showLockedModal(subj, prog) {
+  // Remove any existing modal
+  const existing = document.getElementById('locked-modal');
+  if (existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'locked-modal';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+  const wrongList = prog.wrongAnswers || [];
+  const wrongHtml = wrongList.length === 0
+    ? '<div style="text-align:center;color:#2ECC71;font-weight:800;padding:12px">🎉 Perfect score — no mistakes!</div>'
+    : wrongList.map(function(w) {
+        return '<div style="background:#FFF5F5;border:1px solid #FCA5A5;border-radius:10px;padding:10px;margin-bottom:8px">'
+          + '<div style="font-size:13px;color:#374151;margin-bottom:3px"><strong>Q:</strong> ' + w.question + '</div>'
+          + '<div style="font-size:13px;color:#EF4444"><strong>Got:</strong> ' + w.yourAnswer + '</div>'
+          + '<div style="font-size:13px;color:#2ECC71"><strong>Answer:</strong> ' + w.correctAnswer + '</div>'
+          + (w.hint ? '<div style="font-size:12px;color:#6B7280;margin-top:2px">💡 ' + w.hint + '</div>' : '')
+          + '</div>';
+      }).join('');
+  overlay.innerHTML = '<div style="background:white;border-radius:20px;padding:24px;max-width:480px;width:100%;max-height:80vh;overflow-y:auto;">'
+    + '<div style="font-size:28px;text-align:center;margin-bottom:4px">' + subj.icon + '</div>'
+    + '<div style="font-weight:800;font-size:18px;text-align:center;margin-bottom:4px">' + subj.name + ' — Already Done!</div>'
+    + '<div style="text-align:center;color:#6B7280;font-size:14px;margin-bottom:16px">Score: <strong>' + prog.score + '%</strong> · ⭐ ' + prog.coins + ' coins · ' + prog.correct + '/' + prog.total + ' correct</div>'
+    + (wrongList.length > 0 ? '<div style="font-weight:800;margin-bottom:10px;color:#EF4444">❌ Missed Questions:</div>' : '')
+    + wrongHtml
+    + '<button id="locked-close-btn" style="width:100%;margin-top:16px;padding:13px;border-radius:12px;border:none;background:var(--primary);color:white;font-family:Nunito,sans-serif;font-weight:800;font-size:15px;cursor:pointer;">Done</button>'
+    + '</div>';
+  document.body.appendChild(overlay);
+  overlay.onclick = function(e) { if(e.target === overlay) overlay.remove(); };
+  var closeBtn = document.getElementById('locked-close-btn');
+  if (closeBtn) closeBtn.onclick = function() { overlay.remove(); };
+}
+
+function nextQuestion() { lessonState.currentQ++; renderQuestion(); window.scrollTo(0,0); }
+
+function finishLesson() {
+  const ls = lessonState;
+  const total = ls.questions.length;
+  const pct = Math.round((ls.correct/total)*100);
+  if (!state.progress[currentKidId]) state.progress[currentKidId]={};
+  const alreadyDone = state.progress[currentKidId][ls.subjectId] && state.progress[currentKidId][ls.subjectId].date === getTodayKey();
+  const maxCoins = (state.coinMax && state.coinMax[currentKidId] && state.coinMax[currentKidId][ls.subjectId]) || 30;
+  const coins = alreadyDone ? 0 : Math.round(pct * (maxCoins / 100));
+  const flaggedCount = ls.flagged || 0;
+  const flaggedQuestions = ls.flaggedQuestions || [];
+  const elapsedMs = Date.now() - (ls.startTime || Date.now());
+  const elapsedMin = Math.round(elapsedMs / 60000);
+  state.progress[currentKidId][ls.subjectId] = {score:pct,coins,date:getTodayKey(),correct:ls.correct,total,flagged:flaggedCount,flaggedQuestions,wrongAnswers:ls.wrongAnswers||[],duration:elapsedMin};
+  // Add flagged questions to a review queue for parent
+  if (!state.flaggedReview) state.flaggedReview = [];
+  flaggedQuestions.forEach(fq => {
+    state.flaggedReview.push({
+      id: 'f'+Date.now()+Math.random(),
+      kidId: currentKidId,
+      subject: fq.subject,
+      question: fq.question,
+      correctAnswer: fq.correctAnswer || '',
+      date: new Date().toLocaleDateString(),
+      status: 'pending'
+    });
+  });
+  const kid = state.kids.find(k=>k.id===currentKidId);
+  if (kid && !alreadyDone) kid.coins += coins;
+  state.difficultyLevel[currentKidId] = ls.diffLevel;
+  saveState();
+  const emoji = pct>=90?'🌟':pct>=70?'😊':pct>=50?'💪':'📚';
+  const resEmoji = document.getElementById('results-emoji');
+  const resScore = document.getElementById('results-score');
+  resEmoji.textContent = emoji;
+  resEmoji.style.animation = 'none';
+  resScore.style.animation = 'none';
+  requestAnimationFrame(() => {
+    resEmoji.style.animation = 'starPop 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards';
+    resScore.style.animation = 'popIn 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.2s both';
+  });
+  resScore.textContent = pct+'%';
+  document.getElementById('results-label').textContent = pct>=90?'🎉 Outstanding!':pct>=70?'😊 Great job!':pct>=50?'💪 Good effort!':'📚 Keep practicing!';
+  document.getElementById('results-coins').textContent = alreadyDone ? '⭐ No coins — already completed today' : '+'+coins+' ⭐ coins earned!';
+  const flagCount = ls.flagged || 0;
+  const flagRow = flagCount > 0 ? '<div class="breakdown-row"><span>\U0001f6a9 Flagged</span><strong style="color:#B45309">' + flagCount + ' question' + (flagCount>1?'s':'') + ' for review</strong></div>' : '';
+  const timeRow = '<div class="breakdown-row"><span>\u23f1 Time</span><strong>' + (elapsedMin < 1 ? 'Under 1 min' : elapsedMin + ' min') + '</strong></div>';
+  document.getElementById('results-breakdown-list').innerHTML =
+    '<div class="breakdown-row"><span>Subject</span><strong>' + ls.subjectIcon + ' ' + ls.subjectName + '</strong></div>'
+    + '<div class="breakdown-row"><span>Correct</span><strong>' + ls.correct + ' / ' + total + '</strong></div>'
+    + '<div class="breakdown-row"><span>Score</span><strong>' + pct + '%</strong></div>'
+    + '<div class="breakdown-row"><span>Coins Earned</span><strong>' + (alreadyDone ? '0 (replay)' : '\u2b50 ' + coins) + '</strong></div>'
+    + '<div class="breakdown-row"><span>Difficulty</span><strong>' + (['','Easy','Medium','Hard'][ls.diffLevel]) + '</strong></div>'
+    + timeRow + flagRow;
+  // Wrong answers section on results
+  const wrongList = ls.wrongAnswers || [];
+  const wrongSection = document.getElementById('results-wrong-answers');
+  if (wrongSection) {
+    if (wrongList.length === 0) {
+      wrongSection.innerHTML = '<div style="text-align:center;padding:16px;color:#2ECC71;font-weight:800;font-size:15px">🎉 Perfect score — no mistakes!</div>';
+    } else {
+      wrongSection.innerHTML = '<div style="font-weight:800;font-size:15px;margin-bottom:12px;color:#EF4444">❌ Incorrect Answers (' + wrongList.length + ')</div>'
+        + wrongList.map(function(w) {
+          return '<div style="background:#FFF5F5;border:1px solid #FCA5A5;border-radius:10px;padding:12px;margin-bottom:8px">'
+            + '<div style="font-size:13px;color:#374151;margin-bottom:4px"><strong>Q:</strong> ' + w.question + '</div>'
+            + '<div style="font-size:13px;color:#EF4444"><strong>Your answer:</strong> ' + w.yourAnswer + '</div>'
+            + '<div style="font-size:13px;color:#2ECC71"><strong>Correct:</strong> ' + w.correctAnswer + '</div>'
+            + (w.hint ? '<div style="font-size:12px;color:#6B7280;margin-top:2px">💡 ' + w.hint + '</div>' : '')
+            + '</div>';
+        }).join('');
+    }
+    wrongSection.style.display = 'block';
+  }
+  showScreen('screen-results');
+  // Celebrate good scores!
+  if (pct >= 90) {
+    setTimeout(() => { launchConfetti(4000); playSound('epic'); }, 300);
+  } else if (pct >= 70) {
+    setTimeout(() => { launchConfetti(2000); playSound('correct'); }, 300);
+  }
+}
+
+function exitLesson() { if(confirm('Exit lesson? Progress won\'t be saved.')) showScreen('screen-kid'); }
+
+// ── AI CURRICULUM GENERATOR ──────────────────────────────
+async function generateCurriculum(kidId) {
+  const kid = state.kids.find(k=>k.id===kidId);
+  if (!kid) return;
+  const diffName = ['','easy','medium','hard'][state.difficultyLevel[kidId]||2];
+  document.getElementById('generating-overlay').style.display='flex';
+  document.getElementById('gen-kid-name').textContent = kid.name;
+
+  const usedTopics = (state.usedTopics && state.usedTopics[kidId]) || [];
+  const avoidStr = usedTopics.length > 0
+    ? 'IMPORTANT: Do NOT reuse any of these previously covered spelling words or math topics: ' + usedTopics.slice(-60).join(', ') + '. Choose completely different content.'
+    : '';
+  const avoidNote = avoidStr ? avoidStr + ' ' : '';
+  const prompt = `Generate a complete week of educational content for a Cobb County School District Georgia 3rd grade student 2nd semester. Student: ${kid.name}. Difficulty: ${diffName}. ${avoidNote}
+
+Return ONLY valid JSON, no markdown, no explanation:
+
+{
+  "kidId": "${kidId}",
+  "kidName": "${kid.name}",
+  "weekNumber": ${getWeekNumber()},
+  "generatedDate": "${new Date().toLocaleDateString()}",
+  "subjects": [
+    {
+      "id": "spelling", "name": "Spelling", "icon": "🔤", "type": "spelling", "duration": 7,
+      "questions": [
+        {"word": "REPLACE_WITH_REAL_WORD", "hint": "REPLACE_WITH_HINT"},
+        {"word": "REPLACE", "hint": "REPLACE"},
+        {"word": "REPLACE", "hint": "REPLACE"},
+        {"word": "REPLACE", "hint": "REPLACE"},
+        {"word": "REPLACE", "hint": "REPLACE"},
+        {"word": "REPLACE", "hint": "REPLACE"},
+        {"word": "REPLACE", "hint": "REPLACE"},
+        {"word": "REPLACE", "hint": "REPLACE"},
+        {"word": "REPLACE", "hint": "REPLACE"},
+        {"word": "REPLACE", "hint": "REPLACE"}
+      ]
+    },
+    {
+      "id": "math", "name": "Math", "icon": "🔢", "type": "math", "duration": 8,
+      "questions": [
+        {"type": "mc", "question": "REAL_MATH_Q", "options": ["A","B","C","D"], "answer": "A"},
+        {"type": "typed", "question": "REAL_MATH_Q", "answer": "ANSWER"},
+        {"type": "mc", "question": "REAL_MATH_Q", "options": ["A","B","C","D"], "answer": "B"},
+        {"type": "typed", "question": "REAL_MATH_Q", "answer": "ANSWER"},
+        {"type": "mc", "question": "REAL_MATH_Q", "options": ["A","B","C","D"], "answer": "C"},
+        {"type": "mc", "question": "REAL_MATH_Q", "options": ["A","B","C","D"], "answer": "D"},
+        {"type": "typed", "question": "REAL_MATH_Q", "answer": "ANSWER"},
+        {"type": "mc", "question": "REAL_MATH_Q", "options": ["A","B","C","D"], "answer": "A"},
+        {"type": "typed", "question": "REAL_MATH_Q", "answer": "ANSWER"},
+        {"type": "mc", "question": "REAL_MATH_Q", "options": ["A","B","C","D"], "answer": "B"}
+      ]
+    },
+    {
+      "id": "reading", "name": "Reading", "icon": "📖", "type": "reading", "duration": 10,
+      "questions": [
+        {"type": "mc", "passage": "SHORT_ORIGINAL_PASSAGE_3_TO_5_SENTENCES", "question": "COMPREHENSION_Q", "options": ["A","B","C","D"], "answer": "A"},
+        {"type": "mc", "passage": "CONTINUE_STORY_2_TO_3_SENTENCES", "question": "DEEPER_COMPREHENSION_Q", "options": ["A","B","C","D"], "answer": "B"},
+        {"type": "mc", "passage": "CONTINUE_STORY_2_TO_3_SENTENCES", "question": "INFERENCE_OR_PREDICTION_Q", "options": ["A","B","C","D"], "answer": "C"},
+        {"type": "mc", "passage": null, "question": "VOCABULARY_IN_CONTEXT_Q", "options": ["A","B","C","D"], "answer": "D"},
+        {"type": "mc", "passage": "NEW_PASSAGE_2_TO_3_SENTENCES_CONTINUING_STORY", "question": "COMPREHENSION_Q", "options": ["A","B","C","D"], "answer": "A"},
+        {"type": "mc", "passage": null, "question": "MAIN_IDEA_Q", "options": ["A","B","C","D"], "answer": "B"},
+        {"type": "mc", "passage": null, "question": "CHARACTER_OR_SETTING_Q", "options": ["A","B","C","D"], "answer": "C"},
+        {"type": "mc", "passage": "FINAL_PASSAGE_STORY_CONCLUSION", "question": "THEME_OR_LESSON_Q", "options": ["A","B","C","D"], "answer": "D"}
+      ]
+    },
+    {
+      "id": "writing", "name": "Writing", "icon": "✍️", "type": "writing", "duration": 8,
+      "writingPrompt": "FUN_ENGAGING_WRITING_PROMPT_FOR_3RD_GRADER_ALIGNED_TO_COBB_COUNTY_STANDARDS_NARRATIVE_OR_OPINION_OR_INFORMATIONAL",
+      "questions": [{"type": "writing"}]
+    }
+  ]
+}
+
+Replace all PLACEHOLDER values with real grade-appropriate content. Spelling: 10 words typical for Cobb County 3rd grade 2nd semester (prefixes, suffixes, compound words). Math: multiplication facts through 12, division, fractions, area, perimeter, place value, word problems. Reading: write an original coherent story across the passages, ALL questions must be multiple choice (type: mc) with 4 options and one correct answer. Difficulty level is ${diffName}. Return ONLY the JSON object.`
+
+  try {
+    const res = await fetch(GROQ_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','Authorization':'Bearer '+API_KEY},
+      body: JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'user',content:prompt}],max_tokens:6000,temperature:0.7})
+    });
+    if (!res.ok) { const errBody = await res.text(); console.error('API error:', errBody); throw new Error('API ' + res.status + ' — ' + errBody.slice(0,300)); }
+    const data = await res.json();
+    const text = data.choices[0].message.content;
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('No JSON in response');
+    // Clean bad unicode escapes and control characters before parsing
+    const cleaned = match[0]
+      .replace(/\\u[0-9a-fA-F]{0,3}(?![0-9a-fA-F])/g, '')  // incomplete unicode escapes
+      .replace(/\\x[0-9a-fA-F]{0,1}(?![0-9a-fA-F])/g, '')   // incomplete hex escapes
+      .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '')        // control characters
+      .replace(/\\'/g, "'")                                    // escaped single quotes
+      .replace(/([^\\])\\([^"\\/bfnrtu])/g, '$1$2');       // invalid escape sequences
+    const curriculum = JSON.parse(cleaned);
+    state.curriculum[kidId] = curriculum;
+    state.progress[kidId] = {};
+    // Record used spelling words and math topics to avoid repetition
+    if (!state.usedTopics) state.usedTopics = {lauren:[],andrew:[]};
+    if (!state.usedTopics[kidId]) state.usedTopics[kidId] = [];
+    const spellingSubj = (curriculum.subjects||[]).find(s=>s.id==='spelling');
+    if (spellingSubj) {
+      const words = (spellingSubj.questions||[]).map(q=>q.word).filter(Boolean);
+      state.usedTopics[kidId] = state.usedTopics[kidId].concat(words).slice(-80);
+    }
+    saveState();
+    await pushState();
+    document.getElementById('generating-overlay').style.display='none';
+    showToast('✅ ' + kid.name + "'s curriculum is ready!");
+    renderCurriculumOverview();
+    renderParentKidSummary();
+  } catch(e) {
+    document.getElementById('generating-overlay').style.display='none';
+    console.error(e);
+    showToast('❌ Failed: ' + e.message);
+  }
+}
+
+function getWeekNumber() {
+  const n=new Date(), s=new Date(n.getFullYear(),0,1);
+  return Math.ceil(((n-s)/86400000+s.getDay()+1)/7);
+}
+
+// ── PARENT DASHBOARD ─────────────────────────────────────
+function renderParentDashboard() {
+  renderParentKidSummary();
+  renderCurriculumOverview();
+  renderWritingApprovals();
+  renderParentRewards();
+  renderProgressOverview();
+  renderFlaggedList();
+  renderRedemptionQueue();
+  updateRedemptionBadge();
+  document.getElementById('coin-kid-select').innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.name}</option>`).join('');
+  const rpk = document.getElementById('reset-progress-kid');
+  if (rpk) rpk.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('') + '<option value="both">👨‍👩‍👧‍👦 Both</option>';
+  document.getElementById('coinmax-kid-select').innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.name}</option>`).join('');
+  renderCoinMaxInputs();
+  updateBinIdDisplay();
+}
+
+function renderParentKidSummary() {
+  document.getElementById('parent-kid-summary').innerHTML = state.kids.map(k=>`
+    <div class="kid-summary-card">
+      <div class="ks-emoji">${k.emoji}</div>
+      <div class="ks-name">${k.name}</div>
+      <div class="ks-coins">${k.coins}</div>
+      <div style="font-size:12px;color:var(--muted)">⭐ coins</div>
+    </div>`).join('');
+}
+
+function renderCurriculumOverview() {
+  document.getElementById('curriculum-overview').innerHTML = state.kids.map(k => {
+    const c = state.curriculum[k.id];
+    const diff = ['','Easy','Medium','Hard'][state.difficultyLevel[k.id]||2];
+    if (!c) return `<div style="padding:12px 0;border-bottom:1px solid var(--border)"><strong>${k.emoji} ${k.name}</strong>: <span style="color:var(--muted)">No curriculum yet.</span></div>`;
+    return `<div style="padding:12px 0;border-bottom:1px solid var(--border)">
+      <strong>${k.emoji} ${k.name}</strong> — Week ${c.weekNumber} · ${(c.subjects||[]).length} subjects · ${diff}
+      <div style="font-size:12px;color:var(--muted);margin-top:2px">Generated ${c.generatedDate}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderWritingApprovals() {
+  const el = document.getElementById('writing-approvals-list');
+  const pending = (state.writingQueue||[]).filter(w=>w.status==='pending');
+  if (!pending.length) { el.innerHTML='<div class="empty-state"><div class="empty-icon">✅</div><p>No writing to review.</p></div>'; return; }
+  el.innerHTML = pending.map(w => {
+    const kid = state.kids.find(k=>k.id===w.kidId);
+    return `<div class="approval-item">
+      <div class="approval-info">
+        <div style="font-weight:700">${kid?kid.emoji+' '+kid.name:w.kidId} · ${w.date}</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:4px"><strong>Prompt:</strong> ${w.prompt}</div>
+        ${w.kidAnswerType === 'drawing'
+          ? `<img src="${w.kidAnswer}" style="width:100%;border-radius:8px;border:1.5px solid var(--border);margin-top:8px;display:block;" alt="Student handwriting"/>`
+          : `<div style="background:var(--bg);border-radius:8px;padding:10px;margin-top:8px;font-size:14px;">${w.kidAnswer}</div>`
+        }
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;padding-top:4px;min-width:110px">
+        <button class="btn-approve" onclick="approveWriting('${w.id}')">✓ Approve<br><small>+10 ⭐</small></button>
+        <button class="btn-danger" onclick="denyWriting('${w.id}')">✗ Redo</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderFlaggedList() {
+  const el = document.getElementById('flagged-list');
+  if (!el) return;
+  const items = (state.flaggedReview||[]).filter(function(f){ return f.status==='pending'; });
+  if (!items.length) {
+    el.innerHTML='<div class="empty-state"><div class="empty-icon">✅</div><p>No flagged questions.</p></div>';
+    return;
+  }
+  el.innerHTML = '';
+  items.forEach(function(f) {
+    const kid = state.kids.find(function(k){ return k.id===f.kidId; });
+    const div = document.createElement('div');
+    div.className = 'approval-item';
+    div.style.flexDirection = 'column';
+    div.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">'
+      + '<div style="flex:1">'
+      + '<div style="font-weight:700">' + (kid ? kid.emoji+' '+kid.name : f.kidId) + ' · ' + f.date + '</div>'
+      + '<div style="font-size:13px;color:var(--muted);margin-top:2px">' + f.subject + '</div>'
+      + '<div style="background:#FFF8E1;border-radius:8px;padding:10px;margin-top:8px;font-size:14px;border-left:3px solid #F7C948;">'
+      + '<strong>Q:</strong> ' + f.question + '</div>'
+      + (f.correctAnswer ? '<div style="background:#F0FDF4;border-radius:8px;padding:8px 10px;margin-top:6px;font-size:13px;border-left:3px solid #2ECC71;"><strong>Correct answer:</strong> ' + f.correctAnswer + '</div>' : '')
+      + '</div></div>'
+      + '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">'
+      + '<button class="btn-approve" style="flex:1;background:#2ECC71" id="flag-accept-'+f.id+'">✅ Accept (award coins)</button>'
+      + '<button class="btn-approve" style="flex:1;background:#EF4444;color:white" id="flag-wrong-'+f.id+'">❌ Mark Incorrect</button>'
+      + '</div>';
+    el.appendChild(div);
+    // Attach handlers via DOM (no inline onclick needed)
+    document.getElementById('flag-accept-'+f.id).onclick = (function(fid){ return function(){ resolveFlag(fid, true); }; })(f.id);
+    document.getElementById('flag-wrong-'+f.id).onclick = (function(fid){ return function(){ resolveFlag(fid, false); }; })(f.id);
+  });
+}
+
+function resolveFlag(id, award) {
+  const f = (state.flaggedReview||[]).find(function(x){ return x.id===id; });
+  if (!f) return;
+  f.status = award ? 'accepted' : 'incorrect';
+  if (award) {
+    const kid = state.kids.find(function(k){ return k.id===f.kidId; });
+    // Recalculate what they should have earned without this question counting against them
+    // Find their progress for this subject
+    const prog = state.progress[f.kidId] && Object.entries(state.progress[f.kidId]).find(function(e){
+      return e[1].subject === f.subject || (state.curriculum[f.kidId] && state.curriculum[f.kidId].subjects &&
+        state.curriculum[f.kidId].subjects.find(function(s){ return s.name === f.subject && e[0] === s.id; }));
+    });
+    let bonusCoins = 1; // fallback
+    if (prog) {
+      const p = prog[1];
+      const total = p.total || 1;
+      const maxCoins = (state.coinMax && state.coinMax[f.kidId]) || {};
+      // Find subject id from subject name
+      const subj = state.curriculum[f.kidId] && state.curriculum[f.kidId].subjects &&
+        state.curriculum[f.kidId].subjects.find(function(s){ return s.name === f.subject; });
+      const subjId = subj ? subj.id : null;
+      const max = (subjId && maxCoins[subjId]) || 30;
+      // Score without flagged question: (correct + 1) / (total - 1)
+      const newCorrect = Math.min(p.correct + 1, total - 1);
+      const newTotal = total - 1;
+      const newPct = newTotal > 0 ? Math.round((newCorrect / newTotal) * 100) : 100;
+      const newCoins = Math.round(newPct * (max / 100));
+      bonusCoins = Math.max(0, newCoins - p.coins);
+    }
+    if (kid && bonusCoins > 0) kid.coins += bonusCoins;
+    showToast('✅ Accepted — ' + bonusCoins + ' coin' + (bonusCoins !== 1 ? 's' : '') + ' awarded to ' + (kid ? kid.name : 'kid') + '!');
+  } else {
+    showToast('❌ Marked incorrect — noted for review.');
+  }
+  saveState();
+  renderFlaggedList();
+}
+
+function approveWriting(id) {
+  const w = (state.writingQueue||[]).find(x=>x.id===id);
+  if (!w) return;
+  w.status='approved';
+  const kid = state.kids.find(k=>k.id===w.kidId);
+  if (kid) kid.coins+=10;
+  saveState(); showToast('✅ Approved! +10 coins to '+(kid?kid.name:'')); renderWritingApprovals(); renderParentKidSummary();
+}
+
+function denyWriting(id) {
+  const w = (state.writingQueue||[]).find(x=>x.id===id);
+  if (!w) return; w.status='rejected';
+  saveState(); showToast('🔄 Marked for redo.'); renderWritingApprovals();
+}
+
+function renderRedemptionQueue() {
+  const el = document.getElementById('redemptions-list');
+  if (!el) return;
+  const items = (state.redemptionQueue||[]).filter(function(r){ return r.status === 'pending'; });
+  if (!items.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><p>No pending redemptions.</p></div>';
+    return;
+  }
+  el.innerHTML = '';
+  items.forEach(function(r) {
+    const kid = state.kids.find(function(k){ return k.id === r.kidId; });
+    const div = document.createElement('div');
+    div.className = 'approval-item';
+    div.innerHTML = '<div class="approval-info">'
+      + '<div style="font-size:28px;margin-bottom:6px">' + r.rewardEmoji + '</div>'
+      + '<div style="font-weight:800;font-size:16px">' + r.rewardName + '</div>'
+      + '<div style="font-size:13px;color:var(--muted);margin-top:4px">'
+      + (kid ? kid.emoji + ' ' + kid.name : r.kidId) + ' · ' + r.date + ' · ⭐ ' + r.cost + ' coins</div>'
+      + '</div>'
+      + '<div style="display:flex;flex-direction:column;gap:6px;min-width:110px">'
+      + '<button class="btn-approve" style="background:#2ECC71" id="rq-ack-' + r.id + '">✅ Fulfilled</button>'
+      + '</div>';
+    el.appendChild(div);
+    document.getElementById('rq-ack-' + r.id).onclick = (function(rid){ return function(){ acknowledgeRedemption(rid); }; })(r.id);
+  });
+}
+
+function acknowledgeRedemption(id) {
+  const r = (state.redemptionQueue||[]).find(function(x){ return x.id === id; });
+  if (!r) return;
+  r.status = 'fulfilled';
+  saveState();
+  showToast('✅ Reward fulfilled!');
+  renderRedemptionQueue();
+  updateRedemptionBadge();
+}
+
+function updateRedemptionBadge() {
+  const btn = document.getElementById('tab-btn-redemptions');
+  if (!btn) return;
+  const count = (state.redemptionQueue||[]).filter(function(r){ return r.status === 'pending'; }).length;
+  btn.textContent = count > 0 ? '🎁 Rewards (' + count + ')' : '🎁 Rewards';
+}
+
+function renderParentRewards() {
+  // Populate kid selector
+  const rkid = document.getElementById('r-kid');
+  if (rkid) rkid.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('') + '<option value="both">👨‍👩‍👧‍👦 Both</option>';
+
+  const el = document.getElementById('parent-rewards-list');
+  el.innerHTML = state.kids.map(k => {
+    const rewards = getRewardsForKid(k.id);
+    return `<div style="margin-bottom:18px">
+      <div style="font-family:'Baloo 2',cursive;font-size:17px;font-weight:700;margin-bottom:10px">${k.emoji} ${k.name}</div>
+      ${!rewards.length
+        ? '<div style="color:var(--muted);font-size:14px;padding:8px 0">No rewards yet.</div>'
+        : rewards.map(r=>`<div class="reward-item">
+            <div class="reward-icon">${r.emoji}</div>
+            <div class="reward-info"><div class="reward-name">${r.name}</div><div class="reward-cost">⭐ ${r.cost} coins</div></div>
+            <div style="display:flex;gap:6px">
+              <button class="btn-primary" onclick="editReward('${k.id}','${r.id}')" style="padding:6px 12px;font-size:13px;margin:0">Edit</button>
+              <button class="btn-danger" onclick="deleteReward('${k.id}','${r.id}')" style="padding:6px 12px;font-size:13px">Delete</button>
+            </div>
+          </div>`).join('')
+      }
+    </div>`;
+  }).join('<hr style="border:none;border-top:1px solid var(--border);margin:8px 0"/>');
+}
+
+function renderProgressOverview() {
+  const container = document.getElementById('progress-overview');
+  container.innerHTML = '';
+  state.kids.forEach(function(k) {
+    const prog = state.progress[k.id]||{};
+    const entries = Object.entries(prog);
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = '<div class="card-title">' + k.emoji + ' ' + k.name + '</div>';
+    if (!entries.length) {
+      card.innerHTML += '<div class="empty-state"><p>No activity yet.</p></div>';
+    } else {
+      entries.forEach(function(entry) {
+        const s = entry[0], p = entry[1];
+        const wrongList = p.wrongAnswers || [];
+        const rowId = 'wrong-' + k.id + '-' + s;
+        const row = document.createElement('div');
+        row.style.cssText = 'border-bottom:1px solid var(--border);padding:10px 0;';
+        const summary = document.createElement('div');
+        summary.style.cssText = 'display:flex;justify-content:space-between;align-items:center;cursor:pointer;';
+        summary.innerHTML = '<span style="font-weight:700;text-transform:capitalize">' + s + '</span>'
+          + '<span style="display:flex;align-items:center;gap:8px">'
+          + '<strong>' + p.score + '%</strong>'
+          + '<span style="color:var(--muted)">⭐' + p.coins + (p.duration != null ? ' · ' + p.duration + 'min' : '') + ' · ' + p.date + '</span>'
+          + (wrongList.length > 0 ? '<span style="background:#FEE2E2;color:#EF4444;border-radius:20px;padding:2px 8px;font-size:12px;font-weight:800">' + wrongList.length + ' missed</span>' : '<span style="background:#DCFCE7;color:#16A34A;border-radius:20px;padding:2px 8px;font-size:12px;font-weight:800">✓ Perfect</span>')
+          + '</span>';
+        const detail = document.createElement('div');
+        detail.id = rowId;
+        detail.style.display = 'none';
+        detail.style.marginTop = '10px';
+        if (wrongList.length === 0) {
+          detail.innerHTML = '<div style="color:#2ECC71;font-weight:700;font-size:13px;padding:8px">🎉 No mistakes!</div>';
+        } else {
+          detail.innerHTML = wrongList.map(function(w) {
+            return '<div style="background:#FFF5F5;border:1px solid #FCA5A5;border-radius:8px;padding:10px;margin-bottom:6px">'
+              + '<div style="font-size:13px;color:#374151;margin-bottom:3px"><strong>Q:</strong> ' + w.question + '</div>'
+              + '<div style="font-size:13px;color:#EF4444"><strong>Got:</strong> ' + w.yourAnswer + '</div>'
+              + '<div style="font-size:13px;color:#2ECC71"><strong>Answer:</strong> ' + w.correctAnswer + '</div>'
+              + (w.hint ? '<div style="font-size:12px;color:#6B7280;margin-top:2px">💡 ' + w.hint + '</div>' : '')
+              + '</div>';
+          }).join('');
+        }
+        summary.onclick = function() { detail.style.display = detail.style.display === 'none' ? 'block' : 'none'; };
+        row.appendChild(summary);
+        row.appendChild(detail);
+        card.appendChild(row);
+      });
+    }
+    container.appendChild(card);
+  });
+}
+
+function addReward() {
+  const kidId=document.getElementById('r-kid').value;
+  const name=document.getElementById('r-name').value.trim();
+  const cost=parseInt(document.getElementById('r-cost').value)||50;
+  const emoji=document.getElementById('r-emoji').value.trim()||'🎁';
+  if (!name) { showToast('⚠️ Enter a reward name.'); return; }
+  const targets = kidId === 'both' ? state.kids.map(k=>k.id) : [kidId];
+  targets.forEach(function(id) {
+    const arr = getRewardsForKid(id);
+    arr.push({id:'r'+Date.now()+id, name, cost, emoji});
+    setRewardsForKid(id, arr);
+  });
+  saveState();
+  document.getElementById('r-name').value=''; document.getElementById('r-cost').value=''; document.getElementById('r-emoji').value='';
+  showToast('✅ Reward added' + (kidId==='both'?' for both!':'!')); renderParentRewards();
+}
+
+function editReward(kidId, id) {
+  const reward = getRewardsForKid(kidId).find(r=>r.id===id);
+  if (!reward) return;
+  document.getElementById('edit-reward-kid-id').value = kidId;
+  document.getElementById('edit-reward-id').value = id;
+  document.getElementById('edit-r-name').value = reward.name;
+  document.getElementById('edit-r-cost').value = reward.cost;
+  document.getElementById('edit-r-emoji').value = reward.emoji;
+  const modal = document.getElementById('reward-edit-modal');
+  modal.style.display = 'flex';
+}
+
+function closeEditReward() {
+  document.getElementById('reward-edit-modal').style.display = 'none';
+}
+
+function saveEditReward() {
+  const kidId = document.getElementById('edit-reward-kid-id').value;
+  const id = document.getElementById('edit-reward-id').value;
+  const name = document.getElementById('edit-r-name').value.trim();
+  const cost = parseInt(document.getElementById('edit-r-cost').value) || 50;
+  const emoji = document.getElementById('edit-r-emoji').value.trim() || '🎁';
+  if (!name) { showToast('⚠️ Enter a reward name.'); return; }
+  const arr = getRewardsForKid(kidId).map(r => r.id===id ? {id, name, cost, emoji} : r);
+  setRewardsForKid(kidId, arr);
+  saveState();
+  closeEditReward();
+  showToast('✅ Reward updated!');
+  renderParentRewards();
+}
+
+function deleteReward(kidId, id) {
+  const arr = getRewardsForKid(kidId).filter(r=>r.id!==id);
+  setRewardsForKid(kidId, arr);
+  saveState(); showToast('🗑️ Deleted.'); renderParentRewards();
+}
+
+function renderCoinMaxInputs() {
+  const kidId = document.getElementById('coinmax-kid-select').value;
+  if (!kidId) return;
+  if (!state.coinMax) state.coinMax = {};
+  if (!state.coinMax[kidId]) state.coinMax[kidId] = {spelling:30,math:30,reading:30,writing:30};
+  const subjects = [{id:'spelling',label:'🔤 Spelling'},{id:'math',label:'🧮 Math'},{id:'reading',label:'📖 Reading'},{id:'writing',label:'✏️ Writing'}];
+  const container = document.getElementById('coinmax-inputs');
+  container.innerHTML = '';
+  subjects.forEach(function(s) {
+    const wrap = document.createElement('div');
+    wrap.innerHTML = '<label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">' + s.label + '</label>'
+      + '<input type="number" min="0" max="100" style="width:100%;padding:8px;border:2px solid var(--border);border-radius:8px;font-size:14px;font-weight:700" id="coinmax-' + s.id + '" value="' + (state.coinMax[kidId][s.id] || 30) + '">';
+    container.appendChild(wrap);
+  });
+}
+
+function saveCoinMax() {
+  const kidId = document.getElementById('coinmax-kid-select').value;
+  if (!kidId) return;
+  if (!state.coinMax) state.coinMax = {};
+  if (!state.coinMax[kidId]) state.coinMax[kidId] = {};
+  ['spelling','math','reading','writing'].forEach(function(s) {
+    const el = document.getElementById('coinmax-' + s);
+    if (el) state.coinMax[kidId][s] = Math.max(0, parseInt(el.value) || 0);
+  });
+  saveState();
+  showToast('✅ Coin limits saved!');
+}
+
+function adjustCoins() {
+  const kidId=document.getElementById('coin-kid-select').value;
+  const amt=parseInt(document.getElementById('coin-adjust').value)||0;
+  const kid=state.kids.find(k=>k.id===kidId);
+  if (!kid) return;
+  kid.coins=Math.max(0,kid.coins+amt);
+  saveState(); document.getElementById('coin-adjust').value='';
+  showToast('✅ Coins updated!'); renderParentKidSummary();
+}
+
+function changePin() {
+  const p=document.getElementById('new-pin').value.trim();
+  if (!/^\d{4}$/.test(p)) { showToast('⚠️ PIN must be 4 digits.'); return; }
+  state.pin=p; saveState(); document.getElementById('new-pin').value=''; showToast('✅ PIN updated!');
+}
+
+function resetProgress() {
+  const kidId = document.getElementById('reset-progress-kid').value;
+  const targets = kidId === 'both' ? state.kids.map(k=>k.id) : [kidId];
+  if (!confirm('Reset lesson progress and coins earned today for ' + (kidId==='both'?'both kids':state.kids.find(k=>k.id===kidId).name) + '?')) return;
+  targets.forEach(function(id) {
+    // Remove today's progress
+    const todayKey = getTodayKey();
+    const prog = state.progress[id] || {};
+    Object.keys(prog).forEach(function(subj) {
+      if (prog[subj].date === todayKey) {
+        // Deduct coins earned today from this lesson
+        const kid = state.kids.find(k=>k.id===id);
+        if (kid) kid.coins = Math.max(0, kid.coins - (prog[subj].coins||0));
+        delete prog[subj];
+      }
+    });
+    state.progress[id] = prog;
+  });
+  saveState();
+  showToast('✅ Progress reset!');
+  renderParentDashboard();
+}
+
+function resetAll() {
+  if (confirm('Reset ALL data? Cannot be undone.')) {
+    localStorage.clear(); binId=null; state=JSON.parse(JSON.stringify(DEFAULT_STATE));
+    showToast('🔄 Reset.'); showScreen('screen-landing'); initSync();
+setTimeout(updateParentBadge, 1500);
+  }
+}
+
+function switchTab(tabId, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+function sanitizeUnicode(s) {
+  if (!s) return s;
+  return String(s).replace(/\{([0-9A-Fa-f]{4,6})\}/g, function(match, hex) {
+    try { return String.fromCodePoint(parseInt(hex, 16)); } catch(e) { return match; }
+  });
+}
+
+function escQ(s) { return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+
+// ── FUN: CONFETTI ────────────────────────────────────────
+function launchConfetti(duration) {
+  const canvas = document.getElementById('confetti-canvas');
+  if (!canvas) return;
+  canvas.style.display = 'block';
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const ctx = canvas.getContext('2d');
+  const pieces = [];
+  const colors = ['#4F6EF7','#F7C948','#2ECC71','#FF6B6B','#7C3AED','#00f2fe','#f5576c','#43e97b'];
+  const shapes = ['rect','circle','star'];
+  for (let i = 0; i < 140; i++) {
+    pieces.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * -canvas.height,
+      w: Math.random() * 12 + 6,
+      h: Math.random() * 7 + 4,
+      color: colors[Math.floor(Math.random()*colors.length)],
+      shape: shapes[Math.floor(Math.random()*shapes.length)],
+      rot: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 0.15,
+      vx: (Math.random() - 0.5) * 4,
+      vy: Math.random() * 4 + 2,
+      opacity: 1
+    });
+  }
+  const end = Date.now() + (duration || 3000);
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    pieces.forEach(p => {
+      ctx.save();
+      ctx.globalAlpha = p.opacity;
+      ctx.fillStyle = p.color;
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      if (p.shape === 'circle') {
+        ctx.beginPath(); ctx.arc(0,0,p.w/2,0,Math.PI*2); ctx.fill();
+      } else if (p.shape === 'star') {
+        ctx.beginPath();
+        for (let i=0;i<5;i++){
+          ctx.lineTo(Math.cos((i*4*Math.PI/5)-Math.PI/2)*p.w,Math.sin((i*4*Math.PI/5)-Math.PI/2)*p.w);
+          ctx.lineTo(Math.cos((i*4*Math.PI/5+2*Math.PI/5)-Math.PI/2)*p.w*0.4,Math.sin((i*4*Math.PI/5+2*Math.PI/5)-Math.PI/2)*p.w*0.4);
+        }
+        ctx.closePath(); ctx.fill();
+      } else {
+        ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+      }
+      ctx.restore();
+      p.x += p.vx; p.y += p.vy; p.rot += p.rotSpeed;
+      if (Date.now() > end - 800) p.opacity -= 0.02;
+    });
+    if (Date.now() < end) requestAnimationFrame(draw);
+    else { ctx.clearRect(0,0,canvas.width,canvas.height); canvas.style.display='none'; }
+  }
+  draw();
+}
+
+// ── FUN: SOUNDS ──────────────────────────────────────────
+function playSound(type) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    if (type === 'correct') {
+      osc.frequency.setValueAtTime(523, ctx.currentTime);
+      osc.frequency.setValueAtTime(659, ctx.currentTime + 0.1);
+      osc.frequency.setValueAtTime(784, ctx.currentTime + 0.2);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+      osc.start(); osc.stop(ctx.currentTime + 0.5);
+    } else if (type === 'wrong') {
+      osc.frequency.setValueAtTime(300, ctx.currentTime);
+      osc.frequency.setValueAtTime(200, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      osc.start(); osc.stop(ctx.currentTime + 0.3);
+    } else if (type === 'epic') {
+      // Fanfare for great scores
+      const notes = [523,659,784,1047];
+      notes.forEach((freq, i) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = freq;
+        g.gain.setValueAtTime(0, ctx.currentTime + i*0.12);
+        g.gain.linearRampToValueAtTime(0.25, ctx.currentTime + i*0.12 + 0.05);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i*0.12 + 0.4);
+        o.start(ctx.currentTime + i*0.12);
+        o.stop(ctx.currentTime + i*0.12 + 0.4);
+      });
+    } else if (type === 'coin') {
+      osc.frequency.setValueAtTime(1200, ctx.currentTime);
+      osc.frequency.setValueAtTime(1600, ctx.currentTime + 0.05);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+      osc.start(); osc.stop(ctx.currentTime + 0.2);
+    }
+  } catch(e) { /* audio not available */ }
+}
+
+// ── INIT ────────────────────────────────────────────────
+// Load local cache immediately so UI is always responsive
+loadLocalFallback();
+
+// Init on load
+initSync();
+</script>
+<!-- Reward Edit Modal -->
+<div id="reward-edit-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:white;border-radius:20px;padding:28px;width:100%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <div style="font-family:'Baloo 2',cursive;font-size:20px;font-weight:800;margin-bottom:18px">✏️ Edit Reward</div>
+    <input type="hidden" id="edit-reward-kid-id"/>
+    <input type="hidden" id="edit-reward-id"/>
+    <div class="form-row"><label>Name</label><input id="edit-r-name" type="text" placeholder="Reward name"/></div>
+    <div class="form-grid">
+      <div class="form-row"><label>Coin Cost</label><input id="edit-r-cost" type="number" placeholder="50"/></div>
+      <div class="form-row"><label>Emoji</label><input id="edit-r-emoji" type="text" placeholder="🎁" maxlength="2"/></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="btn-primary" onclick="saveEditReward()" style="flex:1">Save</button>
+      <button onclick="closeEditReward()" style="flex:1;padding:12px;border:2px solid var(--border);border-radius:10px;background:white;font-family:Nunito,sans-serif;font-size:15px;font-weight:700;cursor:pointer;">Cancel</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
