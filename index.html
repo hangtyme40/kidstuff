@@ -1311,12 +1311,13 @@ function finishLesson() {
   if (!state.progress[currentKidId]) state.progress[currentKidId]={};
   const alreadyDone = state.progress[currentKidId][ls.subjectId] && state.progress[currentKidId][ls.subjectId].date === getTodayKey();
   const maxCoins = (state.coinMax && state.coinMax[currentKidId] && state.coinMax[currentKidId][ls.subjectId]) || 30;
-  const coins = alreadyDone ? 0 : Math.round(pct * (maxCoins / 100));
+  const originalCoins = alreadyDone ? (state.progress[currentKidId][ls.subjectId].coins || 0) : Math.round(pct * (maxCoins / 100));
+  const coins = alreadyDone ? 0 : originalCoins;
   const flaggedCount = ls.flagged || 0;
   const flaggedQuestions = ls.flaggedQuestions || [];
   const elapsedMs = Date.now() - (ls.startTime || Date.now());
   const elapsedMin = Math.round(elapsedMs / 60000);
-  state.progress[currentKidId][ls.subjectId] = {score:pct,coins,date:getTodayKey(),correct:ls.correct,total,flagged:flaggedCount,flaggedQuestions,wrongAnswers:ls.wrongAnswers||[],duration:elapsedMin};
+  state.progress[currentKidId][ls.subjectId] = {score:pct,coins:originalCoins,date:getTodayKey(),correct:ls.correct,total,flagged:flaggedCount,flaggedQuestions,wrongAnswers:ls.wrongAnswers||[],duration:elapsedMin};
   // Add flagged questions to a review queue for parent
   if (!state.flaggedReview) state.flaggedReview = [];
   flaggedQuestions.forEach(fq => {
