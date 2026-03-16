@@ -187,8 +187,8 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 <canvas id="confetti-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999;display:none;"></canvas>
 <div id="generating-overlay" class="generating-overlay" style="display:none">
   <div class="spinner"></div>
-  <h2>Building Curriculum...</h2>
-  <p>Generating Cobb County 3rd grade lessons for<br><strong id="gen-kid-name"></strong></p>
+  <h2>Loading Lesson...</h2>
+  <p>Generating today's questions for<br><strong id="gen-kid-name"></strong></p>
 </div>
 
 <!-- LANDING -->
@@ -320,12 +320,24 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 
     <div class="tab-panel active" id="tab-curriculum">
       <div class="card">
-        <div class="card-title">🤖 Generate Weekly Curriculum</div>
-        <p style="color:var(--muted);font-size:14px;margin-bottom:18px">Creates a full week of Cobb County 3rd grade 2nd semester lessons. Content adapts to each child's difficulty level.</p>
-        <button class="btn-primary" onclick="generateCurriculum('lauren')" style="background:linear-gradient(135deg,#4F6EF7,#7C3AED);margin-bottom:10px">✨ Generate Lauren's Week</button>
-        <button class="btn-primary" onclick="generateCurriculum('andrew')" style="background:linear-gradient(135deg,#FF6B6B,#FF9F43)">✨ Generate Andrew's Week</button>
+        <div class="card-title">📊 Level Overview</div>
+        <div id="curriculum-overview"></div>
       </div>
-      <div class="card"><div class="card-title">📋 Status</div><div id="curriculum-overview"></div></div>
+      <div class="card" style="background:#F0FBF4;box-shadow:none;border:2px solid #86EFAC">
+        <div style="font-weight:800;margin-bottom:8px">🔓 Unlock Lessons</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Allow a kid to redo a completed lesson today.</div>
+        <div class="form-grid">
+          <div class="form-row"><label>Kid</label><select id="unlock-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"></select></div>
+          <div class="form-row"><label>Subject</label><select id="unlock-subject-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;">
+            <option value="spelling">🔤 Spelling</option>
+            <option value="math">🧮 Math</option>
+            <option value="reading">📖 Reading</option>
+            <option value="writing">✏️ Writing</option>
+            <option value="all">All Subjects</option>
+          </select></div>
+        </div>
+        <button class="btn-primary" onclick="parentUnlockLesson()" style="background:#2ECC71;margin-top:0">🔓 Unlock for Today</button>
+      </div>
     </div>
 
     <div class="tab-panel" id="tab-writing">
@@ -403,13 +415,6 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         </div>
         <div style="height:18px"></div>
         <div style="height:10px"></div>
-        <div class="card" style="background:#FFF5F5;box-shadow:none;border:2px solid #FCA5A5">
-          <div style="font-weight:800;margin-bottom:8px">🗑️ Reset Lesson Progress</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Clears today's completions and coins earned from lessons. Curriculum and rewards are kept.</div>
-          <div class="form-row"><label>For</label><select id="reset-progress-kid" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"></select></div>
-          <button class="btn-danger" onclick="resetProgress()" style="width:100%;padding:12px;margin-top:8px">🗑️ Reset Progress &amp; Coins</button>
-        </div>
-        <div style="height:10px"></div>
         <button class="btn-danger" onclick="resetAll()" style="width:100%;padding:12px">⚠️ Reset All Data</button>
       </div>
     </div>
@@ -422,6 +427,143 @@ const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const JSONBIN_API = 'https://api.jsonbin.io/v3';
 // Free JSONBin master key - app creates its own bin on first load
 const JSONBIN_KEY = '$2a$10$sydM3nGoNHAf9PtvxleqcuyyFAmFSm6TTYMxsu3RxguX73/UCwMPm';
+
+// ── KUMON-STYLE PROGRESSION ──────────────────────────────
+const PROGRESSION = {
+  lauren: {
+    spelling: [
+      {level:1,name:'Short Vowel Words',desc:'CVC words with short vowel sounds'},
+      {level:2,name:'Consonant Blends',desc:'Words with blends like bl, cr, st'},
+      {level:3,name:'Long Vowel Silent-E',desc:'Words with silent-e (cake, bike)'},
+      {level:4,name:'Vowel Teams',desc:'ai, ay, ee, ea combinations'},
+      {level:5,name:'R-Controlled Vowels',desc:'ar, er, ir, or, ur patterns'},
+      {level:6,name:'Digraphs',desc:'ch, sh, th, wh combinations'},
+      {level:7,name:'Prefixes',desc:'un-, re-, pre- word beginnings'},
+      {level:8,name:'Suffixes',desc:'-ing, -ed, -er, -est endings'},
+      {level:9,name:'Compound Words',desc:'Two words joined together'},
+      {level:10,name:'Homophones',desc:'Words that sound alike but differ in meaning'},
+      {level:11,name:'Irregular Sight Words',desc:'High-frequency irregular words'},
+      {level:12,name:'Multi-Syllabic Words',desc:'Words with 3+ syllables'}
+    ],
+    math: [
+      {level:1,name:'Addition Within 20',desc:'Basic addition facts to 20'},
+      {level:2,name:'Addition Within 100',desc:'Two-digit addition with regrouping'},
+      {level:3,name:'Addition Within 1000',desc:'Three-digit addition with regrouping'},
+      {level:4,name:'Subtraction Within 20',desc:'Basic subtraction facts to 20'},
+      {level:5,name:'Subtraction Within 100',desc:'Two-digit subtraction with regrouping'},
+      {level:6,name:'Subtraction Within 1000',desc:'Three-digit subtraction with regrouping'},
+      {level:7,name:'Multiplication — 2s and 5s',desc:'Times tables for 2 and 5'},
+      {level:8,name:'Multiplication — 3s and 4s',desc:'Times tables for 3 and 4'},
+      {level:9,name:'Multiplication — 6s, 7s, 8s, 9s',desc:'Advanced multiplication facts'},
+      {level:10,name:'Division — 2s and 5s',desc:'Basic division with 2 and 5'},
+      {level:11,name:'Division — 3s and 4s',desc:'Division with 3 and 4'},
+      {level:12,name:'Division — 6s, 7s, 8s, 9s',desc:'Advanced division facts'},
+      {level:13,name:'Fractions — Basic Concepts',desc:'Equal parts, halves, thirds, quarters'},
+      {level:14,name:'Fractions — Comparing',desc:'Comparing and ordering fractions'},
+      {level:15,name:'Measurement — Time',desc:'Telling time and elapsed time'},
+      {level:16,name:'Measurement — Length and Weight',desc:'Inches, feet, pounds, ounces'},
+      {level:17,name:'Geometry — Shapes and Area',desc:'2D shapes, area, and perimeter'},
+      {level:18,name:'Word Problems — Mixed',desc:'Multi-step mixed operation word problems'}
+    ],
+    reading: [
+      {level:1,name:'Main Idea and Key Details',desc:'Finding the main point of a passage'},
+      {level:2,name:'Story Structure',desc:'Beginning, middle, and end'},
+      {level:3,name:'Character Traits',desc:'Character feelings and motivations'},
+      {level:4,name:'Setting and Influence',desc:'How setting affects the story'},
+      {level:5,name:'Cause and Effect',desc:'Why things happen in stories'},
+      {level:6,name:'Compare and Contrast',desc:'Finding similarities and differences'},
+      {level:7,name:'Inference and Prediction',desc:'Reading between the lines'},
+      {level:8,name:"Author's Purpose",desc:'Why the author wrote the text'},
+      {level:9,name:'Vocabulary in Context',desc:'Understanding word meanings from context'},
+      {level:10,name:'Theme and Central Message',desc:'The deeper lesson of a story'}
+    ],
+    writing: [
+      {level:1,name:'Complete Sentences',desc:'Subject and predicate structure'},
+      {level:2,name:'Narrative — Personal Story',desc:'Writing about real experiences'},
+      {level:3,name:'Narrative — Fictional Story',desc:'Creating an imaginative story'},
+      {level:4,name:'Opinion Writing — Basic',desc:'Stating and supporting an opinion'},
+      {level:5,name:'Opinion Writing — With Evidence',desc:'Using facts and examples'},
+      {level:6,name:'Informational — Basic',desc:'Writing to explain or inform'},
+      {level:7,name:'Informational — With Details',desc:'Adding supporting details'},
+      {level:8,name:'Informational — Full Structure',desc:'Intro, body, and conclusion'}
+    ]
+  },
+  andrew: {
+    spelling: [
+      {level:7,name:'Prefixes',desc:'un-, re-, pre- word beginnings'},
+      {level:8,name:'Suffixes',desc:'-ing, -ed, -er, -est endings'},
+      {level:9,name:'Compound Words',desc:'Two words joined together'},
+      {level:10,name:'Homophones',desc:'Words that sound alike but differ in meaning'},
+      {level:11,name:'Irregular Sight Words',desc:'High-frequency irregular words'},
+      {level:12,name:'Multi-Syllabic Words',desc:'Words with 3+ syllables'}
+    ],
+    math: [
+      {level:1,name:'Multi-Digit Addition',desc:'Adding large numbers with regrouping'},
+      {level:2,name:'Multi-Digit Subtraction',desc:'Subtracting large numbers with regrouping'},
+      {level:3,name:'Multiplication — 2-Digit by 1-Digit',desc:'Multiplying larger numbers'},
+      {level:4,name:'Multiplication — 2-Digit by 2-Digit',desc:'Advanced multiplication'},
+      {level:5,name:'Division With Remainders',desc:'Division that leaves remainders'},
+      {level:6,name:'Long Division',desc:'1-digit divisor long division'},
+      {level:7,name:'Factors and Multiples',desc:'Finding factors and multiples'},
+      {level:8,name:'Prime and Composite Numbers',desc:'Identifying prime vs composite'},
+      {level:9,name:'Equivalent Fractions',desc:'Fractions equal in value'},
+      {level:10,name:'Adding/Subtracting Fractions — Like',desc:'Same denominator fractions'},
+      {level:11,name:'Adding/Subtracting Fractions — Unlike',desc:'Different denominator fractions'},
+      {level:12,name:'Decimals — Tenths and Hundredths',desc:'Understanding decimal place value'},
+      {level:13,name:'Comparing Decimals',desc:'Ordering and comparing decimals'},
+      {level:14,name:'Adding/Subtracting Decimals',desc:'Decimal arithmetic'},
+      {level:15,name:'Converting Measurements',desc:'Converting between units'},
+      {level:16,name:'Geometry — Lines and Angles',desc:'Lines, angles, and triangles'},
+      {level:17,name:'Area and Perimeter',desc:'Complex shapes and compound figures'},
+      {level:18,name:'Multi-Step Word Problems',desc:'Complex multi-operation problems'}
+    ],
+    reading: [
+      {level:1,name:'Main Idea and Supporting Details',desc:'Main idea with text evidence'},
+      {level:2,name:'Plot Development',desc:'How stories develop and change'},
+      {level:3,name:'Character Development and POV',desc:'How characters grow in stories'},
+      {level:4,name:'Setting and Mood',desc:'How setting creates mood'},
+      {level:5,name:'Cause and Effect — Complex',desc:'Multiple causes and effects'},
+      {level:6,name:'Compare and Contrast — Multiple Texts',desc:'Ideas across different texts'},
+      {level:7,name:'Inference and Text Evidence',desc:'Conclusions using evidence'},
+      {level:8,name:"Author's Purpose and Perspective",desc:'Understanding bias and viewpoint'},
+      {level:9,name:'Figurative Language',desc:'Metaphors, similes, and other devices'},
+      {level:10,name:'Theme Across Multiple Texts',desc:'Theme using evidence from texts'}
+    ],
+    writing: [
+      {level:5,name:'Opinion Writing — With Evidence',desc:'Using strong facts and examples'},
+      {level:6,name:'Informational — Basic',desc:'Writing to explain or inform'},
+      {level:7,name:'Informational — With Details',desc:'Adding supporting details'},
+      {level:8,name:'Informational — Full Structure',desc:'Intro, body, and conclusion'}
+    ]
+  }
+};
+
+function getProgression(kidId) { return PROGRESSION[kidId] || PROGRESSION.lauren; }
+function getSubjectProgression(kidId, subjectId) { return getProgression(kidId)[subjectId] || []; }
+function getCurrentLevelIndex(kidId, subjectId) {
+  if (!state.levels || !state.levels[kidId]) return 0;
+  return state.levels[kidId][subjectId] || 0;
+}
+function getCurrentLevelData(kidId, subjectId) {
+  const lvls = getSubjectProgression(kidId, subjectId);
+  const idx = getCurrentLevelIndex(kidId, subjectId);
+  return lvls[Math.min(idx, lvls.length-1)] || {name:'Complete',desc:'All levels mastered!'};
+}
+function getStreakScores(kidId, subjectId) {
+  if (!state.streaks || !state.streaks[kidId]) return [];
+  return state.streaks[kidId][subjectId] || [];
+}
+function isUnlockedToday(kidId, subjectId) {
+  if (!state.unlockedToday || !state.unlockedToday[kidId]) return false;
+  const entry = state.unlockedToday[kidId][subjectId];
+  return entry === getTodayKey();
+}
+function unlockSubjectToday(kidId, subjectId) {
+  if (!state.unlockedToday) state.unlockedToday = {};
+  if (!state.unlockedToday[kidId]) state.unlockedToday[kidId] = {};
+  state.unlockedToday[kidId][subjectId] = getTodayKey();
+  saveState();
+}
 
 const DEFAULT_STATE = {
   pin:'2730',
@@ -440,6 +582,9 @@ const DEFAULT_STATE = {
   },
   curriculum:{lauren:null,andrew:null},
   progress:{lauren:{},andrew:{}},
+  levels:{lauren:{spelling:0,math:0,reading:0,writing:0},andrew:{spelling:0,math:0,reading:0,writing:0}},
+  streaks:{lauren:{spelling:[],math:[],reading:[],writing:[]},andrew:{spelling:[],math:[],reading:[],writing:[]}},
+  unlockedToday:{lauren:{},andrew:{}},
   writingQueue:[],
   difficultyLevel:{lauren:2,andrew:2},
   usedTopics:{lauren:[],andrew:[]},
@@ -512,6 +657,10 @@ async function pullState() {
     const data = await res.json();
     if (data.record) {
       state = Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATE)), data.record);
+      // Ensure new fields exist for older saved states
+      if (!state.levels) state.levels = JSON.parse(JSON.stringify(DEFAULT_STATE.levels));
+      if (!state.streaks) state.streaks = JSON.parse(JSON.stringify(DEFAULT_STATE.streaks));
+      if (!state.unlockedToday) state.unlockedToday = {};
       localStorage.setItem('kidstuff_cache', JSON.stringify(state));
       setSyncBar('✅ Synced', '');
       updateBinIdDisplay();
@@ -555,7 +704,12 @@ function saveState() {
 function loadLocalFallback() {
   try {
     const cached = localStorage.getItem('kidstuff_cache');
-    if (cached) state = Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATE)), JSON.parse(cached));
+    if (cached) {
+      state = Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATE)), JSON.parse(cached));
+      if (!state.levels) state.levels = JSON.parse(JSON.stringify(DEFAULT_STATE.levels));
+      if (!state.streaks) state.streaks = JSON.parse(JSON.stringify(DEFAULT_STATE.streaks));
+      if (!state.unlockedToday) state.unlockedToday = {};
+    }
   } catch(e) { state = JSON.parse(JSON.stringify(DEFAULT_STATE)); }
 }
 
@@ -775,11 +929,8 @@ function renderKidDashboard() {
   const progress = state.progress[currentKidId] || {};
   const grid = document.getElementById('subject-grid');
   const noContent = document.getElementById('no-content-msg');
-  if (!curriculum || !curriculum.subjects) {
-    noContent.style.display = 'block'; grid.innerHTML = '';
-    document.getElementById('kid-dash-progress').textContent = 'No lessons yet';
-  } else {
-    noContent.style.display = 'none';
+  noContent.style.display = 'none';
+  {
     const todayKey = getTodayKey();
     let done = 0;
     grid.innerHTML = '';
@@ -790,21 +941,34 @@ function renderKidDashboard() {
       reading:'linear-gradient(135deg,#4facfe,#00f2fe)',
       writing:'linear-gradient(135deg,#43e97b,#38f9d7)'
     };
-    curriculum.subjects.forEach(function(s) {
-      const p = progress[s.id]; const d = p && p.date === todayKey; if(d) done++;
-      const art = subjectArt[s.id] || s.icon;
-      const col = subjectColors[s.id] || 'linear-gradient(135deg,#4F6EF7,#7C3AED)';
+    const subjects = ['spelling','math','reading','writing'];
+    subjects.forEach(function(subjectId) {
+      const p = progress[subjectId]; const d = p && p.date === todayKey; if(d) done++;
+      const locked = d && !isUnlockedToday(currentKidId, subjectId);
+      const art = subjectArt[subjectId];
+      const col = subjectColors[subjectId];
+      const levelData = getCurrentLevelData(currentKidId, subjectId);
+      const streakScores = getStreakScores(currentKidId, subjectId);
+      const subjLevels = getSubjectProgression(currentKidId, subjectId);
+      const curIdx = getCurrentLevelIndex(currentKidId, subjectId);
+      const levelNum = curIdx + 1;
+      const totalLevels = subjLevels.length;
+
       const div = document.createElement('div');
-      div.className = 'subject-card' + (d?' completed':'');
+      div.className = 'subject-card' + (locked?' completed':'');
       div.style.cssText = 'position:relative;overflow:hidden;';
-      div.innerHTML = '<div style="width:72px;height:72px;border-radius:50%;background:' + col + ';display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 12px;box-shadow:0 4px 16px rgba(0,0,0,0.15);">' + art + '</div>'
-        + '<div class="subj-name">' + s.name + '</div>'
-        + (d ? '<div class="subj-score" style="margin-top:6px">✓ ' + p.score + '%</div>' : '<div class="subj-status">' + (s.questions||[]).length + ' questions · ~' + (s.duration||7) + ' min</div>')
-        + (d ? '<div style="position:absolute;top:10px;right:10px;background:#2ECC71;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:14px;">✓</div>' : '');
-      div.onclick = (function(id){ return function(){ startLesson(id); }; })(s.id);
+      div.innerHTML = '<div style="width:72px;height:72px;border-radius:50%;background:' + col + ';display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 10px;box-shadow:0 4px 16px rgba(0,0,0,0.15);">' + art + '</div>'
+        + '<div class="subj-name">' + (levelData ? levelData.name : subjectId) + '</div>'
+        + '<div style="font-size:11px;color:var(--muted);margin-top:2px">Level ' + levelNum + ' of ' + totalLevels + '</div>'
+        + (locked
+          ? '<div class="subj-score" style="margin-top:6px">✓ ' + p.score + '%</div>'
+            + (streakScores.length ? '<div style="font-size:10px;color:var(--muted);margin-top:2px">Streak: ' + streakScores.map(s=>s+'%').join(' → ') + '</div>' : '')
+          : '<div class="subj-status" style="margin-top:4px">Tap to start</div>')
+        + (locked ? '<div style="position:absolute;top:10px;right:10px;background:#2ECC71;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:14px;">✓</div>' : '');
+      div.onclick = (function(id){ return function(){ startLesson(id); }; })(subjectId);
       grid.appendChild(div);
     });
-    const total_subjects = curriculum.subjects.length;
+    const total_subjects = 4;
     const prog_el = document.getElementById('kid-dash-progress');
     if (done === total_subjects) {
       prog_el.textContent = '🎉 All done for the week!';
@@ -857,28 +1021,109 @@ function redeemReward(id) {
 }
 
 // ── LESSON ENGINE ────────────────────────────────────────
-function startLesson(subjectId) {
-  const curriculum = state.curriculum[currentKidId];
-  if (!curriculum) return;
-  const subj = curriculum.subjects.find(s => s.id === subjectId);
-  if (!subj) return;
-  // Lock if already completed today
+async function startLesson(subjectId) {
+  const subjectIcons = {spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'};
+  const subjectTypes = {spelling:'spelling',math:'math',reading:'reading',writing:'writing'};
+  const icon = subjectIcons[subjectId] || '📚';
+  const type = subjectTypes[subjectId] || subjectId;
+  const levelData = getCurrentLevelData(currentKidId, subjectId);
+
+  // Check if locked (completed today and not unlocked)
   const prog = (state.progress[currentKidId]||{})[subjectId];
-  if (prog && prog.date === getTodayKey()) {
-    showLockedModal(subj, prog);
+  const doneToday = prog && prog.date === getTodayKey();
+  if (doneToday && !isUnlockedToday(currentKidId, subjectId)) {
+    showLockedModal({id:subjectId,name:levelData.name,icon}, prog);
     return;
   }
-  lessonState = {
-    subjectId, subjectName: subj.name, subjectIcon: subj.icon, subjectType: subj.type,
-    questions: JSON.parse(JSON.stringify(subj.type === 'writing' ? [{type:'writing'}] : (subj.questions||[]))),
-    writingPrompt: subj.writingPrompt || null,
-    currentQ: 0, answers: [], correct: 0, streak: 0, missStreak: 0, wrongAnswers: [],
-    diffLevel: state.difficultyLevel[currentKidId] || 2,
-    startTime: Date.now()
-  };
-  showScreen('screen-lesson');
-  document.getElementById('lesson-title').textContent = sanitizeUnicode(subj.icon) + ' ' + subj.name;
-  renderQuestion();
+
+  // Show loading overlay
+  document.getElementById('generating-overlay').style.display='flex';
+  document.getElementById('gen-kid-name').textContent = (state.kids.find(k=>k.id===currentKidId)||{}).name || '';
+
+  try {
+    const questions = await generateLessonQuestions(currentKidId, subjectId, type, levelData);
+    document.getElementById('generating-overlay').style.display='none';
+    const writingPrompt = questions._writingPrompt || null;
+    delete questions._writingPrompt;
+
+    lessonState = {
+      subjectId, subjectName: levelData.name, subjectIcon: icon, subjectType: type,
+      questions: type === 'writing' ? [{type:'writing'}] : questions,
+      writingPrompt,
+      currentQ: 0, answers: [], correct: 0, streak: 0, missStreak: 0, wrongAnswers: [],
+      diffLevel: state.difficultyLevel[currentKidId] || 2,
+      startTime: Date.now()
+    };
+    showScreen('screen-lesson');
+    document.getElementById('lesson-title').textContent = icon + ' ' + levelData.name;
+    renderQuestion();
+  } catch(e) {
+    document.getElementById('generating-overlay').style.display='none';
+    showToast('❌ Could not load lesson: ' + e.message);
+  }
+}
+
+async function generateLessonQuestions(kidId, subjectId, type, levelData) {
+  const kid = state.kids.find(k=>k.id===kidId) || {name:'Student'};
+  const diffName = ['','easy','medium','hard'][state.difficultyLevel[kidId]||2];
+  const kidProgression = getProgression(kidId);
+  const levelDesc = levelData ? levelData.desc : '';
+  const levelName = levelData ? levelData.name : subjectId;
+
+  let prompt = '';
+  if (type === 'spelling') {
+    prompt = `Generate 10 spelling words for a student practicing "${levelName}" (${levelDesc}).
+Difficulty: ${diffName}. Student: ${kid.name}.
+Return ONLY valid JSON array, no markdown:
+[{"word":"WORD","hint":"definition or usage hint"},...]
+Use 10 real age-appropriate words that fit the pattern "${levelName}". No placeholder text.`;
+
+  } else if (type === 'math') {
+    prompt = `Generate 10 math questions for a student practicing "${levelName}" (${levelDesc}).
+Difficulty: ${diffName}. Student: ${kid.name}.
+Mix of multiple choice and typed answer questions.
+Return ONLY valid JSON array, no markdown:
+[{"type":"mc","question":"REAL MATH QUESTION","options":["A","B","C","D"],"answer":"A"},{"type":"typed","question":"REAL MATH QUESTION","answer":"ANSWER"},...]
+Use exactly 5 mc and 5 typed questions. All content must be real math problems for "${levelName}". No placeholder text. Use actual numbers and symbols (use x for multiplication, / for division).`;
+
+  } else if (type === 'reading') {
+    prompt = `Generate 8 reading comprehension questions for a student practicing "${levelName}" (${levelDesc}).
+Difficulty: ${diffName}. Student: ${kid.name}.
+Write an original short story across the passages, then ask questions.
+Return ONLY valid JSON array, no markdown:
+[{"type":"mc","passage":"2-4 sentence passage or null","question":"COMPREHENSION QUESTION","options":["option A","option B","option C","option D"],"answer":"option A"},...]
+All 8 questions must be multiple choice with 4 full text options (not just A/B/C/D letters). The answer field must match one of the options exactly. Focus questions on "${levelName}". No placeholder text.`;
+
+  } else if (type === 'writing') {
+    prompt = `Generate a single engaging writing prompt for a student practicing "${levelName}" (${levelDesc}).
+Difficulty: ${diffName}. Student: ${kid.name}.
+Return ONLY valid JSON object, no markdown:
+{"prompt":"WRITING PROMPT HERE"}
+Make it fun, creative, and appropriate for the writing type "${levelName}". No placeholder text.`;
+  }
+
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+API_KEY},
+    body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'user',content:prompt}],max_tokens:3000,temperature:0.7})
+  });
+  if (!res.ok) throw new Error('API error ' + res.status);
+  const data = await res.json();
+  const text = data.choices[0].message.content;
+  const match = text.match(/[\[{][\s\S]*[\]}]/);
+  if (!match) throw new Error('No JSON in response');
+  const cleaned = match[0]
+    .replace(/\u[0-9a-fA-F]{0,3}(?![0-9a-fA-F])/g,'')
+    .replace(/[ --]/g,'')
+    .replace(/\'/g,"'")
+    .replace(/([^\])\([^"\\/bfnrtu])/g,'$1$2');
+  const parsed = JSON.parse(cleaned);
+  if (type === 'writing') {
+    const arr = [{type:'writing'}];
+    arr._writingPrompt = parsed.prompt || 'Write 3-5 sentences about your favorite thing to do after school.';
+    return arr;
+  }
+  return parsed;
 }
 
 function renderQuestion() {
@@ -1288,18 +1533,23 @@ function showLockedModal(subj, prog) {
           + (w.hint ? '<div style="font-size:12px;color:#6B7280;margin-top:2px">💡 ' + w.hint + '</div>' : '')
           + '</div>';
       }).join('');
+  const subjectIcons2 = {spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'};
   overlay.innerHTML = '<div style="background:white;border-radius:20px;padding:24px;max-width:480px;width:100%;max-height:80vh;overflow-y:auto;">'
-    + '<div style="font-size:28px;text-align:center;margin-bottom:4px">' + subj.icon + '</div>'
+    + '<div style="font-size:28px;text-align:center;margin-bottom:4px">' + (subj.icon || subjectIcons2[subj.id] || '📚') + '</div>'
     + '<div style="font-weight:800;font-size:18px;text-align:center;margin-bottom:4px">' + subj.name + ' — Already Done!</div>'
     + '<div style="text-align:center;color:#6B7280;font-size:14px;margin-bottom:16px">Score: <strong>' + prog.score + '%</strong> · ⭐ ' + prog.coins + ' coins · ' + prog.correct + '/' + prog.total + ' correct</div>'
     + (wrongList.length > 0 ? '<div style="font-weight:800;margin-bottom:10px;color:#EF4444">❌ Missed Questions:</div>' : '')
     + wrongHtml
-    + '<button id="locked-close-btn" style="width:100%;margin-top:16px;padding:13px;border-radius:12px;border:none;background:var(--primary);color:white;font-family:Nunito,sans-serif;font-weight:800;font-size:15px;cursor:pointer;">Done</button>'
+    + '<div style="display:flex;gap:10px;margin-top:16px">'
+    + '<button id="locked-close-btn" style="flex:1;padding:13px;border-radius:12px;border:none;background:var(--primary);color:white;font-family:Nunito,sans-serif;font-weight:800;font-size:15px;cursor:pointer;">Done</button>'
+    + '</div>'
     + '</div>';
   document.body.appendChild(overlay);
   overlay.onclick = function(e) { if(e.target === overlay) overlay.remove(); };
   var closeBtn = document.getElementById('locked-close-btn');
   if (closeBtn) closeBtn.onclick = function() { overlay.remove(); };
+
+  // Add unlock button if parent mode hint — actually just show from kid side, parent unlocks from dashboard
 }
 
 function nextQuestion() { lessonState.currentQ++; renderQuestion(); window.scrollTo(0,0); }
@@ -1334,6 +1584,47 @@ function finishLesson() {
   const kid = state.kids.find(k=>k.id===currentKidId);
   if (kid && !alreadyDone) kid.coins += coins;
   state.difficultyLevel[currentKidId] = ls.diffLevel;
+
+  // ── Kumon advancement logic ──────────────────────────
+  if (!alreadyDone) {
+    if (!state.streaks) state.streaks = {};
+    if (!state.streaks[currentKidId]) state.streaks[currentKidId] = {};
+    if (!state.streaks[currentKidId][ls.subjectId]) state.streaks[currentKidId][ls.subjectId] = [];
+    const streakArr = state.streaks[currentKidId][ls.subjectId];
+    streakArr.push(pct);
+    // Keep only last 3 scores
+    if (streakArr.length > 3) streakArr.shift();
+    state.streaks[currentKidId][ls.subjectId] = streakArr;
+
+    if (!state.levels) state.levels = {};
+    if (!state.levels[currentKidId]) state.levels[currentKidId] = {};
+    const subjLevels = getSubjectProgression(currentKidId, ls.subjectId);
+    const curIdx = getCurrentLevelIndex(currentKidId, ls.subjectId);
+
+    // Advance: 3 consecutive scores >= 90%
+    if (streakArr.length >= 3 && streakArr.every(s => s >= 90)) {
+      if (curIdx < subjLevels.length - 1) {
+        state.levels[currentKidId][ls.subjectId] = curIdx + 1;
+        state.streaks[currentKidId][ls.subjectId] = [];
+        setTimeout(function() {
+          const nextLevel = subjLevels[curIdx+1];
+          showToast('🎉 Level up! Now on: ' + (nextLevel ? nextLevel.name : 'Final level'));
+        }, 1500);
+      }
+    }
+    // Step back: last 2 scores both < 70%
+    if (streakArr.length >= 2 && streakArr.slice(-2).every(s => s < 70)) {
+      if (curIdx > 0) {
+        state.levels[currentKidId][ls.subjectId] = curIdx - 1;
+        state.streaks[currentKidId][ls.subjectId] = [];
+        setTimeout(function() {
+          const prevLevel = subjLevels[curIdx-1];
+          showToast('📚 Let\'s practice: ' + (prevLevel ? prevLevel.name : 'previous level') + ' a bit more.');
+        }, 1500);
+      }
+    }
+  }
+
   saveState();
   const emoji = pct>=90?'🌟':pct>=70?'😊':pct>=50?'💪':'📚';
   const resEmoji = document.getElementById('results-emoji');
@@ -1388,130 +1679,24 @@ function finishLesson() {
 
 function exitLesson() { if(confirm('Exit lesson? Progress won\'t be saved.')) showScreen('screen-kid'); }
 
-// ── AI CURRICULUM GENERATOR ──────────────────────────────
-async function generateCurriculum(kidId) {
-  const kid = state.kids.find(k=>k.id===kidId);
-  if (!kid) return;
-  const diffName = ['','easy','medium','hard'][state.difficultyLevel[kidId]||2];
-  document.getElementById('generating-overlay').style.display='flex';
-  document.getElementById('gen-kid-name').textContent = kid.name;
 
-  const usedTopics = (state.usedTopics && state.usedTopics[kidId]) || [];
-  const avoidStr = usedTopics.length > 0
-    ? 'IMPORTANT: Do NOT reuse any of these previously covered spelling words or math topics: ' + usedTopics.slice(-60).join(', ') + '. Choose completely different content.'
-    : '';
-  const avoidNote = avoidStr ? avoidStr + ' ' : '';
-  const prompt = `Generate a complete week of educational content for a Cobb County School District Georgia 3rd grade student 2nd semester. Student: ${kid.name}. Difficulty: ${diffName}. ${avoidNote}
 
-Return ONLY valid JSON, no markdown, no explanation:
-
-{
-  "kidId": "${kidId}",
-  "kidName": "${kid.name}",
-  "weekNumber": ${getWeekNumber()},
-  "generatedDate": "${new Date().toLocaleDateString()}",
-  "subjects": [
-    {
-      "id": "spelling", "name": "Spelling", "icon": "🔤", "type": "spelling", "duration": 7,
-      "questions": [
-        {"word": "REPLACE_WITH_REAL_WORD", "hint": "REPLACE_WITH_HINT"},
-        {"word": "REPLACE", "hint": "REPLACE"},
-        {"word": "REPLACE", "hint": "REPLACE"},
-        {"word": "REPLACE", "hint": "REPLACE"},
-        {"word": "REPLACE", "hint": "REPLACE"},
-        {"word": "REPLACE", "hint": "REPLACE"},
-        {"word": "REPLACE", "hint": "REPLACE"},
-        {"word": "REPLACE", "hint": "REPLACE"},
-        {"word": "REPLACE", "hint": "REPLACE"},
-        {"word": "REPLACE", "hint": "REPLACE"}
-      ]
-    },
-    {
-      "id": "math", "name": "Math", "icon": "🔢", "type": "math", "duration": 8,
-      "questions": [
-        {"type": "mc", "question": "REAL_MATH_Q", "options": ["A","B","C","D"], "answer": "A"},
-        {"type": "typed", "question": "REAL_MATH_Q", "answer": "ANSWER"},
-        {"type": "mc", "question": "REAL_MATH_Q", "options": ["A","B","C","D"], "answer": "B"},
-        {"type": "typed", "question": "REAL_MATH_Q", "answer": "ANSWER"},
-        {"type": "mc", "question": "REAL_MATH_Q", "options": ["A","B","C","D"], "answer": "C"},
-        {"type": "mc", "question": "REAL_MATH_Q", "options": ["A","B","C","D"], "answer": "D"},
-        {"type": "typed", "question": "REAL_MATH_Q", "answer": "ANSWER"},
-        {"type": "mc", "question": "REAL_MATH_Q", "options": ["A","B","C","D"], "answer": "A"},
-        {"type": "typed", "question": "REAL_MATH_Q", "answer": "ANSWER"},
-        {"type": "mc", "question": "REAL_MATH_Q", "options": ["A","B","C","D"], "answer": "B"}
-      ]
-    },
-    {
-      "id": "reading", "name": "Reading", "icon": "📖", "type": "reading", "duration": 10,
-      "questions": [
-        {"type": "mc", "passage": "SHORT_ORIGINAL_PASSAGE_3_TO_5_SENTENCES", "question": "COMPREHENSION_Q", "options": ["A","B","C","D"], "answer": "A"},
-        {"type": "mc", "passage": "CONTINUE_STORY_2_TO_3_SENTENCES", "question": "DEEPER_COMPREHENSION_Q", "options": ["A","B","C","D"], "answer": "B"},
-        {"type": "mc", "passage": "CONTINUE_STORY_2_TO_3_SENTENCES", "question": "INFERENCE_OR_PREDICTION_Q", "options": ["A","B","C","D"], "answer": "C"},
-        {"type": "mc", "passage": null, "question": "VOCABULARY_IN_CONTEXT_Q", "options": ["A","B","C","D"], "answer": "D"},
-        {"type": "mc", "passage": "NEW_PASSAGE_2_TO_3_SENTENCES_CONTINUING_STORY", "question": "COMPREHENSION_Q", "options": ["A","B","C","D"], "answer": "A"},
-        {"type": "mc", "passage": null, "question": "MAIN_IDEA_Q", "options": ["A","B","C","D"], "answer": "B"},
-        {"type": "mc", "passage": null, "question": "CHARACTER_OR_SETTING_Q", "options": ["A","B","C","D"], "answer": "C"},
-        {"type": "mc", "passage": "FINAL_PASSAGE_STORY_CONCLUSION", "question": "THEME_OR_LESSON_Q", "options": ["A","B","C","D"], "answer": "D"}
-      ]
-    },
-    {
-      "id": "writing", "name": "Writing", "icon": "✍️", "type": "writing", "duration": 8,
-      "writingPrompt": "FUN_ENGAGING_WRITING_PROMPT_FOR_3RD_GRADER_ALIGNED_TO_COBB_COUNTY_STANDARDS_NARRATIVE_OR_OPINION_OR_INFORMATIONAL",
-      "questions": [{"type": "writing"}]
-    }
-  ]
-}
-
-Replace all PLACEHOLDER values with real grade-appropriate content. Spelling: 10 words typical for Cobb County 3rd grade 2nd semester (prefixes, suffixes, compound words). Math: multiplication facts through 12, division, fractions, area, perimeter, place value, word problems. Reading: write an original coherent story across the passages, ALL questions must be multiple choice (type: mc) with 4 options and one correct answer. Difficulty level is ${diffName}. Return ONLY the JSON object.`
-
-  try {
-    const res = await fetch(GROQ_URL, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json','Authorization':'Bearer '+API_KEY},
-      body: JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'user',content:prompt}],max_tokens:6000,temperature:0.7})
-    });
-    if (!res.ok) { const errBody = await res.text(); console.error('API error:', errBody); throw new Error('API ' + res.status + ' — ' + errBody.slice(0,300)); }
-    const data = await res.json();
-    const text = data.choices[0].message.content;
-    const match = text.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error('No JSON in response');
-    // Clean bad unicode escapes and control characters before parsing
-    const cleaned = match[0]
-      .replace(/\\u[0-9a-fA-F]{0,3}(?![0-9a-fA-F])/g, '')  // incomplete unicode escapes
-      .replace(/\\x[0-9a-fA-F]{0,1}(?![0-9a-fA-F])/g, '')   // incomplete hex escapes
-      .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '')        // control characters
-      .replace(/\\'/g, "'")                                    // escaped single quotes
-      .replace(/([^\\])\\([^"\\/bfnrtu])/g, '$1$2');       // invalid escape sequences
-    const curriculum = JSON.parse(cleaned);
-    state.curriculum[kidId] = curriculum;
-    state.progress[kidId] = {};
-    // Record used spelling words and math topics to avoid repetition
-    if (!state.usedTopics) state.usedTopics = {lauren:[],andrew:[]};
-    if (!state.usedTopics[kidId]) state.usedTopics[kidId] = [];
-    const spellingSubj = (curriculum.subjects||[]).find(s=>s.id==='spelling');
-    if (spellingSubj) {
-      const words = (spellingSubj.questions||[]).map(q=>q.word).filter(Boolean);
-      state.usedTopics[kidId] = state.usedTopics[kidId].concat(words).slice(-80);
-    }
-    saveState();
-    await pushState();
-    document.getElementById('generating-overlay').style.display='none';
-    showToast('✅ ' + kid.name + "'s curriculum is ready!");
-    renderCurriculumOverview();
-    renderParentKidSummary();
-  } catch(e) {
-    document.getElementById('generating-overlay').style.display='none';
-    console.error(e);
-    showToast('❌ Failed: ' + e.message);
-  }
-}
-
-function getWeekNumber() {
-  const n=new Date(), s=new Date(n.getFullYear(),0,1);
-  return Math.ceil(((n-s)/86400000+s.getDay()+1)/7);
-}
 
 // ── PARENT DASHBOARD ─────────────────────────────────────
+function parentUnlockLesson() {
+  const kidId = document.getElementById('unlock-kid-select').value;
+  const subjectId = document.getElementById('unlock-subject-select').value;
+  if (!state.unlockedToday) state.unlockedToday = {};
+  const targets = subjectId === 'all' ? ['spelling','math','reading','writing'] : [subjectId];
+  if (!state.unlockedToday[kidId]) state.unlockedToday[kidId] = {};
+  targets.forEach(function(s) {
+    state.unlockedToday[kidId][s] = getTodayKey();
+  });
+  saveState();
+  const kid = state.kids.find(k=>k.id===kidId);
+  showToast('🔓 Unlocked ' + (subjectId==='all'?'all subjects':''+subjectId) + ' for ' + (kid?kid.name:'kid') + '!');
+}
+
 function renderParentDashboard() {
   renderParentKidSummary();
   renderCurriculumOverview();
@@ -1522,8 +1707,9 @@ function renderParentDashboard() {
   renderRedemptionQueue();
   updateRedemptionBadge();
   document.getElementById('coin-kid-select').innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.name}</option>`).join('');
-  const rpk = document.getElementById('reset-progress-kid');
-  if (rpk) rpk.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('') + '<option value="both">👨‍👩‍👧‍👦 Both</option>';
+  const unlockSel = document.getElementById('unlock-kid-select');
+  if (unlockSel) unlockSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
+
   document.getElementById('coinmax-kid-select').innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.name}</option>`).join('');
   renderCoinMaxInputs();
   updateBinIdDisplay();
@@ -1540,15 +1726,32 @@ function renderParentKidSummary() {
 }
 
 function renderCurriculumOverview() {
+  const subjects = ['spelling','math','reading','writing'];
+  const icons = {spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'};
   document.getElementById('curriculum-overview').innerHTML = state.kids.map(k => {
-    const c = state.curriculum[k.id];
-    const diff = ['','Easy','Medium','Hard'][state.difficultyLevel[k.id]||2];
-    if (!c) return `<div style="padding:12px 0;border-bottom:1px solid var(--border)"><strong>${k.emoji} ${k.name}</strong>: <span style="color:var(--muted)">No curriculum yet.</span></div>`;
-    return `<div style="padding:12px 0;border-bottom:1px solid var(--border)">
-      <strong>${k.emoji} ${k.name}</strong> — Week ${c.weekNumber} · ${(c.subjects||[]).length} subjects · ${diff}
-      <div style="font-size:12px;color:var(--muted);margin-top:2px">Generated ${c.generatedDate}</div>
-    </div>`;
-  }).join('');
+    return '<div style="margin-bottom:18px">'
+      + '<div style="font-family:\"Baloo 2\",cursive;font-size:17px;font-weight:700;margin-bottom:10px">' + k.emoji + ' ' + k.name + '</div>'
+      + subjects.map(function(s) {
+          const lvlData = getCurrentLevelData(k.id, s);
+          const streakArr = getStreakScores(k.id, s);
+          const lvlIdx = getCurrentLevelIndex(k.id, s);
+          const totalLvls = getSubjectProgression(k.id, s).length;
+          const streakToAdvance = 3;
+          const goodScores = streakArr.filter(function(sc){ return sc >= 90; }).length;
+          const badScores = streakArr.filter(function(sc){ return sc < 70; }).length;
+          let statusColor = '#6B7280';
+          let statusTxt = streakArr.length ? 'Last: ' + streakArr.slice(-1)[0] + '%' : 'Not started';
+          if (goodScores >= 2) { statusColor = '#2ECC71'; statusTxt = '🔥 ' + goodScores + '/3 toward level up'; }
+          if (badScores >= 1) { statusColor = '#EF4444'; statusTxt = '⚠️ ' + badScores + ' low score(s)'; }
+          return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px">'
+            + '<span>' + icons[s] + ' ' + (lvlData ? lvlData.name : s) + '</span>'
+            + '<span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">'
+            + '<span style="font-weight:700;color:var(--primary)">Level ' + (lvlIdx+1) + ' / ' + totalLvls + '</span>'
+            + '<span style="font-size:11px;color:' + statusColor + '">' + statusTxt + '</span>'
+            + '</span></div>';
+        }).join('')
+      + '</div>';
+  }).join('<hr style="border:none;border-top:1px solid var(--border);margin:8px 0"/>');
 }
 
 function renderWritingApprovals() {
@@ -1749,7 +1952,9 @@ function renderProgressOverview() {
         row.style.cssText = 'border-bottom:1px solid var(--border);padding:10px 0;';
         const summary = document.createElement('div');
         summary.style.cssText = 'display:flex;justify-content:space-between;align-items:center;cursor:pointer;';
-        summary.innerHTML = '<span style="font-weight:700;text-transform:capitalize">' + s + '</span>'
+        const subjLvlData = getCurrentLevelData(k.id, s);
+        const subjLvlName = subjLvlData ? subjLvlData.name : s;
+        summary.innerHTML = '<span style="font-weight:700">' + ({spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'}[s]||'') + ' ' + subjLvlName + '</span>'
           + '<span style="display:flex;align-items:center;gap:8px">'
           + '<strong>' + p.score + '%</strong>'
           + '<span style="color:var(--muted)">⭐' + p.coins + (p.duration != null ? ' · ' + p.duration + 'min' : '') + ' · ' + p.date + '</span>'
