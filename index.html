@@ -176,6 +176,22 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .empty-state{text-align:center;padding:32px 16px;color:var(--muted);}
 .empty-state .empty-icon{font-size:44px;margin-bottom:10px;}
 @media(max-width:480px){.form-grid{grid-template-columns:1fr;}}
+
+/* ── KUMON ENHANCEMENTS ── */
+.lesson-timer{font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;color:white;background:rgba(255,255,255,0.18);border-radius:20px;padding:4px 14px;letter-spacing:1px;}
+.lesson-timer.warn{background:rgba(255,107,107,0.5);}
+.drill-banner{background:linear-gradient(90deg,#F7C948,#FF9500);color:#1A1F36;text-align:center;padding:10px 16px;font-weight:800;font-size:14px;border-radius:12px;margin-bottom:14px;}
+.streak-dots{display:flex;gap:6px;justify-content:center;margin-top:8px;}
+.streak-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);background:white;transition:all 0.3s;}
+.streak-dot.pass{background:#2ECC71;border-color:#27AE60;}
+.streak-dot.fail{background:#FF6B6B;border-color:#e55;}
+.kumon-q-num{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.question-card{position:relative;}
+.drill-badge{position:absolute;top:12px;right:12px;background:#FF9500;color:white;font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;letter-spacing:0.5px;}
+.subject-streak-row{display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap;}
+.subject-streak-label{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;}
+.next-level-bar{height:4px;border-radius:4px;background:var(--border);margin-top:8px;overflow:hidden;}
+.next-level-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#2ECC71,#00f2fe);transition:width 0.5s ease;}
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
@@ -249,7 +265,10 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 <div id="screen-lesson" class="screen">
   <div class="app-header">
     <div><div class="logo">Kid<span>Stuff</span></div><div class="header-sub" id="lesson-header-sub">Lesson</div></div>
-    <button class="back-btn" onclick="exitLesson()">Exit</button>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="lesson-timer" id="lesson-timer">0:00</div>
+      <button class="back-btn" onclick="exitLesson()">Exit</button>
+    </div>
   </div>
   <div class="content">
     <div class="lesson-header">
@@ -258,6 +277,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     </div>
     <div class="progress-bar-wrap"><div class="progress-bar-fill" id="lesson-progress-bar" style="width:0%"></div></div>
     <div style="height:16px"></div>
+    <div id="drill-banner-area"></div>
     <div id="lesson-content"></div>
   </div>
 </div>
@@ -957,13 +977,28 @@ function renderKidDashboard() {
       const div = document.createElement('div');
       div.className = 'subject-card' + (locked?' completed':'');
       div.style.cssText = 'position:relative;overflow:hidden;';
+      
+      // Build streak dots (last 3 scores)
+      const streakHtml = (() => {
+        const dots = [0,1,2].map(i => {
+          const sc = streakScores[streakScores.length - 3 + i];
+          if (sc === undefined) return '<div class="streak-dot"></div>';
+          return sc >= 90 ? '<div class="streak-dot pass" title="'+sc+'%"></div>'
+                         : '<div class="streak-dot fail" title="'+sc+'%"></div>';
+        }).join('');
+        const goodCount = streakScores.filter(s=>s>=90).length;
+        const label = streakScores.length ? (goodCount + '/3 to level up') : 'Not started';
+        return '<div class="subject-streak-row"><div class="subject-streak-label">To level up:</div>' + dots + '</div>'
+          + '<div class="next-level-bar"><div class="next-level-fill" style="width:' + Math.round((goodCount/3)*100) + '%"></div></div>';
+      })();
+
       div.innerHTML = '<div style="width:72px;height:72px;border-radius:50%;background:' + col + ';display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 10px;box-shadow:0 4px 16px rgba(0,0,0,0.15);">' + art + '</div>'
         + '<div class="subj-name">' + (levelData ? levelData.name : subjectId) + '</div>'
-        + '<div style="font-size:11px;color:var(--muted);margin-top:2px">Level ' + levelNum + ' of ' + totalLevels + '</div>'
+        + '<div style="font-size:11px;color:var(--primary);font-weight:700;margin-top:2px">Level ' + levelNum + ' of ' + totalLevels + '</div>'
         + (locked
           ? '<div class="subj-score" style="margin-top:6px">✓ ' + p.score + '%</div>'
-            + (streakScores.length ? '<div style="font-size:10px;color:var(--muted);margin-top:2px">Streak: ' + streakScores.map(s=>s+'%').join(' → ') + '</div>' : '')
           : '<div class="subj-status" style="margin-top:4px">Tap to start</div>')
+        + streakHtml
         + (locked ? '<div style="position:absolute;top:10px;right:10px;background:#2ECC71;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:14px;">✓</div>' : '');
       div.onclick = (function(id){ return function(){ startLesson(id); }; })(subjectId);
       grid.appendChild(div);
@@ -1052,10 +1087,14 @@ async function startLesson(subjectId) {
       writingPrompt,
       currentQ: 0, answers: [], correct: 0, streak: 0, missStreak: 0, wrongAnswers: [],
       diffLevel: state.difficultyLevel[currentKidId] || 2,
-      startTime: Date.now()
+      startTime: Date.now(),
+      isDrillRound: false, drillQuestions: [],
+      timerSeconds: 0,
+      _originalQuestions: type === 'writing' ? [{type:'writing'}] : questions.slice()
     };
     showScreen('screen-lesson');
     document.getElementById('lesson-title').textContent = icon + ' ' + levelData.name;
+    startLessonTimer();
     renderQuestion();
   } catch(e) {
     document.getElementById('generating-overlay').style.display='none';
@@ -1113,10 +1152,9 @@ Make it fun, creative, and appropriate for the writing type "${levelName}". No p
   const match = text.match(/[\[{][\s\S]*[\]}]/);
   if (!match) throw new Error('No JSON in response');
   const cleaned = match[0]
-    .replace(/\u[0-9a-fA-F]{0,3}(?![0-9a-fA-F])/g,'')
-    .replace(/[ --]/g,'')
-    .replace(/\'/g,"'")
-    .replace(/([^\])\([^"\\/bfnrtu])/g,'$1$2');
+    .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]/g,'')
+    .replace(/\u2018|\u2019/g,"'")
+    .replace(/\u201C|\u201D/g,'"');
   const parsed = JSON.parse(cleaned);
   if (type === 'writing') {
     const arr = [{type:'writing'}];
@@ -1130,8 +1168,17 @@ function renderQuestion() {
   const ls = lessonState;
   const total = ls.questions.length;
   document.getElementById('lesson-progress').textContent = 'Q ' + (ls.currentQ+1) + ' of ' + total;
-  document.getElementById('lesson-header-sub').textContent = 'Question ' + (ls.currentQ+1) + ' of ' + total;
+  document.getElementById('lesson-header-sub').textContent = ls.isDrillRound ? '🔄 Drill Round' : 'Question ' + (ls.currentQ+1) + ' of ' + total;
   document.getElementById('lesson-progress-bar').style.width = Math.round((ls.currentQ/total)*100) + '%';
+  
+  // Drill banner
+  const bannerArea = document.getElementById('drill-banner-area');
+  if (bannerArea) {
+    bannerArea.innerHTML = ls.isDrillRound
+      ? '<div class="drill-banner">🔄 Drill Round — Practice your missed questions!</div>'
+      : '';
+  }
+
   const c = document.getElementById('lesson-content');
   const q = ls.questions[ls.currentQ];
   if (!q) return;
@@ -1139,7 +1186,6 @@ function renderQuestion() {
   if (ls.subjectType === 'spelling') { renderSpellingQ(c, q); return; }
   if (q.type === 'mc') { renderMCQ(c, q); return; }
   if (q.type === 'short') {
-    // For reading: only use MC if options exist, otherwise fall back to short answer
     if (ls.subjectType === 'reading' && q.options && q.options.length) { renderMCQ(c, q); return; }
     renderShortQ(c, q); return;
   }
@@ -1148,7 +1194,10 @@ function renderQuestion() {
 
 function renderSpellingQ(c, q) {
   const w = q.word||'', h = escQ(q.hint||'');
+  const drillBadge = (lessonState && lessonState.isDrillRound) ? '<div class="drill-badge">DRILL</div>' : '';
   c.innerHTML = `<div class="question-card">
+    ${drillBadge}
+    <div class="kumon-q-num">Question ${lessonState?lessonState.currentQ+1:1}</div>
     <div class="question-text">🔊 Listen and spell the word</div>
     <div class="question-sub">Press the button to hear the word, then type it below.</div>
     <button class="speak-btn" onclick="speakWord('${w}')">🔊 Hear the Word</button>
@@ -1195,8 +1244,11 @@ function renderMCQ(c, q) {
   const cleanAns = sanitizeUnicode(q.answer);
   const cleanPassage = q.passage ? sanitizeUnicode(q.passage) : null;
   const resolvedAns = resolveAnswer(cleanAns, cleanOpts);
+  const drillBadge = (lessonState && lessonState.isDrillRound) ? '<div class="drill-badge">DRILL</div>' : '';
   c.innerHTML = `<div class="question-card">
+    ${drillBadge}
     ${cleanPassage ? `<div class="passage-box">${cleanPassage}</div>` : ''}
+    <div class="kumon-q-num">Question ${(lessonState?lessonState.currentQ+1:1)}</div>
     <div class="question-text">${cleanQ}</div>
     <div class="options-list">${cleanOpts.map(o =>
       `<button class="option-btn" onclick="selectOption(this,'${escQ(o)}','${escQ(resolvedAns)}')">${o}</button>`).join('')}
@@ -1206,8 +1258,11 @@ function renderMCQ(c, q) {
 }
 
 function renderShortQ(c, q) {
+  const drillBadge = (lessonState && lessonState.isDrillRound) ? '<div class="drill-badge">DRILL</div>' : '';
   c.innerHTML = `<div class="question-card">
+    ${drillBadge}
     ${q.passage ? `<div class="passage-box">${q.passage}</div>` : ''}
+    <div class="kumon-q-num">Question ${lessonState?lessonState.currentQ+1:1}</div>
     <div class="question-text">${q.question}</div>
     <div class="question-sub">Type your answer below.</div>
     <textarea class="lined-area" id="short-input" rows="3" placeholder="Write your answer here..."></textarea>
@@ -1219,7 +1274,10 @@ function renderShortQ(c, q) {
 function renderTypedQ(c, q) {
   const cleanQ = sanitizeUnicode(q.question);
   const cleanSub = q.sub ? sanitizeUnicode(q.sub) : null;
+  const drillBadge = (lessonState && lessonState.isDrillRound) ? '<div class="drill-badge">DRILL</div>' : '';
   c.innerHTML = `<div class="question-card">
+    ${drillBadge}
+    <div class="kumon-q-num">Question ${lessonState?lessonState.currentQ+1:1}</div>
     <div class="question-text">${cleanQ}</div>
     ${cleanSub?`<div class="question-sub">${cleanSub}</div>`:''}
     <input class="answer-input" id="typed-input" type="text" placeholder="Your answer..." autocomplete="off"/>
@@ -1455,8 +1513,15 @@ function recordAnswer(ok, flagged) {
   const ls = lessonState;
   ls.answers.push({q: ls.currentQ, correct: ok, flagged: !!flagged});
   if (flagged) ls.flagged = (ls.flagged||0) + 1;
-  if (ok) { ls.correct++; ls.streak++; ls.missStreak=0; }
-  else { ls.streak=0; ls.missStreak++; }
+  if (ok) {
+    ls.correct++;
+    ls.streak++;
+    ls.missStreak=0;
+    if (ls.isDrillRound) ls.drillCorrect = (ls.drillCorrect||0) + 1;
+  } else {
+    ls.streak=0;
+    ls.missStreak++;
+  }
   if (ls.streak >= 3 && ls.diffLevel < 3) { ls.diffLevel++; ls.streak=0; }
   if (ls.missStreak >= 2 && ls.diffLevel > 1) { ls.diffLevel--; ls.missStreak=0; }
 }
@@ -1469,15 +1534,15 @@ function showNextBtn(flagged) {
   const qc = document.querySelector('#lesson-content .question-card');
   if (!qc) return;
 
-  // Flag button (only show if not already flagged)
-  if (!flagged) {
+  // Flag button — hide during drill round
+  if (!flagged && !ls.isDrillRound) {
     const flagBtn = document.createElement('button');
     flagBtn.id = 'flag-btn';
     flagBtn.style.cssText = 'width:100%;margin-top:10px;padding:11px;border-radius:12px;border:2px solid #F7C948;background:#FFFBEA;color:#B45309;font-family:Nunito,sans-serif;font-weight:700;font-size:14px;cursor:pointer;';
     flagBtn.textContent = '🚩 I do not understand this question';
     flagBtn.onclick = flagQuestion;
     qc.appendChild(flagBtn);
-  } else {
+  } else if (flagged) {
     const flagged_msg = document.createElement('div');
     flagged_msg.style.cssText = 'margin-top:10px;padding:10px;border-radius:10px;background:#FFF8E1;color:#B45309;font-size:13px;font-weight:700;text-align:center;';
     flagged_msg.textContent = '🚩 Flagged for parent review';
@@ -1486,7 +1551,17 @@ function showNextBtn(flagged) {
 
   const btn = document.createElement('button');
   btn.id='next-btn'; btn.className='btn-primary'; btn.style.marginTop='8px';
-  btn.textContent = isLast ? '🎉 See My Results!' : 'Next Question →';
+
+  let btnLabel;
+  if (isLast) {
+    if (ls.isDrillRound) btnLabel = '✅ Finish Drill!';
+    else if (ls.wrongAnswers && ls.wrongAnswers.length > 0) btnLabel = '🔄 Practice Missed Questions';
+    else btnLabel = '🎉 See My Results!';
+  } else {
+    btnLabel = 'Next Question →';
+  }
+
+  btn.textContent = btnLabel;
   btn.onclick = isLast ? finishLesson : nextQuestion;
   qc.appendChild(btn);
 }
@@ -1552,12 +1627,57 @@ function showLockedModal(subj, prog) {
   // Add unlock button if parent mode hint — actually just show from kid side, parent unlocks from dashboard
 }
 
-function nextQuestion() { lessonState.currentQ++; renderQuestion(); window.scrollTo(0,0); }
+function nextQuestion() {
+  lessonState.currentQ++;
+  if (lessonState.currentQ >= lessonState.questions.length) {
+    // Check if we should go to drill round
+    if (!lessonState.isDrillRound && lessonState.wrongAnswers && lessonState.wrongAnswers.length > 0) {
+      startDrillRound();
+    } else {
+      finishLesson();
+    }
+  } else {
+    renderQuestion();
+    window.scrollTo(0,0);
+  }
+}
+
+function startDrillRound() {
+  const ls = lessonState;
+  // Build drill questions from wrong answers
+  const drillQs = ls.wrongAnswers.map(function(w) {
+    // Find the original question object
+    const orig = ls._originalQuestions && ls._originalQuestions.find(function(q) {
+      return (q.question === w.question || q.word === w.question);
+    });
+    if (orig) return orig;
+    // Fallback: rebuild a typed question
+    return { type:'typed', question: w.question, answer: w.correctAnswer };
+  }).filter(Boolean);
+
+  if (!drillQs.length) { finishLesson(); return; }
+
+  ls._originalQuestions = ls._originalQuestions || ls.questions.slice();
+  ls.isDrillRound = true;
+  ls.questions = drillQs;
+  ls.currentQ = 0;
+  ls.drillCorrect = 0;
+  ls.drillTotal = drillQs.length;
+  window.scrollTo(0,0);
+  renderQuestion();
+}
 
 function finishLesson() {
+  stopLessonTimer();
   const ls = lessonState;
-  const total = ls.questions.length;
-  const pct = Math.round((ls.correct/total)*100);
+  // Use original question set for scoring (not drill questions)
+  const origQuestions = ls._originalQuestions || ls.questions;
+  const origTotal = origQuestions.length;
+  // correct = answers on original questions only (subtract drill answers from total correct)
+  const drillCorrect = ls.isDrillRound ? (ls.drillCorrect || 0) : 0;
+  const origCorrect = ls.correct - drillCorrect;
+  const total = origTotal;
+  const pct = Math.round((origCorrect / total) * 100);
   if (!state.progress[currentKidId]) state.progress[currentKidId]={};
   const alreadyDone = state.progress[currentKidId][ls.subjectId] && state.progress[currentKidId][ls.subjectId].date === getTodayKey();
   const maxCoins = (state.coinMax && state.coinMax[currentKidId] && state.coinMax[currentKidId][ls.subjectId]) || 30;
@@ -1565,9 +1685,11 @@ function finishLesson() {
   const coins = alreadyDone ? 0 : originalCoins;
   const flaggedCount = ls.flagged || 0;
   const flaggedQuestions = ls.flaggedQuestions || [];
-  const elapsedMs = Date.now() - (ls.startTime || Date.now());
-  const elapsedMin = Math.round(elapsedMs / 60000);
-  state.progress[currentKidId][ls.subjectId] = {score:pct,coins:originalCoins,date:getTodayKey(),correct:ls.correct,total,flagged:flaggedCount,flaggedQuestions,wrongAnswers:ls.wrongAnswers||[],duration:elapsedMin};
+  const timerSec = ls.timerSeconds || 0;
+  const elapsedMin = Math.floor(timerSec / 60);
+  const elapsedSec = timerSec % 60;
+  const elapsedStr = elapsedMin > 0 ? elapsedMin + ' min ' + elapsedSec + ' sec' : elapsedSec + ' sec';
+  state.progress[currentKidId][ls.subjectId] = {score:pct,coins:originalCoins,date:getTodayKey(),correct:origCorrect,total,flagged:flaggedCount,flaggedQuestions,wrongAnswers:ls.wrongAnswers||[],duration:elapsedMin};
   // Add flagged questions to a review queue for parent
   if (!state.flaggedReview) state.flaggedReview = [];
   flaggedQuestions.forEach(fq => {
@@ -1640,15 +1762,16 @@ function finishLesson() {
   document.getElementById('results-label').textContent = pct>=90?'🎉 Outstanding!':pct>=70?'😊 Great job!':pct>=50?'💪 Good effort!':'📚 Keep practicing!';
   document.getElementById('results-coins').textContent = alreadyDone ? '⭐ No coins — already completed today' : '+'+coins+' ⭐ coins earned!';
   const flagCount = ls.flagged || 0;
-  const flagRow = flagCount > 0 ? '<div class="breakdown-row"><span>\U0001f6a9 Flagged</span><strong style="color:#B45309">' + flagCount + ' question' + (flagCount>1?'s':'') + ' for review</strong></div>' : '';
-  const timeRow = '<div class="breakdown-row"><span>\u23f1 Time</span><strong>' + (elapsedMin < 1 ? 'Under 1 min' : elapsedMin + ' min') + '</strong></div>';
+  const flagRow = flagCount > 0 ? '<div class="breakdown-row"><span>🚩 Flagged</span><strong style="color:#B45309">' + flagCount + ' question' + (flagCount>1?'s':'') + ' for review</strong></div>' : '';
+  const timeRow = '<div class="breakdown-row"><span>⏱ Time</span><strong>' + elapsedStr + '</strong></div>';
+  const drillRow = ls.isDrillRound ? '<div class="breakdown-row"><span>🔄 Drill Round</span><strong>' + (ls.drillCorrect||0) + ' / ' + (ls.drillTotal||0) + ' corrected</strong></div>' : '';
   document.getElementById('results-breakdown-list').innerHTML =
     '<div class="breakdown-row"><span>Subject</span><strong>' + ls.subjectIcon + ' ' + ls.subjectName + '</strong></div>'
-    + '<div class="breakdown-row"><span>Correct</span><strong>' + ls.correct + ' / ' + total + '</strong></div>'
+    + '<div class="breakdown-row"><span>Correct</span><strong>' + origCorrect + ' / ' + total + '</strong></div>'
     + '<div class="breakdown-row"><span>Score</span><strong>' + pct + '%</strong></div>'
-    + '<div class="breakdown-row"><span>Coins Earned</span><strong>' + (alreadyDone ? '0 (replay)' : '\u2b50 ' + coins) + '</strong></div>'
+    + '<div class="breakdown-row"><span>Coins Earned</span><strong>' + (alreadyDone ? '0 (replay)' : '⭐ ' + coins) + '</strong></div>'
     + '<div class="breakdown-row"><span>Difficulty</span><strong>' + (['','Easy','Medium','Hard'][ls.diffLevel]) + '</strong></div>'
-    + timeRow + flagRow;
+    + timeRow + drillRow + flagRow;
   // Wrong answers section on results
   const wrongList = ls.wrongAnswers || [];
   const wrongSection = document.getElementById('results-wrong-answers');
@@ -1677,7 +1800,30 @@ function finishLesson() {
   }
 }
 
-function exitLesson() { if(confirm('Exit lesson? Progress won\'t be saved.')) showScreen('screen-kid'); }
+function exitLesson() { if(confirm('Exit lesson? Progress won\'t be saved.')) { stopLessonTimer(); showScreen('screen-kid'); } }
+
+// ── LESSON TIMER ─────────────────────────────────────────
+let _timerInterval = null;
+function startLessonTimer() {
+  stopLessonTimer();
+  if (lessonState) lessonState.timerSeconds = 0;
+  const el = document.getElementById('lesson-timer');
+  if (el) { el.textContent = '0:00'; el.classList.remove('warn'); }
+  _timerInterval = setInterval(function() {
+    if (!lessonState) { stopLessonTimer(); return; }
+    lessonState.timerSeconds++;
+    const s = lessonState.timerSeconds;
+    const mm = Math.floor(s/60), ss = s%60;
+    const el = document.getElementById('lesson-timer');
+    if (el) {
+      el.textContent = mm + ':' + (ss<10?'0':'') + ss;
+      el.classList.toggle('warn', s > 600); // warn after 10 min
+    }
+  }, 1000);
+}
+function stopLessonTimer() {
+  if (_timerInterval) { clearInterval(_timerInterval); _timerInterval = null; }
+}
 
 
 
