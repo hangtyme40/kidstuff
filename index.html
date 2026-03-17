@@ -2250,37 +2250,44 @@ function parentUnlockLesson() {
 }
 
 function renderParentDashboard() {
-  renderParentKidSummary();
-  renderCurriculumOverview();
-  renderWritingApprovals();
-  renderParentRewards();
-  renderProgressOverview();
-  renderFlaggedList();
-  renderRedemptionQueue();
-  updateRedemptionBadge();
-  updateTabBadges();
-  renderVoiceSelector();
-  setTimeout(renderVoiceSelector, 300);
-  document.getElementById('coin-kid-select').innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.name}</option>`).join('');
-  const unlockSel = document.getElementById('unlock-kid-select');
-  if (unlockSel) unlockSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
-  const levelAdjKid = document.getElementById('level-adj-kid');
-  if (levelAdjKid) {
-    levelAdjKid.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
-    levelAdjKid.onchange = updateLevelAdjPreview;
-    document.getElementById('level-adj-subject').onchange = updateLevelAdjPreview;
-    updateLevelAdjPreview();
+  try {
+    renderParentKidSummary();
+    renderCurriculumOverview();
+    renderWritingApprovals();
+    renderParentRewards();
+    renderProgressOverview();
+    renderFlaggedList();
+    renderRedemptionQueue();
+    updateRedemptionBadge();
+    updateTabBadges();
+    renderVoiceSelector();
+    setTimeout(renderVoiceSelector, 300);
+    const coinKidSel = document.getElementById('coin-kid-select');
+    if (coinKidSel) coinKidSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.name}</option>`).join('');
+    const unlockSel = document.getElementById('unlock-kid-select');
+    if (unlockSel) unlockSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
+    const levelAdjKid = document.getElementById('level-adj-kid');
+    if (levelAdjKid) {
+      levelAdjKid.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
+      levelAdjKid.onchange = updateLevelAdjPreview;
+      const levelAdjSubj = document.getElementById('level-adj-subject');
+      if (levelAdjSubj) levelAdjSubj.onchange = updateLevelAdjPreview;
+      updateLevelAdjPreview();
+    }
+    const skipSel = document.getElementById('skipday-kid-select');
+    if (skipSel) {
+      skipSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
+      skipSel.onchange = function() { updateSkipDayBalance(skipSel.value); };
+      updateSkipDayBalance(skipSel.value);
+    }
+    const coinmaxSel = document.getElementById('coinmax-kid-select');
+    if (coinmaxSel) coinmaxSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.name}</option>`).join('');
+    renderCoinMaxInputs();
+    updateBinIdDisplay();
+  } catch(e) {
+    console.error('renderParentDashboard error:', e);
+    showToast('❌ Dashboard error: ' + e.message);
   }
-  const skipSel = document.getElementById('skipday-kid-select');
-  if (skipSel) {
-    skipSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
-    skipSel.onchange = function() { updateSkipDayBalance(skipSel.value); };
-    updateSkipDayBalance(skipSel.value);
-  }
-
-  document.getElementById('coinmax-kid-select').innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.name}</option>`).join('');
-  renderCoinMaxInputs();
-  updateBinIdDisplay();
 }
 
 function renderParentKidSummary() {
@@ -2733,10 +2740,17 @@ setTimeout(updateParentBadge, 1500);
 }
 
 function switchTab(tabId, btn) {
-  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById(tabId).classList.add('active');
-  if (btn) btn.classList.add('active');
+  try {
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    const panel = document.getElementById(tabId);
+    if (!panel) { showToast('❌ Tab not found: ' + tabId); return; }
+    panel.classList.add('active');
+    if (btn) btn.classList.add('active');
+  } catch(e) {
+    showToast('❌ Tab error: ' + e.message);
+    console.error('switchTab error:', e);
+  }
 }
 
 function showToast(msg) {
