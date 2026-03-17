@@ -178,7 +178,40 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .empty-state .empty-icon{font-size:44px;margin-bottom:10px;}
 @media(max-width:480px){.form-grid{grid-template-columns:1fr;}}
 
-/* ── KUMON ENHANCEMENTS ── */
+/* ── PASS 1 FEATURES ── */
+.streak-hero{display:flex;align-items:center;gap:6px;margin-top:6px;}
+.streak-fire{font-size:22px;animation:flamePulse 1.2s ease-in-out infinite alternate;}
+.streak-count{font-size:18px;font-weight:800;color:white;}
+.streak-label{font-size:12px;color:rgba(255,255,255,0.75);font-weight:600;}
+@keyframes flamePulse{0%{transform:scale(1)}100%{transform:scale(1.18)}}
+
+.badges-section{margin-bottom:18px;}
+.badges-grid{display:flex;gap:10px;flex-wrap:wrap;padding:4px 0;}
+.badge-chip{display:flex;align-items:center;gap:6px;background:white;border:2px solid var(--border);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+.badge-chip.new{border-color:var(--yellow);background:#FFFBEA;animation:popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;}
+.badge-chip .badge-icon{font-size:18px;}
+
+.levelup-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#4F6EF7,#7C3AED);z-index:600;display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;text-align:center;padding:32px;}
+.levelup-star{font-size:80px;animation:starPop 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards;}
+.levelup-title{font-family:'Baloo 2',cursive;font-size:36px;font-weight:800;margin:16px 0 8px;}
+.levelup-sub{font-size:18px;opacity:0.85;margin-bottom:8px;}
+.levelup-level{font-family:'Baloo 2',cursive;font-size:28px;font-weight:800;background:rgba(255,255,255,0.2);border-radius:16px;padding:10px 28px;margin:16px 0;}
+.levelup-btn{background:white;color:var(--primary);border:none;padding:14px 36px;border-radius:14px;font-family:'Nunito',sans-serif;font-weight:800;font-size:17px;cursor:pointer;margin-top:16px;box-shadow:0 4px 16px rgba(0,0,0,0.15);}
+
+.milestone-bar-wrap{margin:14px 0 4px;}
+.milestone-label{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px;}
+.milestone-bar{background:var(--border);border-radius:20px;height:12px;overflow:hidden;}
+.milestone-fill{height:100%;border-radius:20px;background:linear-gradient(90deg,#F7C948,#FF9500);transition:width 0.6s ease;}
+.milestone-next{font-size:12px;color:var(--muted);margin-top:4px;font-weight:600;}
+
+.voice-selector{display:flex;flex-direction:column;gap:8px;margin:12px 0;}
+.voice-option{display:flex;align-items:center;gap:10px;padding:10px 14px;border:2px solid var(--border);border-radius:12px;cursor:pointer;background:white;transition:all 0.2s;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;}
+.voice-option.selected{border-color:var(--primary);background:#EEF2FF;}
+.voice-option:hover{border-color:var(--primary);}
+.voice-preview{background:var(--primary);color:white;border:none;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;}
+
+.study-btn{background:linear-gradient(135deg,#F7C948,#FF9500);color:#1A1F36;border:none;padding:14px 20px;border-radius:14px;font-family:'Baloo 2',cursive;font-size:17px;font-weight:800;cursor:pointer;width:100%;margin-bottom:14px;box-shadow:0 4px 16px rgba(247,201,72,0.3);transition:transform 0.15s;}
+.study-btn:hover{transform:translateY(-2px);}
 .lesson-timer{font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;color:white;background:rgba(255,255,255,0.18);border-radius:20px;padding:4px 14px;letter-spacing:1px;}
 .lesson-timer.warn{background:rgba(255,107,107,0.5);}
 .drill-banner{background:linear-gradient(90deg,#F7C948,#FF9500);color:#1A1F36;text-align:center;padding:10px 16px;font-weight:800;font-size:14px;border-radius:12px;margin-bottom:14px;}
@@ -196,6 +229,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 </head>
 <body>
 
@@ -244,20 +278,26 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   <div class="content">
     <div class="kid-hero">
       <div class="kid-hero-avatar" id="kid-dash-avatar">🎒</div>
-      <div>
+      <div style="flex:1">
         <div class="kid-hero-name" id="kid-dash-name">Name</div>
         <div class="kid-hero-coins" id="kid-dash-coins">🧠 0 Brain Bucks</div>
         <div class="kid-hero-progress" id="kid-dash-progress">0 of 4 done today</div>
+        <div class="streak-hero" id="kid-dash-streak" style="display:none">
+          <span class="streak-fire">🔥</span>
+          <span class="streak-count" id="streak-count-display">0</span>
+          <span class="streak-label">day streak!</span>
+        </div>
       </div>
     </div>
-    <div id="no-content-msg" style="display:none">
-      <div class="card" style="text-align:center;padding:40px 20px">
-        <div style="font-size:48px;margin-bottom:12px">📚</div>
-        <div style="font-family:'Baloo 2',cursive;font-size:20px;margin-bottom:8px">No lessons yet!</div>
-        <div style="color:var(--muted)">Ask a parent to generate this week's curriculum.</div>
+    <div class="badges-section" id="kid-badges-section" style="display:none">
+      <div class="card" style="padding:14px 16px">
+        <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:700;margin-bottom:10px">🏅 My Badges</div>
+        <div class="badges-grid" id="kid-badges-grid"></div>
       </div>
     </div>
+    <div id="no-content-msg" style="display:none"></div>
     <div class="subject-grid" id="subject-grid"></div>
+    <button onclick="startStudyMode()" id="study-mode-btn" style="display:none;width:100%;margin-bottom:18px;padding:14px;border-radius:14px;border:2px solid var(--primary);background:#EEF2FF;color:var(--primary);font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;cursor:pointer;">📖 Study Mode — Practice Missed Questions</button>
     <div class="card"><div class="card-title">🎁 Rewards Shop</div><div id="kid-rewards-list"></div></div>
   </div>
 </div>
@@ -297,6 +337,36 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
       <div id="results-wrong-answers" style="display:none;margin-top:16px"></div></div>
     <button class="btn-primary" onclick="showScreen('screen-kid')" style="margin-bottom:30px">Back to Dashboard</button>
   </div>
+</div>
+
+<!-- STUDY MODE -->
+<div id="screen-study" class="screen">
+  <div class="app-header">
+    <div><div class="logo">Kid<span>Stuff</span></div><div class="header-sub">Study Mode</div></div>
+    <button class="back-btn" onclick="showScreen('screen-kid')">Exit</button>
+  </div>
+  <div class="content">
+    <div style="background:linear-gradient(135deg,#4F6EF7,#7C3AED);border-radius:var(--radius);padding:20px;color:white;margin-bottom:18px;text-align:center">
+      <div style="font-size:36px;margin-bottom:6px">📖</div>
+      <div style="font-family:'Baloo 2',cursive;font-size:22px;font-weight:800">Study Mode</div>
+      <div style="opacity:0.85;font-size:14px;margin-top:4px">No score, no pressure — just practice!</div>
+    </div>
+    <div id="study-content"></div>
+    <div id="study-empty" style="display:none" class="card" style="text-align:center;padding:32px">
+      <div style="font-size:48px;margin-bottom:12px">🎉</div>
+      <div style="font-family:'Baloo 2',cursive;font-size:20px">No missed questions!</div>
+      <div style="color:var(--muted);margin-top:8px">You've been getting everything right. Keep it up!</div>
+    </div>
+  </div>
+</div>
+
+<!-- LEVEL UP OVERLAY -->
+<div id="levelup-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,10,40,0.92);z-index:600;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;">
+  <div style="font-size:80px;margin-bottom:8px;animation:starPop 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards" id="levelup-icon">⭐</div>
+  <div style="font-family:'Baloo 2',cursive;font-size:36px;font-weight:800;color:white;margin-bottom:8px" id="levelup-title">Level Up!</div>
+  <div style="font-size:18px;color:rgba(255,255,255,0.8);margin-bottom:6px" id="levelup-subject"></div>
+  <div style="font-family:'Baloo 2',cursive;font-size:24px;font-weight:800;color:#F7C948;margin-bottom:28px" id="levelup-new-level"></div>
+  <button onclick="closeLevelUp()" style="background:#F7C948;color:#1A1F36;border:none;padding:16px 40px;border-radius:14px;font-family:'Baloo 2',cursive;font-size:20px;font-weight:800;cursor:pointer;">Let's Go! 🚀</button>
 </div>
 
 <!-- PIN -->
@@ -395,6 +465,11 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         <div class="form-row"><label>Change PIN</label><input id="new-pin" type="password" maxlength="4" placeholder="New 4-digit PIN"/></div>
         <button class="btn-primary" onclick="changePin()">Update PIN</button>
         <div style="height:18px"></div>
+        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
+          <div style="font-weight:800;margin-bottom:10px">🔊 Spelling Voice</div>
+          <div id="voice-selector-wrap">Loading voices...</div>
+        </div>
+        <div style="height:18px"></div>
         <div class="form-grid">
           <div class="form-row"><label>Adjust Brain Bucks For</label><select id="coin-kid-select"></select></div>
           <div class="form-row"><label>Amount</label><input id="coin-adjust" type="number" placeholder="+10 or -5"/></div>
@@ -437,6 +512,25 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         <div style="height:18px"></div>
         <div style="height:10px"></div>
         <button class="btn-danger" onclick="resetAll()" style="width:100%;padding:12px">⚠️ Reset All Data</button>
+        <div style="height:18px"></div>
+        <div class="card" style="background:#F0FBF4;box-shadow:none;border:2px solid #86EFAC">
+          <div style="font-weight:800;margin-bottom:8px">🛡️ Streak Protection</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Grant a skip day so a missed day doesn't break a kid's streak (sick day, vacation, etc.).</div>
+          <div class="form-grid">
+            <div class="form-row"><label>Kid</label><select id="skipday-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"></select></div>
+            <div id="skipday-balance" style="display:flex;align-items:flex-end;padding-bottom:14px;font-weight:800;font-size:14px;color:var(--primary)"></div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-primary" style="background:#2ECC71;flex:1" onclick="grantSkipDay(document.getElementById('skipday-kid-select').value)">➕ Grant Skip Day</button>
+            <button class="btn-primary" style="background:#F7C948;color:#1A1F36;flex:1" onclick="useSkipDay(document.getElementById('skipday-kid-select').value)">🛡️ Use Skip Day</button>
+          </div>
+        </div>
+        <div style="height:18px"></div>
+        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
+          <div style="font-weight:800;margin-bottom:8px">📧 Weekly Report</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Send a weekly summary email with both kids' scores, streaks, and Brain Bucks.</div>
+          <button class="btn-primary" style="background:#7C3AED" onclick="sendWeeklyEmail()">📧 Send Report Now</button>
+        </div>
       </div>
     </div>
   </div>
@@ -610,7 +704,12 @@ const DEFAULT_STATE = {
   difficultyLevel:{lauren:2,andrew:2},
   usedTopics:{lauren:[],andrew:[]},
   coinMax:{lauren:{spelling:30,math:30,reading:30,writing:30},andrew:{spelling:30,math:30,reading:30,writing:30}},
-  redemptionQueue:[]
+  redemptionQueue:[],
+  dailyStreak:{lauren:{count:0,lastDate:''},andrew:{count:0,lastDate:''}},
+  badges:{lauren:[],andrew:[]},
+  badgeQuarter: '',
+  skipDay:{lauren:0,andrew:0},
+  selectedVoice: null
 };
 
 let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
@@ -730,6 +829,10 @@ function loadLocalFallback() {
       if (!state.levels) state.levels = JSON.parse(JSON.stringify(DEFAULT_STATE.levels));
       if (!state.streaks) state.streaks = JSON.parse(JSON.stringify(DEFAULT_STATE.streaks));
       if (!state.unlockedToday) state.unlockedToday = {};
+      if (!state.dailyStreak) state.dailyStreak = JSON.parse(JSON.stringify(DEFAULT_STATE.dailyStreak));
+      if (!state.badges) state.badges = {lauren:[],andrew:[]};
+      if (!state.skipDay) state.skipDay = {lauren:0,andrew:0};
+      if (state.selectedVoice === undefined) state.selectedVoice = null;
     }
   } catch(e) { state = JSON.parse(JSON.stringify(DEFAULT_STATE)); }
 }
@@ -946,9 +1049,12 @@ function renderKidDashboard() {
   document.getElementById('kid-dash-avatar').textContent = kid.emoji;
   document.getElementById('kid-dash-name').textContent = kid.name;
   document.getElementById('kid-dash-coins').textContent = '🧠 ' + kid.coins + ' Brain Bucks';
+  renderStreakOnDashboard(currentKidId);
+  renderBadges(currentKidId);
 
-  // Show redo notice if parent sent writing back
+  // Show redo notice or quarterly badge reset notice
   const redoNotice = (state.redoNotices||[]).find(function(n){ return n.kidId === currentKidId && n.subject === 'writing'; });
+  const quarterNotice = (state.redoNotices||[]).find(function(n){ return n.kidId === currentKidId && n.subject === 'quarterReset'; });
   const noContentEl = document.getElementById('no-content-msg');
   if (redoNotice) {
     noContentEl.style.display = 'block';
@@ -956,6 +1062,14 @@ function renderKidDashboard() {
       + '<div style="font-size:36px;margin-bottom:8px">✍️</div>'
       + '<div style="font-family:\'Baloo 2\',cursive;font-size:18px;font-weight:800;margin-bottom:6px;color:#B45309">Writing Redo</div>'
       + '<div style="color:#92400E;font-size:14px">' + redoNotice.message + '</div>'
+      + '</div>';
+  } else if (quarterNotice) {
+    noContentEl.style.display = 'block';
+    noContentEl.innerHTML = '<div class="card" style="text-align:center;padding:24px 20px;background:#EEF2FF;border:2px solid var(--primary);">'
+      + '<div style="font-size:36px;margin-bottom:8px">🏅</div>'
+      + '<div style="font-family:\'Baloo 2\',cursive;font-size:18px;font-weight:800;margin-bottom:6px;color:var(--primary)">New Quarter!</div>'
+      + '<div style="color:var(--primary);font-size:14px">' + quarterNotice.message + '</div>'
+      + '<button onclick="dismissQuarterNotice()" style="margin-top:12px;padding:8px 20px;border-radius:10px;border:none;background:var(--primary);color:white;font-family:Nunito,sans-serif;font-weight:700;font-size:14px;cursor:pointer;">Let\'s Go! 🚀</button>'
       + '</div>';
   } else {
     noContentEl.style.display = 'none';
@@ -1032,17 +1146,27 @@ function renderKidDashboard() {
       prog_el.style.fontWeight = '';
     }
   }
+  // Study mode button — show if there are any wrong answers to review
+  const studyBtn = document.getElementById('study-mode-btn');
+  if (studyBtn) {
+    const hasWrong = ['spelling','math','reading','writing'].some(function(s) {
+      const p = (state.progress[currentKidId]||{})[s];
+      return p && p.wrongAnswers && p.wrongAnswers.length > 0;
+    });
+    studyBtn.style.display = hasWrong ? 'block' : 'none';
+  }
+
   const rewardsEl = document.getElementById('kid-rewards-list');
   const kidRewards2 = getRewardsForKid(currentKidId);
   if (!kidRewards2 || !kidRewards2.length) {
     rewardsEl.innerHTML = '<div class="empty-state"><div class="empty-icon">🎁</div><p>No rewards yet.</p></div>';
   } else {
-    rewardsEl.innerHTML = '';
+    rewardsEl.innerHTML = renderMilestoneBar(currentKidId);
     kidRewards2.forEach(function(r) {
       const item = document.createElement('div');
       item.className = 'reward-item';
       item.innerHTML = '<div class="reward-icon">' + r.emoji + '</div>'
-        + '<div class="reward-info"><div class="reward-name">' + r.name + '</div><div class="reward-cost">⭐ ' + r.cost + ' Brain Bucks</div></div>';
+        + '<div class="reward-info"><div class="reward-name">' + r.name + '</div><div class="reward-cost">🧠 ' + r.cost + ' Brain Bucks</div></div>';
       const btn = document.createElement('button');
       btn.className = 'redeem-btn';
       btn.disabled = kid.coins < r.cost;
@@ -1206,7 +1330,9 @@ function renderQuestion() {
   // Drill banner
   const bannerArea = document.getElementById('drill-banner-area');
   if (bannerArea) {
-    bannerArea.innerHTML = ls.isDrillRound
+    bannerArea.innerHTML = ls.isStudyMode
+      ? '<div class="drill-banner" style="background:linear-gradient(90deg,#4F6EF7,#7C3AED);color:white;">📖 Study Mode — No pressure, just practice!</div>'
+      : ls.isDrillRound
       ? '<div class="drill-banner">🔄 Drill Round — Practice your missed questions!</div>'
       : '';
   }
@@ -1240,11 +1366,113 @@ function renderSpellingQ(c, q) {
   setTimeout(() => { speakWord(w); const el = document.getElementById('spell-input'); if(el) el.focus(); }, 400);
 }
 
-function speakWord(word) {
+// ── VOICE SYSTEM ─────────────────────────────────────────
+let _voices = [];
+let _voiceReady = false;
+
+function loadVoices() {
+  _voices = window.speechSynthesis.getVoices();
+  if (_voices.length) { _voiceReady = true; renderVoiceSelector(); }
+}
+if (window.speechSynthesis) {
+  window.speechSynthesis.onvoiceschanged = loadVoices;
+  loadVoices();
+}
+
+// Curated pleasant voices by priority
+const VOICE_PICKS = [
+  { label: 'Samantha (US)',   match: v => v.name === 'Samantha' },
+  { label: 'Karen (AU)',      match: v => v.name === 'Karen' },
+  { label: 'Moira (IE)',      match: v => v.name === 'Moira' },
+  { label: 'Tessa (ZA)',      match: v => v.name === 'Tessa' },
+  { label: 'Daniel (UK)',     match: v => v.name === 'Daniel' },
+  { label: 'Kate (UK)',       match: v => v.name.includes('Kate') && v.lang.startsWith('en') },
+  { label: 'US English F',    match: v => v.lang === 'en-US' && v.name.toLowerCase().includes('female') },
+  { label: 'US English',      match: v => v.lang === 'en-US' },
+  { label: 'English',         match: v => v.lang.startsWith('en') },
+];
+
+function getAvailableVoices() {
+  const all = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+  const found = [];
+  const used = new Set();
+  VOICE_PICKS.forEach(function(pick) {
+    const v = all.find(function(v) { return !used.has(v.name) && pick.match(v); });
+    if (v) { found.push({ label: pick.label, name: v.name }); used.add(v.name); }
+  });
+  return found.slice(0, 5);
+}
+
+function getSelectedVoice() {
+  if (!window.speechSynthesis) return null;
+  const all = window.speechSynthesis.getVoices();
+  if (state.selectedVoice) {
+    const v = all.find(function(v) { return v.name === state.selectedVoice; });
+    if (v) return v;
+  }
+  // Default: first pleasant English voice
+  for (let i = 0; i < VOICE_PICKS.length; i++) {
+    const v = all.find(VOICE_PICKS[i].match);
+    if (v) return v;
+  }
+  return all.find(function(v) { return v.lang.startsWith('en'); }) || null;
+}
+
+function renderVoiceSelector() {
+  const el = document.getElementById('voice-selector-wrap');
+  if (!el) return;
+  const voices = getAvailableVoices();
+  if (!voices.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px">No voices available on this device.</div>'; return; }
+  el.innerHTML = '<div class="form-row"><label>Spelling Voice</label>'
+    + '<select id="voice-select" onchange="setVoice(this.value)" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;">'
+    + voices.map(function(v) {
+        return '<option value="' + v.name + '"' + (state.selectedVoice === v.name ? ' selected' : '') + '>' + v.label + '</option>';
+      }).join('')
+    + '</select></div>'
+    + '<button class="btn-primary" style="background:#7C3AED;margin-top:4px" onclick="testVoice()">🔊 Test Voice</button>';
+}
+
+function setVoice(name) {
+  state.selectedVoice = name;
+  saveState();
+}
+
+function testVoice() {
+  speakWordFull('practice', 'Use this word in a sentence — she needed practice every day.');
+}
+
+function speakWord(word) { speakWordFull(word, null); }
+
+function speakWordFull(word, sentence) {
   if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(word);
-  u.rate = 0.75; window.speechSynthesis.speak(u);
+  const voice = getSelectedVoice();
+
+  function utter(text, rate, onend) {
+    const u = new SpeechSynthesisUtterance(text);
+    if (voice) u.voice = voice;
+    u.rate = rate || 0.85;
+    u.pitch = 1.05;
+    if (onend) u.onend = onend;
+    window.speechSynthesis.speak(u);
+  }
+
+  // Word → sentence → word again
+  const sent = sentence || (lessonState && lessonState.questions && lessonState.questions[lessonState.currentQ] && lessonState.questions[lessonState.currentQ].hint
+    ? 'Here is the word in a sentence — ' + lessonState.questions[lessonState.currentQ].hint
+    : null);
+
+  utter(word, 0.75, function() {
+    setTimeout(function() {
+      if (sent) {
+        utter(sent, 0.9, function() {
+          setTimeout(function() { utter(word, 0.75); }, 400);
+        });
+      } else {
+        setTimeout(function() { utter(word, 0.75); }, 500);
+      }
+    }, 300);
+  });
 }
 
 function checkSpelling(word, hint) {
@@ -1252,13 +1480,31 @@ function checkSpelling(word, hint) {
   const val = (input.value||'').trim().toLowerCase();
   const ok = val === word.toLowerCase();
   input.className = 'answer-input ' + (ok?'correct':'wrong');
-  if (!ok && lessonState) {
-    const q = lessonState.questions[lessonState.currentQ];
-    lessonState.wrongAnswers.push({question: q.word || word, yourAnswer: val || '(blank)', correctAnswer: word, hint: hint||''});
+  if (ok) {
+    showFeedback(true, '✅ Correct! Great spelling!');
+    document.getElementById('check-btn').style.display='none';
+    recordAnswer(true); showNextBtn();
+  } else {
+    if (lessonState) {
+      const q = lessonState.questions[lessonState.currentQ];
+      lessonState.wrongAnswers.push({question: q.word || word, yourAnswer: val || '(blank)', correctAnswer: word, hint: hint||''});
+    }
+    input.className = 'answer-input wrong';
+    playSound('wrong');
+    const hintText = hint || 'Listen again carefully — press the button to hear the word.';
+    const fb = document.getElementById('feedback');
+    if (fb) {
+      fb.className = 'feedback-box wrong';
+      fb.innerHTML = '💡 <strong>Hint:</strong> ' + hintText
+        + '<br><button id="hint-reveal-btn" style="margin-top:10px;padding:8px 18px;border-radius:10px;border:none;background:#EF4444;color:white;font-family:Nunito,sans-serif;font-weight:700;font-size:14px;cursor:pointer;">Show Answer</button>';
+      document.getElementById('hint-reveal-btn').onclick = function() {
+        fb.className = 'feedback-box wrong';
+        fb.textContent = '❌ Correct spelling: "' + word + '"' + (hint?' — '+hint:'');
+        document.getElementById('check-btn').style.display='none';
+        recordAnswer(false); showNextBtn();
+      };
+    }
   }
-  showFeedback(ok, ok ? '✅ Correct! Great spelling!' : '❌ Correct spelling: "' + word + '"' + (hint?' — '+hint:''));
-  document.getElementById('check-btn').style.display='none';
-  recordAnswer(ok); showNextBtn();
 }
 
 function resolveAnswer(answer, options) {
@@ -1469,13 +1715,29 @@ function selectOption(btn, selected, correct) {
   document.querySelectorAll('.option-btn').forEach(b => b.disabled=true);
   const ok = selected === correct;
   btn.classList.add(ok?'correct':'wrong');
-  if (!ok) document.querySelectorAll('.option-btn').forEach(b => { if(b.textContent.trim()===correct) b.classList.add('correct'); });
-  if (!ok && lessonState) {
-    const q = lessonState.questions[lessonState.currentQ];
-    lessonState.wrongAnswers.push({question: q.question || q.word || '', yourAnswer: selected, correctAnswer: correct});
+  if (!ok) {
+    document.querySelectorAll('.option-btn').forEach(b => { if(b.textContent.trim()===correct) b.classList.add('correct'); });
+    if (lessonState) {
+      const q = lessonState.questions[lessonState.currentQ];
+      lessonState.wrongAnswers.push({question: q.question || q.word || '', yourAnswer: selected, correctAnswer: correct});
+    }
+    playSound('wrong');
+    const hintText = getHintForQuestion(lessonState && lessonState.questions[lessonState.currentQ], lessonState && lessonState.subjectType);
+    const fb = document.getElementById('feedback');
+    if (fb) {
+      fb.className = 'feedback-box wrong';
+      fb.innerHTML = '💡 <strong>Hint:</strong> ' + hintText
+        + '<br><button id="hint-reveal-btn" style="margin-top:10px;padding:8px 18px;border-radius:10px;border:none;background:#EF4444;color:white;font-family:Nunito,sans-serif;font-weight:700;font-size:14px;cursor:pointer;">Show Answer</button>';
+      document.getElementById('hint-reveal-btn').onclick = function() {
+        fb.className = 'feedback-box wrong';
+        fb.textContent = '❌ The answer is: ' + correct;
+        recordAnswer(false); showNextBtn();
+      };
+    }
+  } else {
+    showFeedback(true, '✅ Correct!');
+    recordAnswer(true); showNextBtn();
   }
-  showFeedback(ok, ok ? '✅ Correct!' : '❌ The answer is: ' + correct);
-  recordAnswer(ok); showNextBtn();
 }
 
 function parseFraction(s) {
@@ -1515,13 +1777,30 @@ function checkTyped(answer) {
   const val = (input.value||'').trim();
   const ok = answersMatch(val, answer);
   input.className = 'answer-input ' + (ok?'correct':'wrong');
-  if (!ok && lessonState) {
-    const q = lessonState.questions[lessonState.currentQ];
-    lessonState.wrongAnswers.push({question: q.question || '', yourAnswer: val || '(blank)', correctAnswer: answer});
+  if (ok) {
+    showFeedback(true, '✅ Correct!');
+    document.getElementById('check-btn').style.display='none';
+    recordAnswer(true); showNextBtn();
+  } else {
+    if (lessonState) {
+      const q = lessonState.questions[lessonState.currentQ];
+      lessonState.wrongAnswers.push({question: q.question || '', yourAnswer: val || '(blank)', correctAnswer: answer});
+    }
+    playSound('wrong');
+    const hintText = getHintForQuestion(lessonState && lessonState.questions[lessonState.currentQ], lessonState && lessonState.subjectType);
+    const fb = document.getElementById('feedback');
+    if (fb) {
+      fb.className = 'feedback-box wrong';
+      fb.innerHTML = '💡 <strong>Hint:</strong> ' + hintText
+        + '<br><button id="hint-reveal-btn" style="margin-top:10px;padding:8px 18px;border-radius:10px;border:none;background:#EF4444;color:white;font-family:Nunito,sans-serif;font-weight:700;font-size:14px;cursor:pointer;">Show Answer</button>';
+      document.getElementById('hint-reveal-btn').onclick = function() {
+        fb.className = 'feedback-box wrong';
+        fb.textContent = '❌ Correct answer: ' + answer;
+        document.getElementById('check-btn').style.display='none';
+        recordAnswer(false); showNextBtn();
+      };
+    }
   }
-  showFeedback(ok, ok ? '✅ Correct!' : '❌ Correct answer: ' + answer);
-  document.getElementById('check-btn').style.display='none';
-  recordAnswer(ok); showNextBtn();
 }
 
 function checkShortAnswer(keywordsStr) {
@@ -1567,8 +1846,8 @@ function showNextBtn(flagged) {
   const qc = document.querySelector('#lesson-content .question-card');
   if (!qc) return;
 
-  // Flag button — hide during drill round
-  if (!flagged && !ls.isDrillRound) {
+  // Flag button — hide during drill round and study mode
+  if (!flagged && !ls.isDrillRound && !ls.isStudyMode) {
     const flagBtn = document.createElement('button');
     flagBtn.id = 'flag-btn';
     flagBtn.style.cssText = 'width:100%;margin-top:10px;padding:11px;border-radius:12px;border:2px solid #F7C948;background:#FFFBEA;color:#B45309;font-family:Nunito,sans-serif;font-weight:700;font-size:14px;cursor:pointer;';
@@ -1587,11 +1866,12 @@ function showNextBtn(flagged) {
 
   let btnLabel;
   if (isLast) {
-    if (ls.isDrillRound) btnLabel = '✅ Finish Drill!';
+    if (ls.isStudyMode) btnLabel = '✅ Done Studying!';
+    else if (ls.isDrillRound) btnLabel = '✅ Finish Drill!';
     else if (ls.wrongAnswers && ls.wrongAnswers.length > 0) btnLabel = '🔄 Practice Missed Questions';
     else btnLabel = '🎉 See My Results!';
   } else {
-    btnLabel = 'Next Question →';
+    btnLabel = ls.isStudyMode ? 'Next →' : 'Next Question →';
   }
 
   btn.textContent = btnLabel;
@@ -1663,8 +1943,8 @@ function showLockedModal(subj, prog) {
 function nextQuestion() {
   lessonState.currentQ++;
   if (lessonState.currentQ >= lessonState.questions.length) {
-    // Check if we should go to drill round
-    if (!lessonState.isDrillRound && lessonState.wrongAnswers && lessonState.wrongAnswers.length > 0) {
+    // Check if we should go to drill round (not in study mode)
+    if (!lessonState.isDrillRound && !lessonState.isStudyMode && lessonState.wrongAnswers && lessonState.wrongAnswers.length > 0) {
       startDrillRound();
     } else {
       finishLesson();
@@ -1703,6 +1983,8 @@ function startDrillRound() {
 function finishLesson() {
   stopLessonTimer();
   const ls = lessonState;
+  // Study mode — no scoring, just return to dashboard
+  if (ls.isStudyMode) { endStudyMode(); return; }
   // Use original question set for scoring (not drill questions)
   const origQuestions = ls._originalQuestions || ls.questions;
   const origTotal = origQuestions.length;
@@ -1765,10 +2047,7 @@ function finishLesson() {
       if (curIdx < subjLevels.length - 1) {
         state.levels[currentKidId][ls.subjectId] = curIdx + 1;
         state.streaks[currentKidId][ls.subjectId] = [];
-        setTimeout(function() {
-          const nextLevel = subjLevels[curIdx+1];
-          showToast('🎉 Level up! Now on: ' + (nextLevel ? nextLevel.name : 'Final level'));
-        }, 1500);
+        triggerLevelUpIfNeeded(currentKidId, ls.subjectId, curIdx, curIdx + 1, subjLevels);
       }
     }
     // Step back: last 2 scores both < 70%
@@ -1785,6 +2064,9 @@ function finishLesson() {
   }
 
   saveState();
+  // Check daily streak and badges
+  checkDailyStreak(currentKidId);
+  checkBadges(currentKidId);
   const emoji = pct>=90?'🌟':pct>=70?'😊':pct>=50?'💪':'📚';
   const resEmoji = document.getElementById('results-emoji');
   const resScore = document.getElementById('results-score');
@@ -1890,9 +2172,17 @@ function renderParentDashboard() {
   renderRedemptionQueue();
   updateRedemptionBadge();
   updateTabBadges();
+  renderVoiceSelector();
+  setTimeout(renderVoiceSelector, 300);
   document.getElementById('coin-kid-select').innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.name}</option>`).join('');
   const unlockSel = document.getElementById('unlock-kid-select');
   if (unlockSel) unlockSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
+  const skipSel = document.getElementById('skipday-kid-select');
+  if (skipSel) {
+    skipSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
+    skipSel.onchange = function() { updateSkipDayBalance(skipSel.value); };
+    updateSkipDayBalance(skipSel.value);
+  }
 
   document.getElementById('coinmax-kid-select').innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.name}</option>`).join('');
   renderCoinMaxInputs();
@@ -2471,6 +2761,363 @@ function playSound(type) {
   } catch(e) { /* audio not available */ }
 }
 
+// ── DAILY STREAK ─────────────────────────────────────────
+function checkDailyStreak(kidId) {
+  if (!state.dailyStreak) state.dailyStreak = {};
+  if (!state.dailyStreak[kidId]) state.dailyStreak[kidId] = { count: 0, lastDate: '' };
+  const ds = state.dailyStreak[kidId];
+  const today = getTodayKey();
+  if (ds.lastDate === today) return; // already checked today
+
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayKey = yesterday.toDateString();
+
+  const prog = state.progress[kidId] || {};
+  const subjects = ['spelling','math','reading','writing'];
+  const allDoneToday = subjects.every(function(s) {
+    return prog[s] && prog[s].date === today;
+  });
+
+  if (allDoneToday) {
+    if (ds.lastDate === yesterdayKey) {
+      ds.count++;
+    } else if (ds.lastDate !== today) {
+      ds.count = 1;
+    }
+    ds.lastDate = today;
+    saveState();
+    checkBadges(kidId);
+  }
+}
+
+function renderStreakOnDashboard(kidId) {
+  if (!state.dailyStreak) return;
+  const ds = state.dailyStreak[kidId];
+  if (!ds || ds.count < 1) {
+    const el = document.getElementById('kid-dash-streak');
+    if (el) el.style.display = 'none';
+    return;
+  }
+  const el = document.getElementById('kid-dash-streak');
+  const countEl = document.getElementById('streak-count-display');
+  if (el) el.style.display = 'flex';
+  if (countEl) countEl.textContent = ds.count;
+}
+
+// ── BADGES ───────────────────────────────────────────────
+const BADGE_DEFS = [
+  { id: 'first_perfect',   icon: '💯', label: 'Perfect Score!',     check: (kidId) => Object.values(state.progress[kidId]||{}).some(p => p.score === 100) },
+  { id: 'streak_3',        icon: '🔥', label: '3-Day Streak',       check: (kidId) => (state.dailyStreak[kidId]||{}).count >= 3 },
+  { id: 'streak_7',        icon: '🌟', label: '7-Day Streak',       check: (kidId) => (state.dailyStreak[kidId]||{}).count >= 7 },
+  { id: 'streak_30',       icon: '🏆', label: '30-Day Streak',      check: (kidId) => (state.dailyStreak[kidId]||{}).count >= 30 },
+  { id: 'level_up',        icon: '⬆️',  label: 'First Level Up',    check: (kidId) => Object.values(state.levels[kidId]||{}).some(l => l >= 1) },
+  { id: 'brainbucks_50',   icon: '🧠', label: '50 Brain Bucks',     check: (kidId) => (state.kids.find(k=>k.id===kidId)||{}).coins >= 50 },
+  { id: 'brainbucks_200',  icon: '💰', label: '200 Brain Bucks',    check: (kidId) => (state.kids.find(k=>k.id===kidId)||{}).coins >= 200 },
+  { id: 'all_subjects',    icon: '📚', label: 'All 4 Done!',        check: (kidId) => { const p=state.progress[kidId]||{}; const t=getTodayKey(); return ['spelling','math','reading','writing'].every(s=>p[s]&&p[s].date===t); } },
+  { id: 'spelling_master', icon: '🔤', label: 'Spelling Master',    check: (kidId) => (state.levels[kidId]||{}).spelling >= 5 },
+  { id: 'math_master',     icon: '🧮', label: 'Math Master',        check: (kidId) => (state.levels[kidId]||{}).math >= 5 },
+];
+
+function checkBadges(kidId) {
+  if (!state.badges) state.badges = {};
+  if (!state.badges[kidId]) state.badges[kidId] = [];
+  const existing = new Set(state.badges[kidId].map(b => b.id));
+  const newOnes = [];
+  BADGE_DEFS.forEach(function(def) {
+    if (!existing.has(def.id)) {
+      try {
+        if (def.check(kidId)) {
+          state.badges[kidId].push({ id: def.id, icon: def.icon, label: def.label, date: getTodayKey(), isNew: true });
+          newOnes.push(def);
+        }
+      } catch(e) {}
+    }
+  });
+  if (newOnes.length) {
+    saveState();
+    setTimeout(function() {
+      newOnes.forEach(function(b) {
+        showToast(b.icon + ' Badge unlocked: ' + b.label + '!');
+      });
+      renderBadges(kidId);
+    }, 800);
+  }
+}
+
+function renderBadges(kidId) {
+  const section = document.getElementById('kid-badges-section');
+  const grid = document.getElementById('kid-badges-grid');
+  if (!section || !grid) return;
+  const badges = (state.badges && state.badges[kidId]) || [];
+  if (!badges.length) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  grid.innerHTML = badges.map(function(b) {
+    const isNew = b.isNew;
+    if (isNew) {
+      // Clear new flag after render
+      setTimeout(function() { b.isNew = false; }, 2000);
+    }
+    return '<div class="badge-chip' + (isNew ? ' new' : '') + '">'
+      + '<span class="badge-icon">' + b.icon + '</span>'
+      + '<span>' + b.label + '</span>'
+      + '</div>';
+  }).join('');
+}
+
+// ── LEVEL-UP CELEBRATION ─────────────────────────────────
+function showLevelUp(subjectName, newLevelName) {
+  const overlay = document.getElementById('levelup-overlay');
+  if (!overlay) return;
+  document.getElementById('levelup-icon').textContent = '🎉';
+  document.getElementById('levelup-title').textContent = 'Level Up!';
+  document.getElementById('levelup-subject').textContent = subjectName;
+  document.getElementById('levelup-new-level').textContent = '→ ' + newLevelName;
+  overlay.style.display = 'flex';
+  launchConfetti(3500);
+  playSound('epic');
+}
+
+function closeLevelUp() {
+  const overlay = document.getElementById('levelup-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+// ── MILESTONE BAR IN REWARDS SHOP ────────────────────────
+function renderMilestoneBar(kidId) {
+  const kid = state.kids.find(k => k.id === kidId);
+  if (!kid) return '';
+  const coins = kid.coins;
+  const rewards = getRewardsForKid(kidId);
+  if (!rewards.length) return '';
+
+  // Find next reachable reward
+  const affordable = rewards.filter(r => r.cost <= coins);
+  const next = rewards.filter(r => r.cost > coins).sort((a,b) => a.cost - b.cost)[0];
+
+  if (!next) {
+    return '<div class="milestone-bar-wrap"><div class="milestone-label">🎉 You can afford all rewards!</div></div>';
+  }
+  const pct = Math.min(100, Math.round((coins / next.cost) * 100));
+  return '<div class="milestone-bar-wrap">'
+    + '<div class="milestone-label">' + next.emoji + ' ' + next.name + ': ' + (next.cost - coins) + ' more Brain Bucks to go</div>'
+    + '<div class="milestone-bar"><div class="milestone-fill" style="width:' + pct + '%"></div></div>'
+    + '<div class="milestone-next" style="text-align:right;margin-top:3px">' + coins + ' / ' + next.cost + ' 🧠</div>'
+    + '</div>';
+}
+
+// ── STUDY MODE ───────────────────────────────────────────
+function startStudyMode() {
+  const allWrong = [];
+  const subjects = ['spelling','math','reading','writing'];
+  subjects.forEach(function(s) {
+    const prog = (state.progress[currentKidId]||{})[s];
+    if (prog && prog.wrongAnswers && prog.wrongAnswers.length) {
+      prog.wrongAnswers.forEach(function(w) {
+        allWrong.push({ type:'typed', question: w.question, answer: w.correctAnswer, _hint: w.hint || '' });
+      });
+    }
+  });
+  if (!allWrong.length) { showToast('🎉 No missed questions — you aced everything!'); return; }
+
+  // Shuffle
+  allWrong.sort(() => Math.random() - 0.5);
+
+  lessonState = {
+    subjectId: 'study', subjectName: 'Study Mode', subjectIcon: '📖', subjectType: 'study',
+    questions: allWrong, _originalQuestions: allWrong.slice(),
+    currentQ: 0, answers: [], correct: 0, streak: 0, missStreak: 0, wrongAnswers: [],
+    diffLevel: 2, startTime: Date.now(), isDrillRound: false, timerSeconds: 0,
+    isStudyMode: true
+  };
+  showScreen('screen-lesson');
+  document.getElementById('lesson-title').textContent = '📖 Study Mode';
+  startLessonTimer();
+  renderQuestion();
+}
+
+function updateSkipDayBalance(kidId) {
+  const el = document.getElementById('skipday-balance');
+  if (!el || !kidId) return;
+  const bal = (state.skipDay && state.skipDay[kidId]) || 0;
+  el.textContent = bal + ' skip day' + (bal !== 1 ? 's' : '') + ' available';
+  el.style.color = bal > 0 ? 'var(--green)' : 'var(--muted)';
+}
+
+function dismissQuarterNotice() {
+  if (state.redoNotices) {
+    state.redoNotices = state.redoNotices.filter(function(n){ return !(n.kidId === currentKidId && n.subject === 'quarterReset'); });
+    saveState();
+  }
+  renderKidDashboard();
+}
+
+function endStudyMode() {
+  stopLessonTimer();
+  showScreen('screen-kid');
+  showToast('📖 Study session done! Great work reviewing.');
+}
+
+// ── WIRE INTO finishLesson: level-up celebration ──────────
+// (called from inside finishLesson after advancement logic)
+function triggerLevelUpIfNeeded(kidId, subjectId, prevIdx, newIdx, subjLevels) {
+  if (newIdx > prevIdx && newIdx < subjLevels.length) {
+    const nextLevel = subjLevels[newIdx];
+    setTimeout(function() {
+      showLevelUp(subjectId.charAt(0).toUpperCase() + subjectId.slice(1), nextLevel.name);
+    }, 800);
+    checkBadges(kidId);
+  }
+}
+
+// ── QUARTERLY BADGE RESET ────────────────────────────────
+function getQuarterKey() {
+  const d = new Date();
+  return d.getFullYear() + '-Q' + (Math.floor(d.getMonth() / 3) + 1);
+}
+
+function checkQuarterlyReset() {
+  const q = getQuarterKey();
+  if (!state.badgeQuarter) { state.badgeQuarter = q; saveState(); return; }
+  if (state.badgeQuarter === q) return;
+  // New quarter — reset badges for all kids
+  state.kids.forEach(function(k) {
+    if (state.badges && state.badges[k.id]) {
+      state.badges[k.id] = [];
+    }
+  });
+  state.badgeQuarter = q;
+  saveState();
+  // Queue a notice for each kid
+  if (!state.redoNotices) state.redoNotices = [];
+  state.kids.forEach(function(k) {
+    state.redoNotices = state.redoNotices.filter(function(n){ return !(n.kidId === k.id && n.subject === 'quarterReset'); });
+    state.redoNotices.push({ kidId: k.id, subject: 'quarterReset', message: '🏅 New quarter — your badges have reset! Go earn them back!', date: new Date().toLocaleDateString() });
+  });
+}
+
+// ── HINTS SYSTEM ─────────────────────────────────────────
+// Called instead of immediately showing the answer on wrong responses
+function showHint(hintText, correctAnswer, onContinue) {
+  const fb = document.getElementById('feedback');
+  if (!fb) { onContinue && onContinue(); return; }
+  // First show hint
+  fb.className = 'feedback-box wrong';
+  fb.innerHTML = '💡 <strong>Hint:</strong> ' + hintText
+    + '<br><button id="hint-reveal-btn" style="margin-top:10px;padding:8px 18px;border-radius:10px;border:none;background:#EF4444;color:white;font-family:Nunito,sans-serif;font-weight:700;font-size:14px;cursor:pointer;">Show Answer</button>';
+  document.getElementById('hint-reveal-btn').onclick = function() {
+    fb.innerHTML = '❌ Correct answer: <strong>' + correctAnswer + '</strong>';
+    onContinue && onContinue();
+  };
+}
+
+function getHintForQuestion(q, subjectType) {
+  if (q && q.hint) return q.hint;
+  if (subjectType === 'spelling') return 'Listen carefully — press the button to hear the word again.';
+  if (subjectType === 'math') return 'Try working it out step by step.';
+  if (subjectType === 'reading') return 'Look back at the passage for clues.';
+  if (subjectType === 'writing') return 'Re-read the prompt and think about the key idea.';
+  return 'Think it through — you\'ve got this!';
+}
+
+// Patch checkSpelling, checkTyped, selectOption to use hints
+function showFeedbackWithHint(ok, msg, q, correctAnswer, onReveal) {
+  const fb = document.getElementById('feedback');
+  if (!fb) return;
+  playSound(ok ? 'correct' : 'wrong');
+  if (ok) {
+    fb.className = 'feedback-box correct';
+    fb.textContent = msg;
+  } else {
+    const hint = getHintForQuestion(q, lessonState ? lessonState.subjectType : '');
+    fb.className = 'feedback-box wrong';
+    fb.innerHTML = '💡 <strong>Hint:</strong> ' + hint
+      + '<br><button id="hint-reveal-btn" style="margin-top:10px;padding:8px 18px;border-radius:10px;border:none;background:#EF4444;color:white;font-family:Nunito,sans-serif;font-weight:700;font-size:14px;cursor:pointer;">Show Answer</button>';
+    const revealBtn = document.getElementById('hint-reveal-btn');
+    if (revealBtn) revealBtn.onclick = function() {
+      fb.className = 'feedback-box wrong';
+      fb.textContent = msg;
+      if (onReveal) onReveal();
+    };
+    return; // don't call showNextBtn yet — wait for reveal
+  }
+}
+
+// ── STREAK PROTECTION ────────────────────────────────────
+function useSkipDay(kidId) {
+  if (!state.skipDay) state.skipDay = {};
+  if (!state.skipDay[kidId]) state.skipDay[kidId] = 0;
+  if (state.skipDay[kidId] <= 0) { showToast('⚠️ No skip days available for this kid.'); return; }
+  if (!state.dailyStreak) state.dailyStreak = {};
+  if (!state.dailyStreak[kidId]) state.dailyStreak[kidId] = { count: 0, lastDate: '' };
+  // Set lastDate to today so streak doesn't break tomorrow
+  const today = getTodayKey();
+  state.dailyStreak[kidId].lastDate = today;
+  state.skipDay[kidId]--;
+  saveState();
+  const kid = state.kids.find(k => k.id === kidId);
+  showToast('✅ Skip day used for ' + (kid ? kid.name : kidId) + ' — streak protected!');
+  renderParentDashboard();
+}
+
+function grantSkipDay(kidId) {
+  if (!state.skipDay) state.skipDay = {};
+  if (!state.skipDay[kidId]) state.skipDay[kidId] = 0;
+  state.skipDay[kidId]++;
+  saveState();
+  const kid = state.kids.find(k => k.id === kidId);
+  showToast('✅ Skip day granted to ' + (kid ? kid.name : kidId) + '!');
+  renderParentDashboard();
+}
+
+// ── WEEKLY EMAIL ─────────────────────────────────────────
+const EMAILJS_SERVICE_ID  = 'YOUR_SERVICE_ID';
+const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';
+const EMAILJS_PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';
+const REPORT_EMAIL        = 'YOUR_EMAIL@example.com';
+
+function generateWeeklyReport() {
+  const lines = [];
+  lines.push('Weekly KidStuff Summary — ' + new Date().toLocaleDateString());
+  lines.push('');
+  state.kids.forEach(function(k) {
+    lines.push('── ' + k.name + ' ──────────────');
+    lines.push('🧠 Brain Bucks: ' + k.coins);
+    const ds = (state.dailyStreak && state.dailyStreak[k.id]) || {};
+    lines.push('🔥 Streak: ' + (ds.count || 0) + ' day(s)');
+    const prog = state.progress[k.id] || {};
+    const subjects = ['spelling','math','reading','writing'];
+    subjects.forEach(function(s) {
+      const p = prog[s];
+      if (p) {
+        lines.push('  ' + ({spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'}[s]) + ' ' + s.charAt(0).toUpperCase()+s.slice(1) + ': ' + p.score + '% — Level ' + ((state.levels[k.id]||{})[s]||0+1));
+      }
+    });
+    const badges = (state.badges && state.badges[k.id]) || [];
+    if (badges.length) lines.push('🏅 Badges: ' + badges.map(b=>b.icon+' '+b.label).join(', '));
+    lines.push('');
+  });
+  return lines.join('\n');
+}
+
+async function sendWeeklyEmail() {
+  if (EMAILJS_SERVICE_ID === 'YOUR_SERVICE_ID') {
+    showToast('⚠️ EmailJS not configured yet — add credentials in Settings.');
+    return;
+  }
+  try {
+    if (typeof emailjs === 'undefined') throw new Error('EmailJS not loaded');
+    const report = generateWeeklyReport();
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+      to_name: 'Marc',
+      report_body: report
+    }, EMAILJS_PUBLIC_KEY);
+    showToast('📧 Weekly report sent!');
+  } catch(e) {
+    showToast('❌ Email failed: ' + e.message);
+  }
+}
+
 // ── INIT ────────────────────────────────────────────────
 // ── DEV MODE: wipe progress on every load ───────────────
 // Set DEV_MODE = false when going to production
@@ -2496,6 +3143,7 @@ function devWipe() {
 // Load local cache immediately so UI is always responsive
 loadLocalFallback();
 devWipe();
+checkQuarterlyReset();
 
 // Init on load
 initSync();
