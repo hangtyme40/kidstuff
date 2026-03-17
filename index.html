@@ -945,11 +945,27 @@ function renderKidDashboard() {
   document.getElementById('kid-dash-avatar').textContent = kid.emoji;
   document.getElementById('kid-dash-name').textContent = kid.name;
   document.getElementById('kid-dash-coins').textContent = '⭐ ' + kid.coins + ' coins';
-  const curriculum = state.curriculum[currentKidId];
+
+  // Show redo notice if parent sent writing back
+  const redoNotice = (state.redoNotices||[]).find(function(n){ return n.kidId === currentKidId && n.subject === 'writing'; });
+  const noContentEl = document.getElementById('no-content-msg');
+  if (redoNotice) {
+    noContentEl.style.display = 'block';
+    noContentEl.innerHTML = '<div class="card" style="text-align:center;padding:24px 20px;background:#FFF8E1;border:2px solid #F7C948;">'
+      + '<div style="font-size:36px;margin-bottom:8px">✍️</div>'
+      + '<div style="font-family:\'Baloo 2\',cursive;font-size:18px;font-weight:800;margin-bottom:6px;color:#B45309">Writing Redo</div>'
+      + '<div style="color:#92400E;font-size:14px">' + redoNotice.message + '</div>'
+      + '</div>';
+  } else {
+    noContentEl.style.display = 'none';
+    noContentEl.innerHTML = '<div class="card" style="text-align:center;padding:40px 20px">'
+      + '<div style="font-size:48px;margin-bottom:12px">📚</div>'
+      + '<div style="font-family:\'Baloo 2\',cursive;font-size:20px;margin-bottom:8px">No lessons yet!</div>'
+      + '<div style="color:var(--muted)">Ask a parent to generate this week\'s curriculum.</div>'
+      + '</div>';
+  }
   const progress = state.progress[currentKidId] || {};
   const grid = document.getElementById('subject-grid');
-  const noContent = document.getElementById('no-content-msg');
-  noContent.style.display = 'none';
   {
     const todayKey = getTodayKey();
     let done = 0;
@@ -1706,6 +1722,10 @@ function finishLesson() {
   const elapsedSec = timerSec % 60;
   const elapsedStr = elapsedMin > 0 ? elapsedMin + ' min ' + elapsedSec + ' sec' : elapsedSec + ' sec';
   state.progress[currentKidId][ls.subjectId] = {score:pct,coins:originalCoins,date:getTodayKey(),correct:origCorrect,total,flagged:flaggedCount,flaggedQuestions,wrongAnswers:ls.wrongAnswers||[],duration:elapsedMin};
+  // Clear any redo notice for this subject
+  if (state.redoNotices) {
+    state.redoNotices = state.redoNotices.filter(function(n){ return !(n.kidId === currentKidId && n.subject === ls.subjectId); });
+  }
   // Add flagged questions to a review queue for parent
   if (!state.flaggedReview) state.flaggedReview = [];
   flaggedQuestions.forEach(fq => {
@@ -1932,7 +1952,7 @@ function renderWritingApprovals() {
         }
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;padding-top:4px;min-width:110px">
-        <button class="btn-approve" onclick="approveWriting('${w.id}')">✓ Approve<br><small>+10 ⭐</small></button>
+        <button class="btn-approve" onclick="approveWriting('${w.id}')">✓ Approve</button>
         <button class="btn-danger" onclick="denyWriting('${w.id}')">✗ Redo</button>
       </div>
     </div>`;
@@ -2013,16 +2033,35 @@ function resolveFlag(id, award) {
 function approveWriting(id) {
   const w = (state.writingQueue||[]).find(x=>x.id===id);
   if (!w) return;
-  w.status='approved';
+  w.status = 'approved';
   const kid = state.kids.find(k=>k.id===w.kidId);
-  if (kid) kid.coins+=10;
-  saveState(); showToast('✅ Approved! +10 coins to '+(kid?kid.name:'')); renderWritingApprovals(); renderParentKidSummary();
+  saveState();
+  showToast('✅ Approved — ' + (kid?kid.name:'') + '\'s writing looks great!');
+  renderWritingApprovals();
+  renderParentKidSummary();
 }
 
 function denyWriting(id) {
   const w = (state.writingQueue||[]).find(x=>x.id===id);
-  if (!w) return; w.status='rejected';
-  saveState(); showToast('🔄 Marked for redo.'); renderWritingApprovals();
+  if (!w) return;
+  w.status = 'redo';
+  // Deduct coins that were earned from the writing lesson
+  const kid = state.kids.find(k=>k.id===w.kidId);
+  const writingProgress = state.progress[w.kidId] && state.progress[w.kidId]['writing'];
+  if (kid && writingProgress && writingProgress.coins) {
+    kid.coins = Math.max(0, kid.coins - writingProgress.coins);
+  }
+  // Clear progress so they can redo it today
+  if (state.progress[w.kidId]) {
+    delete state.progress[w.kidId]['writing'];
+  }
+  // Add redo notice to kid's notification queue
+  if (!state.redoNotices) state.redoNotices = [];
+  state.redoNotices.push({ kidId: w.kidId, subject: 'writing', message: 'Your parent asked you to redo your writing. Try again!', date: new Date().toLocaleDateString() });
+  saveState();
+  showToast('🔄 Marked for redo — coins deducted, writing unlocked.');
+  renderWritingApprovals();
+  renderParentKidSummary();
 }
 
 function renderRedemptionQueue() {
