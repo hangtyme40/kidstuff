@@ -1080,6 +1080,7 @@ async function startLesson(subjectId) {
     document.getElementById('generating-overlay').style.display='none';
     const writingPrompt = questions._writingPrompt || null;
     delete questions._writingPrompt;
+    if (!questions || !questions.length) throw new Error('Empty question list returned');
 
     lessonState = {
       subjectId, subjectName: levelData.name, subjectIcon: icon, subjectType: type,
@@ -1098,7 +1099,8 @@ async function startLesson(subjectId) {
     renderQuestion();
   } catch(e) {
     document.getElementById('generating-overlay').style.display='none';
-    showToast('❌ Could not load lesson: ' + e.message);
+    console.error('Lesson load error:', e);
+    showToast('❌ ' + (e.message || String(e)));
   }
 }
 
@@ -1141,13 +1143,23 @@ Return ONLY valid JSON object, no markdown:
 Make it fun, creative, and appropriate for the writing type "${levelName}". No placeholder text.`;
   }
 
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':'Bearer '+API_KEY},
-    body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'user',content:prompt}],max_tokens:3000,temperature:0.7})
-  });
-  if (!res.ok) throw new Error('API error ' + res.status);
+  let res;
+  try {
+    res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+API_KEY},
+      body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'user',content:prompt}],max_tokens:3000,temperature:0.7})
+    });
+  } catch(netErr) {
+    throw new Error('Network error: ' + netErr.message);
+  }
+  if (!res.ok) {
+    let errBody = '';
+    try { errBody = await res.text(); } catch(e) {}
+    throw new Error('API ' + res.status + ': ' + errBody.slice(0,120));
+  }
   const data = await res.json();
+  if (!data.choices || !data.choices[0]) throw new Error('Unexpected API response: ' + JSON.stringify(data).slice(0,120));
   const text = data.choices[0].message.content;
   const match = text.match(/[\[{][\s\S]*[\]}]/);
   if (!match) throw new Error('No JSON in response');
