@@ -126,8 +126,9 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .parent-header h2{font-family:'Baloo 2',cursive;font-size:24px;margin-bottom:4px;}
 .parent-header p{opacity:0.7;font-size:14px;}
 .tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
-.tab-btn{padding:9px 18px;border:2px solid var(--border);background:white;border-radius:20px;font-family:'Nunito',sans-serif;font-weight:700;font-size:14px;cursor:pointer;color:var(--muted);transition:all 0.2s;}
+.tab-btn{padding:9px 18px;border:2px solid var(--border);background:white;border-radius:20px;font-family:'Nunito',sans-serif;font-weight:700;font-size:14px;cursor:pointer;color:var(--muted);transition:all 0.2s;position:relative;}
 .tab-btn.active{background:var(--primary);border-color:var(--primary);color:white;}
+.tab-dot{position:absolute;top:-5px;right:-5px;width:10px;height:10px;border-radius:50%;background:#EF4444;border:2px solid white;}
 .tab-panel{display:none;}
 .tab-panel.active{display:block;}
 .kid-summary-cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;}
@@ -330,11 +331,11 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <div class="kid-summary-cards" id="parent-kid-summary"></div>
     <div class="tabs">
       <button class="tab-btn active" onclick="switchTab('tab-curriculum',this)">📚 Curriculum</button>
-      <button class="tab-btn" onclick="switchTab('tab-writing',this)">✍️ Writing</button>
+      <button class="tab-btn" id="tab-btn-writing" onclick="switchTab('tab-writing',this)">✍️ Writing</button>
       <button class="tab-btn" id="tab-btn-redemptions" onclick="switchTab('tab-redemptions',this)">🎁 Rewards</button>
       <button class="tab-btn" onclick="switchTab('tab-rewards',this)">⚙️ Manage Rewards</button>
       <button class="tab-btn" onclick="switchTab('tab-progress',this)">📊 Progress</button>
-      <button class="tab-btn" onclick="switchTab('tab-flagged',this)">🚩 Flagged</button>
+      <button class="tab-btn" id="tab-btn-flagged" onclick="switchTab('tab-flagged',this)">🚩 Flagged</button>
       <button class="tab-btn" onclick="switchTab('tab-settings',this)">⚙️ Settings</button>
     </div>
 
@@ -1888,6 +1889,7 @@ function renderParentDashboard() {
   renderFlaggedList();
   renderRedemptionQueue();
   updateRedemptionBadge();
+  updateTabBadges();
   document.getElementById('coin-kid-select').innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.name}</option>`).join('');
   const unlockSel = document.getElementById('unlock-kid-select');
   if (unlockSel) unlockSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
@@ -2028,6 +2030,7 @@ function resolveFlag(id, award) {
   }
   saveState();
   renderFlaggedList();
+  updateTabBadges();
 }
 
 function approveWriting(id) {
@@ -2039,6 +2042,7 @@ function approveWriting(id) {
   showToast('✅ Approved — ' + (kid?kid.name:'') + '\'s writing looks great!');
   renderWritingApprovals();
   renderParentKidSummary();
+  updateTabBadges();
 }
 
 function denyWriting(id) {
@@ -2065,6 +2069,7 @@ function denyWriting(id) {
   showToast('🔄 Marked for redo — Brain Bucks deducted, writing unlocked.');
   renderWritingApprovals();
   renderParentKidSummary();
+  updateTabBadges();
 }
 
 function renderRedemptionQueue() {
@@ -2102,6 +2107,29 @@ function acknowledgeRedemption(id) {
   showToast('✅ Reward fulfilled!');
   renderRedemptionQueue();
   updateRedemptionBadge();
+  updateTabBadges();
+}
+
+function updateTabBadges() {
+  const configs = [
+    { id: 'tab-btn-writing',     count: (state.writingQueue||[]).filter(w => w.status === 'pending').length },
+    { id: 'tab-btn-redemptions', count: (state.redemptionQueue||[]).filter(r => r.status === 'pending').length },
+    { id: 'tab-btn-flagged',     count: (state.flaggedReview||[]).filter(f => f.status === 'pending').length },
+  ];
+  configs.forEach(function(cfg) {
+    const btn = document.getElementById(cfg.id);
+    if (!btn) return;
+    const existing = btn.querySelector('.tab-dot');
+    if (cfg.count > 0) {
+      if (!existing) {
+        const dot = document.createElement('span');
+        dot.className = 'tab-dot';
+        btn.appendChild(dot);
+      }
+    } else {
+      if (existing) existing.remove();
+    }
+  });
 }
 
 function updateRedemptionBadge() {
