@@ -1257,8 +1257,8 @@ async function generateLessonQuestions(kidId, subjectId, type, levelData) {
     prompt = `Generate 10 spelling words for a student practicing "${levelName}" (${levelDesc}).
 Difficulty: ${diffName}. Student: ${kid.name}.
 Return ONLY valid JSON array, no markdown:
-[{"word":"WORD","hint":"definition or usage hint"},...]
-Use 10 real age-appropriate words that fit the pattern "${levelName}". No placeholder text.`;
+[{"word":"WORD","hint":"A natural example sentence using the word, like a teacher would say in a spelling test. Example: for 'pet' return 'I have a pet dog at home.' For 'cake' return 'She baked a birthday cake for her friend.' The sentence must use the word naturally."},...]
+Use 10 real age-appropriate words that fit the pattern "${levelName}". No placeholder text. Every hint must be a complete sentence that uses the word.`;
 
   } else if (type === 'math') {
     prompt = `Generate 10 math questions for a student practicing "${levelName}" (${levelDesc}).
@@ -1379,17 +1379,19 @@ if (window.speechSynthesis) {
   loadVoices();
 }
 
-// Curated pleasant voices by priority
+// Curated pleasant voices by priority — enhanced iOS voices first
 const VOICE_PICKS = [
-  { label: 'Samantha (US)',   match: v => v.name === 'Samantha' },
-  { label: 'Karen (AU)',      match: v => v.name === 'Karen' },
-  { label: 'Moira (IE)',      match: v => v.name === 'Moira' },
-  { label: 'Tessa (ZA)',      match: v => v.name === 'Tessa' },
-  { label: 'Daniel (UK)',     match: v => v.name === 'Daniel' },
-  { label: 'Kate (UK)',       match: v => v.name.includes('Kate') && v.lang.startsWith('en') },
-  { label: 'US English F',    match: v => v.lang === 'en-US' && v.name.toLowerCase().includes('female') },
-  { label: 'US English',      match: v => v.lang === 'en-US' },
-  { label: 'English',         match: v => v.lang.startsWith('en') },
+  { label: 'Nicky (US Enhanced)',    match: v => v.name === 'Nicky' },
+  { label: 'Samantha (US Enhanced)', match: v => v.name === 'Samantha (Enhanced)' },
+  { label: 'Samantha (US)',          match: v => v.name === 'Samantha' },
+  { label: 'Karen (AU Enhanced)',    match: v => v.name === 'Karen (Enhanced)' },
+  { label: 'Karen (AU)',             match: v => v.name === 'Karen' },
+  { label: 'Daniel (UK Enhanced)',   match: v => v.name === 'Daniel (Enhanced)' },
+  { label: 'Daniel (UK)',            match: v => v.name === 'Daniel' },
+  { label: 'Moira (IE)',             match: v => v.name === 'Moira' },
+  { label: 'Tessa (ZA)',             match: v => v.name === 'Tessa' },
+  { label: 'US English',             match: v => v.lang === 'en-US' },
+  { label: 'English',                match: v => v.lang.startsWith('en') },
 ];
 
 function getAvailableVoices() {
@@ -1422,8 +1424,12 @@ function renderVoiceSelector() {
   const el = document.getElementById('voice-selector-wrap');
   if (!el) return;
   const voices = getAvailableVoices();
-  if (!voices.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px">No voices available on this device.</div>'; return; }
-  el.innerHTML = '<div class="form-row"><label>Spelling Voice</label>'
+  const tip = '<div style="background:#EEF2FF;border-radius:10px;padding:10px 14px;font-size:12px;color:var(--primary);font-weight:700;margin-bottom:12px;line-height:1.5">'
+    + '💡 <strong>Better voices on iPad/iPhone:</strong> Go to <em>Settings → Accessibility → Spoken Content → Voices → English</em> and download <strong>Nicky</strong> or <strong>Samantha (Enhanced)</strong> for a much more natural sound.'
+    + '</div>';
+  if (!voices.length) { el.innerHTML = tip + '<div style="color:var(--muted);font-size:13px">No voices available on this device.</div>'; return; }
+  el.innerHTML = tip
+    + '<div class="form-row"><label>Spelling Voice</label>'
     + '<select id="voice-select" onchange="setVoice(this.value)" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;">'
     + voices.map(function(v) {
         return '<option value="' + v.name + '"' + (state.selectedVoice === v.name ? ' selected' : '') + '>' + v.label + '</option>';
@@ -1438,7 +1444,7 @@ function setVoice(name) {
 }
 
 function testVoice() {
-  speakWordFull('practice', 'Use this word in a sentence — she needed practice every day.');
+  speakWordFull('practice', 'She needed to practice every single day.');
 }
 
 function speakWord(word) { speakWordFull(word, null); }
@@ -1459,7 +1465,7 @@ function speakWordFull(word, sentence) {
 
   // Word → sentence → word again
   const sent = sentence || (lessonState && lessonState.questions && lessonState.questions[lessonState.currentQ] && lessonState.questions[lessonState.currentQ].hint
-    ? 'Here is the word in a sentence — ' + lessonState.questions[lessonState.currentQ].hint
+    ? lessonState.questions[lessonState.currentQ].hint
     : null);
 
   utter(word, 0.75, function() {
