@@ -429,7 +429,24 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         </div>
         <button class="btn-primary" onclick="parentUnlockLesson()" style="background:#2ECC71;margin-top:0">🔓 Unlock for Today</button>
       </div>
-    </div>
+      <div class="card" style="background:#FFF5F5;box-shadow:none;border:2px solid #FCA5A5">
+        <div style="font-weight:800;margin-bottom:8px">🎚️ Adjust Level</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Manually move a kid up or down a level if the content is too easy or too hard.</div>
+        <div class="form-grid">
+          <div class="form-row"><label>Kid</label><select id="level-adj-kid" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"></select></div>
+          <div class="form-row"><label>Subject</label><select id="level-adj-subject" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;">
+            <option value="spelling">🔤 Spelling</option>
+            <option value="math">🧮 Math</option>
+            <option value="reading">📖 Reading</option>
+            <option value="writing">✏️ Writing</option>
+          </select></div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-primary" style="flex:1;background:#4F6EF7" onclick="adjustLevel(-1)">⬇️ Level Down</button>
+          <button class="btn-primary" style="flex:1;background:#2ECC71" onclick="adjustLevel(1)">⬆️ Level Up</button>
+        </div>
+        <div id="level-adj-preview" style="font-size:13px;color:var(--muted);margin-top:10px;text-align:center;font-weight:700"></div>
+      </div>
 
     <div class="tab-panel" id="tab-writing">
       <div class="card"><div class="card-title">✍️ Writing to Review</div><div id="writing-approvals-list"></div></div>
@@ -1481,6 +1498,28 @@ function speakWordFull(word, sentence) {
   });
 }
 
+function getSpellingHint(word) {
+  // Generate a phonics/pattern hint based on the word — never reveal the sentence
+  const w = word.toLowerCase();
+  const vowels = (w.match(/[aeiou]/g)||[]).length;
+  const len = w.length;
+  if (w.includes('tion')) return 'Think about the "-tion" ending sound.';
+  if (w.includes('ight')) return 'Think about the "-ight" pattern — like "light" or "night".';
+  if (w.includes('ough')) return 'Think about the "-ough" pattern.';
+  if (w.includes('ch')) return 'This word has a "ch" sound in it.';
+  if (w.includes('sh')) return 'This word has a "sh" sound in it.';
+  if (w.includes('th')) return 'This word has a "th" sound in it.';
+  if (w.includes('ph')) return 'Remember — "ph" makes an "f" sound.';
+  if (w.endsWith('ing')) return 'This word ends in "-ing".';
+  if (w.endsWith('ed')) return 'This word ends in "-ed".';
+  if (w.endsWith('ly')) return 'This word ends in "-ly".';
+  if (w.endsWith('ness')) return 'This word ends in "-ness".';
+  if (w.endsWith('ful')) return 'This word ends in "-ful".';
+  if (len <= 3) return 'It\'s a short word — just ' + len + ' letters.';
+  if (len <= 5) return 'Count the letters — this word has ' + len + ' letters.';
+  return 'Say it slowly, sound by sound. It has ' + len + ' letters.';
+}
+
 function checkSpelling(word, hint) {
   const input = document.getElementById('spell-input');
   const val = (input.value||'').trim().toLowerCase();
@@ -1497,7 +1536,7 @@ function checkSpelling(word, hint) {
     }
     input.className = 'answer-input wrong';
     playSound('wrong');
-    const hintText = hint || 'Listen again carefully — press the button to hear the word.';
+    const hintText = getSpellingHint(word);
     const fb = document.getElementById('feedback');
     if (fb) {
       fb.className = 'feedback-box wrong';
@@ -1505,7 +1544,7 @@ function checkSpelling(word, hint) {
         + '<br><button id="hint-reveal-btn" style="margin-top:10px;padding:8px 18px;border-radius:10px;border:none;background:#EF4444;color:white;font-family:Nunito,sans-serif;font-weight:700;font-size:14px;cursor:pointer;">Show Answer</button>';
       document.getElementById('hint-reveal-btn').onclick = function() {
         fb.className = 'feedback-box wrong';
-        fb.textContent = '❌ Correct spelling: "' + word + '"' + (hint?' — '+hint:'');
+        fb.textContent = '❌ Correct spelling: "' + word + '"';
         document.getElementById('check-btn').style.display='none';
         recordAnswer(false); showNextBtn();
       };
@@ -1928,14 +1967,20 @@ function showLockedModal(subj, prog) {
           + '</div>';
       }).join('');
   const subjectIcons2 = {spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'};
+  const scoreMsg = prog.score === 100 ? '🌟 Perfect score!' : prog.score >= 90 ? '🎉 Outstanding work!' : prog.score >= 70 ? '😊 Great job!' : '💪 Good effort!';
+  const encouragement = wrongList.length === 0
+    ? 'You got every question right. Amazing! Come back tomorrow for more.'
+    : 'Review the missed questions below, then try again tomorrow. You\'ve got this!';
   overlay.innerHTML = '<div style="background:white;border-radius:20px;padding:24px;max-width:480px;width:100%;max-height:80vh;overflow-y:auto;">'
-    + '<div style="font-size:28px;text-align:center;margin-bottom:4px">' + (subj.icon || subjectIcons2[subj.id] || '📚') + '</div>'
-    + '<div style="font-weight:800;font-size:18px;text-align:center;margin-bottom:4px">' + subj.name + ' — Already Done!</div>'
-    + '<div style="text-align:center;color:#6B7280;font-size:14px;margin-bottom:16px">Score: <strong>' + prog.score + '%</strong> · 🧠 ' + prog.coins + ' Brain Bucks · ' + prog.correct + '/' + prog.total + ' correct</div>'
+    + '<div style="font-size:40px;text-align:center;margin-bottom:6px">' + (subj.icon || subjectIcons2[subj.id] || '📚') + '</div>'
+    + '<div style="font-weight:800;font-size:20px;text-align:center;margin-bottom:2px">' + scoreMsg + '</div>'
+    + '<div style="font-weight:700;font-size:15px;text-align:center;color:var(--primary);margin-bottom:4px">' + subj.name + ' — All done for today!</div>'
+    + '<div style="text-align:center;color:#6B7280;font-size:13px;margin-bottom:6px">Score: <strong>' + prog.score + '%</strong> · 🧠 ' + prog.coins + ' Brain Bucks · ' + prog.correct + '/' + prog.total + ' correct</div>'
+    + '<div style="text-align:center;font-size:13px;color:var(--muted);margin-bottom:16px;font-style:italic">' + encouragement + '</div>'
     + (wrongList.length > 0 ? '<div style="font-weight:800;margin-bottom:10px;color:#EF4444">❌ Missed Questions:</div>' : '')
     + wrongHtml
     + '<div style="display:flex;gap:10px;margin-top:16px">'
-    + '<button id="locked-close-btn" style="flex:1;padding:13px;border-radius:12px;border:none;background:var(--primary);color:white;font-family:Nunito,sans-serif;font-weight:800;font-size:15px;cursor:pointer;">Done</button>'
+    + '<button id="locked-close-btn" style="flex:1;padding:13px;border-radius:12px;border:none;background:var(--primary);color:white;font-family:Nunito,sans-serif;font-weight:800;font-size:15px;cursor:pointer;">👍 Got it!</button>'
     + '</div>'
     + '</div>';
   document.body.appendChild(overlay);
@@ -2154,6 +2199,41 @@ function stopLessonTimer() {
 
 
 // ── PARENT DASHBOARD ─────────────────────────────────────
+function adjustLevel(delta) {
+  const kidId = document.getElementById('level-adj-kid').value;
+  const subjectId = document.getElementById('level-adj-subject').value;
+  if (!kidId || !subjectId) return;
+  if (!state.levels) state.levels = {};
+  if (!state.levels[kidId]) state.levels[kidId] = {};
+  const subjLevels = getSubjectProgression(kidId, subjectId);
+  const curIdx = getCurrentLevelIndex(kidId, subjectId);
+  const newIdx = Math.max(0, Math.min(subjLevels.length - 1, curIdx + delta));
+  if (newIdx === curIdx) { showToast('Already at ' + (delta > 0 ? 'max' : 'min') + ' level.'); return; }
+  state.levels[kidId][subjectId] = newIdx;
+  // Clear streak so advancement check resets cleanly
+  if (state.streaks && state.streaks[kidId]) state.streaks[kidId][subjectId] = [];
+  saveState();
+  const kid = state.kids.find(k => k.id === kidId);
+  const newLevel = subjLevels[newIdx];
+  showToast((delta > 0 ? '⬆️' : '⬇️') + ' ' + (kid ? kid.name : kidId) + ' → ' + (newLevel ? newLevel.name : 'Level ' + (newIdx+1)));
+  updateLevelAdjPreview();
+  renderCurriculumOverview();
+}
+
+function updateLevelAdjPreview() {
+  const el = document.getElementById('level-adj-preview');
+  const kidSel = document.getElementById('level-adj-kid');
+  const subjSel = document.getElementById('level-adj-subject');
+  if (!el || !kidSel || !subjSel) return;
+  const kidId = kidSel.value;
+  const subjectId = subjSel.value;
+  if (!kidId || !subjectId) return;
+  const subjLevels = getSubjectProgression(kidId, subjectId);
+  const curIdx = getCurrentLevelIndex(kidId, subjectId);
+  const lvl = subjLevels[curIdx];
+  el.textContent = 'Current: Level ' + (curIdx + 1) + ' — ' + (lvl ? lvl.name : '');
+}
+
 function parentUnlockLesson() {
   const kidId = document.getElementById('unlock-kid-select').value;
   const subjectId = document.getElementById('unlock-subject-select').value;
@@ -2183,6 +2263,13 @@ function renderParentDashboard() {
   document.getElementById('coin-kid-select').innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.name}</option>`).join('');
   const unlockSel = document.getElementById('unlock-kid-select');
   if (unlockSel) unlockSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
+  const levelAdjKid = document.getElementById('level-adj-kid');
+  if (levelAdjKid) {
+    levelAdjKid.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
+    levelAdjKid.onchange = updateLevelAdjPreview;
+    document.getElementById('level-adj-subject').onchange = updateLevelAdjPreview;
+    updateLevelAdjPreview();
+  }
   const skipSel = document.getElementById('skipday-kid-select');
   if (skipSel) {
     skipSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
