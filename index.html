@@ -2441,8 +2441,30 @@ function playSound(type) {
 }
 
 // ── INIT ────────────────────────────────────────────────
+// ── DEV MODE: wipe progress on every load ───────────────
+// Set DEV_MODE = false when going to production
+const DEV_MODE = true;
+function devWipe() {
+  if (!DEV_MODE) return;
+  // Wipe progress, coins, queues — keep PIN, rewards, levels, kids
+  state.kids.forEach(function(k) {
+    k.coins = 0;
+  });
+  state.progress = {};
+  state.streaks = {};
+  state.unlockedToday = {};
+  state.writingQueue = [];
+  state.redemptionQueue = [];
+  state.flaggedReview = [];
+  state.redoNotices = [];
+  state.difficultyLevel = {};
+  state.usedTopics = {};
+  localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+}
+
 // Load local cache immediately so UI is always responsive
 loadLocalFallback();
+devWipe();
 
 // Init on load
 initSync();
