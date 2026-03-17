@@ -1136,11 +1136,14 @@ Return ONLY valid JSON array, no markdown:
 All 8 questions must be multiple choice with 4 full text options (not just A/B/C/D letters). The answer field must match one of the options exactly. Focus questions on "${levelName}". No placeholder text.`;
 
   } else if (type === 'writing') {
-    prompt = `Generate a single engaging writing prompt for a student practicing "${levelName}" (${levelDesc}).
+    prompt = `Generate a writing prompt for a student practicing "${levelName}" (${levelDesc}).
 Difficulty: ${diffName}. Student: ${kid.name}.
+The prompt must be a CLEAR INSTRUCTION telling the student what to write — NOT a story starter or opening sentence.
+Good examples: "Write 3-5 sentences about your favorite animal. Include what it looks like, where it lives, and why you like it."
+Bad examples: "After discovering a mysterious box..." (this is a story starter, not an instruction)
 Return ONLY valid JSON object, no markdown:
-{"prompt":"WRITING PROMPT HERE"}
-Make it fun, creative, and appropriate for the writing type "${levelName}". No placeholder text.`;
+{"prompt":"WRITING INSTRUCTION HERE"}
+Make it fun, creative, age-appropriate, and specific about what and how much to write.`;
   }
 
   let res;
@@ -1301,9 +1304,10 @@ function renderTypedQ(c, q) {
 
 function renderWritingLesson(c) {
   c.innerHTML = `<div class="question-card">
-    <div class="question-text">✍️ Writing Activity</div>
+    <div class="kumon-q-num">Writing Activity</div>
+    <div class="question-text">✍️ Write about this prompt:</div>
     <div class="writing-prompt">${lessonState.writingPrompt||'Write 3–5 sentences about your favorite season. Use describing words!'}</div>
-    <div class="question-sub" style="margin-bottom:12px">Use your Apple Pencil to write below. Fill the lines!</div>
+    <div class="question-sub" style="margin-bottom:12px">Use your finger or Apple Pencil to write your response on the lines below. Try to write at least 3–5 sentences!</div>
     <div style="position:relative;margin-bottom:14px;">
       <canvas id="writing-canvas" width="700" height="380"
         style="width:100%;height:380px;border:2px solid var(--border);border-radius:12px;background:#FAFBFF;touch-action:none;cursor:crosshair;display:block;"></canvas>
