@@ -209,7 +209,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 
 <!-- LANDING -->
 <div id="screen-landing" class="screen active">
-  <div class="landing-logo">Kid<span>Stuff</span> ⭐</div>
+  <div class="landing-logo">Kid<span>Stuff</span> 🧠</div>
   <div class="landing-tagline">Learn. Earn. Grow.</div>
   <div class="landing-cards">
     <div class="landing-card" onclick="studentLogin()">
@@ -245,7 +245,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
       <div class="kid-hero-avatar" id="kid-dash-avatar">🎒</div>
       <div>
         <div class="kid-hero-name" id="kid-dash-name">Name</div>
-        <div class="kid-hero-coins" id="kid-dash-coins">⭐ 0 coins</div>
+        <div class="kid-hero-coins" id="kid-dash-coins">🧠 0 Brain Bucks</div>
         <div class="kid-hero-progress" id="kid-dash-progress">0 of 4 done today</div>
       </div>
     </div>
@@ -290,7 +290,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
       <div style="font-size:48px;margin-bottom:8px" id="results-emoji">🌟</div>
       <div class="results-score" id="results-score">80%</div>
       <div class="results-label" id="results-label">Great job!</div>
-      <div class="results-coins" id="results-coins">+20 ⭐ coins</div>
+      <div class="results-coins" id="results-coins">+20 🧠 Brain Bucks</div>
     </div>
     <div class="card"><div class="card-title">📊 Results</div><div id="results-breakdown-list"></div>
       <div id="results-wrong-answers" style="display:none;margin-top:16px"></div></div>
@@ -395,14 +395,14 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         <button class="btn-primary" onclick="changePin()">Update PIN</button>
         <div style="height:18px"></div>
         <div class="form-grid">
-          <div class="form-row"><label>Adjust Coins For</label><select id="coin-kid-select"></select></div>
+          <div class="form-row"><label>Adjust Brain Bucks For</label><select id="coin-kid-select"></select></div>
           <div class="form-row"><label>Amount</label><input id="coin-adjust" type="number" placeholder="+10 or -5"/></div>
         </div>
         <button class="btn-primary" onclick="adjustCoins()">Adjust Coins</button>
         <div style="height:18px"></div>
         <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
-          <div style="font-weight:800;margin-bottom:10px">🏆 Max Coins Per Lesson</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Set the max coins a kid can earn on their first attempt at each subject (score% × max).</div>
+          <div style="font-weight:800;margin-bottom:10px">🏆 Max Brain Bucks Per Lesson</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Set the max Brain Bucks a kid can earn on their first attempt at each subject (score% × max).</div>
           <div class="form-row"><label>Kid</label><select id="coinmax-kid-select" onchange="renderCoinMaxInputs()"></select></div>
           <div id="coinmax-inputs" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px"></div>
           <button class="btn-primary" style="margin-top:12px" onclick="saveCoinMax()">Save Coin Limits</button>
@@ -880,7 +880,7 @@ function renderKidSelect() {
     `<button class="kid-avatar-btn" onclick="selectKid('${k.id}')">
       <div class="avatar-emoji">${k.emoji}</div>
       <div class="avatar-name">${k.name}</div>
-      <div class="avatar-coins">⭐ ${k.coins} coins</div>
+      <div class="avatar-coins">🧠 ${k.coins} Brain Bucks</div>
     </button>`).join('');
 }
 function selectKid(id) {
@@ -944,7 +944,7 @@ function renderKidDashboard() {
   document.getElementById('kid-header-sub').textContent = kid.name + "'s Lessons";
   document.getElementById('kid-dash-avatar').textContent = kid.emoji;
   document.getElementById('kid-dash-name').textContent = kid.name;
-  document.getElementById('kid-dash-coins').textContent = '⭐ ' + kid.coins + ' coins';
+  document.getElementById('kid-dash-coins').textContent = '🧠 ' + kid.coins + ' Brain Bucks';
 
   // Show redo notice if parent sent writing back
   const redoNotice = (state.redoNotices||[]).find(function(n){ return n.kidId === currentKidId && n.subject === 'writing'; });
@@ -1041,11 +1041,11 @@ function renderKidDashboard() {
       const item = document.createElement('div');
       item.className = 'reward-item';
       item.innerHTML = '<div class="reward-icon">' + r.emoji + '</div>'
-        + '<div class="reward-info"><div class="reward-name">' + r.name + '</div><div class="reward-cost">⭐ ' + r.cost + ' coins</div></div>';
+        + '<div class="reward-info"><div class="reward-name">' + r.name + '</div><div class="reward-cost">⭐ ' + r.cost + ' Brain Bucks</div></div>';
       const btn = document.createElement('button');
       btn.className = 'redeem-btn';
       btn.disabled = kid.coins < r.cost;
-      btn.textContent = kid.coins >= r.cost ? 'Redeem' : 'Need ' + (r.cost - kid.coins) + ' more';
+      btn.textContent = kid.coins >= r.cost ? 'Redeem' : 'Need ' + (r.cost - kid.coins) + ' more 🧠';
       btn.onclick = (function(rid){ return function(){ redeemReward(rid); }; })(r.id);
       item.appendChild(btn);
       rewardsEl.appendChild(item);
@@ -1459,7 +1459,7 @@ function submitWriting() {
     status: 'pending', date: new Date().toLocaleDateString()
   });
   saveState();
-  showFeedback(true, '✅ Submitted! Your parent will review and award bonus coins.');
+  showFeedback(true, '✅ Submitted! Your parent will review it.');
   document.getElementById('writing-submit-btn').style.display='none';
   recordAnswer(true); showNextBtn();
 }
@@ -1644,7 +1644,7 @@ function showLockedModal(subj, prog) {
   overlay.innerHTML = '<div style="background:white;border-radius:20px;padding:24px;max-width:480px;width:100%;max-height:80vh;overflow-y:auto;">'
     + '<div style="font-size:28px;text-align:center;margin-bottom:4px">' + (subj.icon || subjectIcons2[subj.id] || '📚') + '</div>'
     + '<div style="font-weight:800;font-size:18px;text-align:center;margin-bottom:4px">' + subj.name + ' — Already Done!</div>'
-    + '<div style="text-align:center;color:#6B7280;font-size:14px;margin-bottom:16px">Score: <strong>' + prog.score + '%</strong> · ⭐ ' + prog.coins + ' coins · ' + prog.correct + '/' + prog.total + ' correct</div>'
+    + '<div style="text-align:center;color:#6B7280;font-size:14px;margin-bottom:16px">Score: <strong>' + prog.score + '%</strong> · 🧠 ' + prog.coins + ' Brain Bucks · ' + prog.correct + '/' + prog.total + ' correct</div>'
     + (wrongList.length > 0 ? '<div style="font-weight:800;margin-bottom:10px;color:#EF4444">❌ Missed Questions:</div>' : '')
     + wrongHtml
     + '<div style="display:flex;gap:10px;margin-top:16px">'
@@ -1796,7 +1796,7 @@ function finishLesson() {
   });
   resScore.textContent = pct+'%';
   document.getElementById('results-label').textContent = pct>=90?'🎉 Outstanding!':pct>=70?'😊 Great job!':pct>=50?'💪 Good effort!':'📚 Keep practicing!';
-  document.getElementById('results-coins').textContent = alreadyDone ? '⭐ No coins — already completed today' : '+'+coins+' ⭐ coins earned!';
+  document.getElementById('results-coins').textContent = alreadyDone ? '🧠 No Brain Bucks — already done today' : '+'+coins+' 🧠 Brain Bucks earned!';
   const flagCount = ls.flagged || 0;
   const flagRow = flagCount > 0 ? '<div class="breakdown-row"><span>🚩 Flagged</span><strong style="color:#B45309">' + flagCount + ' question' + (flagCount>1?'s':'') + ' for review</strong></div>' : '';
   const timeRow = '<div class="breakdown-row"><span>⏱ Time</span><strong>' + elapsedStr + '</strong></div>';
@@ -1805,7 +1805,7 @@ function finishLesson() {
     '<div class="breakdown-row"><span>Subject</span><strong>' + ls.subjectIcon + ' ' + ls.subjectName + '</strong></div>'
     + '<div class="breakdown-row"><span>Correct</span><strong>' + origCorrect + ' / ' + total + '</strong></div>'
     + '<div class="breakdown-row"><span>Score</span><strong>' + pct + '%</strong></div>'
-    + '<div class="breakdown-row"><span>Coins Earned</span><strong>' + (alreadyDone ? '0 (replay)' : '⭐ ' + coins) + '</strong></div>'
+    + '<div class="breakdown-row"><span>Brain Bucks Earned</span><strong>' + (alreadyDone ? '0 (replay)' : '🧠 ' + coins) + '</strong></div>'
     + '<div class="breakdown-row"><span>Difficulty</span><strong>' + (['','Easy','Medium','Hard'][ls.diffLevel]) + '</strong></div>'
     + timeRow + drillRow + flagRow;
   // Wrong answers section on results
@@ -1903,7 +1903,7 @@ function renderParentKidSummary() {
       <div class="ks-emoji">${k.emoji}</div>
       <div class="ks-name">${k.name}</div>
       <div class="ks-coins">${k.coins}</div>
-      <div style="font-size:12px;color:var(--muted)">⭐ coins</div>
+      <div style="font-size:12px;color:var(--muted)">🧠 Brain Bucks</div>
     </div>`).join('');
 }
 
@@ -1982,7 +1982,7 @@ function renderFlaggedList() {
       + (f.correctAnswer ? '<div style="background:#F0FDF4;border-radius:8px;padding:8px 10px;margin-top:6px;font-size:13px;border-left:3px solid #2ECC71;"><strong>Correct answer:</strong> ' + f.correctAnswer + '</div>' : '')
       + '</div></div>'
       + '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">'
-      + '<button class="btn-approve" style="flex:1;background:#2ECC71" id="flag-accept-'+f.id+'">✅ Accept (award coins)</button>'
+      + '<button class="btn-approve" style="flex:1;background:#2ECC71" id="flag-accept-'+f.id+'">✅ Accept (award Brain Bucks)</button>'
       + '<button class="btn-approve" style="flex:1;background:#EF4444;color:white" id="flag-wrong-'+f.id+'">❌ Mark Incorrect</button>'
       + '</div>';
     el.appendChild(div);
@@ -2022,7 +2022,7 @@ function resolveFlag(id, award) {
       bonusCoins = Math.max(0, newCoins - p.coins);
     }
     if (kid && bonusCoins > 0) kid.coins += bonusCoins;
-    showToast('✅ Accepted — ' + bonusCoins + ' coin' + (bonusCoins !== 1 ? 's' : '') + ' awarded to ' + (kid ? kid.name : 'kid') + '!');
+    showToast('✅ Accepted — ' + bonusCoins + ' Brain Buck' + (bonusCoins !== 1 ? 's' : '') + ' awarded to ' + (kid ? kid.name : 'kid') + '!');
   } else {
     showToast('❌ Marked incorrect — noted for review.');
   }
@@ -2045,21 +2045,24 @@ function denyWriting(id) {
   const w = (state.writingQueue||[]).find(x=>x.id===id);
   if (!w) return;
   w.status = 'redo';
-  // Deduct coins that were earned from the writing lesson
   const kid = state.kids.find(k=>k.id===w.kidId);
+  // Deduct Brain Bucks earned from the writing lesson
   const writingProgress = state.progress[w.kidId] && state.progress[w.kidId]['writing'];
   if (kid && writingProgress && writingProgress.coins) {
     kid.coins = Math.max(0, kid.coins - writingProgress.coins);
   }
   // Clear progress so they can redo it today
-  if (state.progress[w.kidId]) {
-    delete state.progress[w.kidId]['writing'];
+  if (state.progress[w.kidId]) delete state.progress[w.kidId]['writing'];
+  // Pop the last streak entry so level meter reflects the redo
+  if (state.streaks && state.streaks[w.kidId] && state.streaks[w.kidId]['writing'] && state.streaks[w.kidId]['writing'].length) {
+    state.streaks[w.kidId]['writing'].pop();
   }
-  // Add redo notice to kid's notification queue
+  // Add redo notice — replace any existing one for this kid
   if (!state.redoNotices) state.redoNotices = [];
-  state.redoNotices.push({ kidId: w.kidId, subject: 'writing', message: 'Your parent asked you to redo your writing. Try again!', date: new Date().toLocaleDateString() });
+  state.redoNotices = state.redoNotices.filter(function(n){ return !(n.kidId === w.kidId && n.subject === 'writing'); });
+  state.redoNotices.push({ kidId: w.kidId, subject: 'writing', message: 'Your parent asked you to redo your writing. Give it another try!', date: new Date().toLocaleDateString() });
   saveState();
-  showToast('🔄 Marked for redo — coins deducted, writing unlocked.');
+  showToast('🔄 Marked for redo — Brain Bucks deducted, writing unlocked.');
   renderWritingApprovals();
   renderParentKidSummary();
 }
@@ -2081,7 +2084,7 @@ function renderRedemptionQueue() {
       + '<div style="font-size:28px;margin-bottom:6px">' + r.rewardEmoji + '</div>'
       + '<div style="font-weight:800;font-size:16px">' + r.rewardName + '</div>'
       + '<div style="font-size:13px;color:var(--muted);margin-top:4px">'
-      + (kid ? kid.emoji + ' ' + kid.name : r.kidId) + ' · ' + r.date + ' · ⭐ ' + r.cost + ' coins</div>'
+      + (kid ? kid.emoji + ' ' + kid.name : r.kidId) + ' · ' + r.date + ' · 🧠 ' + r.cost + ' Brain Bucks</div>'
       + '</div>'
       + '<div style="display:flex;flex-direction:column;gap:6px;min-width:110px">'
       + '<button class="btn-approve" style="background:#2ECC71" id="rq-ack-' + r.id + '">✅ Fulfilled</button>'
@@ -2122,7 +2125,7 @@ function renderParentRewards() {
         ? '<div style="color:var(--muted);font-size:14px;padding:8px 0">No rewards yet.</div>'
         : rewards.map(r=>`<div class="reward-item">
             <div class="reward-icon">${r.emoji}</div>
-            <div class="reward-info"><div class="reward-name">${r.name}</div><div class="reward-cost">⭐ ${r.cost} coins</div></div>
+            <div class="reward-info"><div class="reward-name">${r.name}</div><div class="reward-cost">🧠 ${r.cost} Brain Bucks</div></div>
             <div style="display:flex;gap:6px">
               <button class="btn-primary" onclick="editReward('${k.id}','${r.id}')" style="padding:6px 12px;font-size:13px;margin:0">Edit</button>
               <button class="btn-danger" onclick="deleteReward('${k.id}','${r.id}')" style="padding:6px 12px;font-size:13px">Delete</button>
@@ -2158,7 +2161,7 @@ function renderProgressOverview() {
         summary.innerHTML = '<span style="font-weight:700">' + ({spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'}[s]||'') + ' ' + subjLvlName + '</span>'
           + '<span style="display:flex;align-items:center;gap:8px">'
           + '<strong>' + p.score + '%</strong>'
-          + '<span style="color:var(--muted)">⭐' + p.coins + (p.duration != null ? ' · ' + p.duration + 'min' : '') + ' · ' + p.date + '</span>'
+          + '<span style="color:var(--muted)">🧠 ' + p.coins + (p.duration != null ? ' · ' + p.duration + 'min' : '') + ' · ' + p.date + '</span>'
           + (wrongList.length > 0 ? '<span style="background:#FEE2E2;color:#EF4444;border-radius:20px;padding:2px 8px;font-size:12px;font-weight:800">' + wrongList.length + ' missed</span>' : '<span style="background:#DCFCE7;color:#16A34A;border-radius:20px;padding:2px 8px;font-size:12px;font-weight:800">✓ Perfect</span>')
           + '</span>';
         const detail = document.createElement('div');
@@ -2289,7 +2292,7 @@ function changePin() {
 function resetProgress() {
   const kidId = document.getElementById('reset-progress-kid').value;
   const targets = kidId === 'both' ? state.kids.map(k=>k.id) : [kidId];
-  if (!confirm('Reset lesson progress and coins earned today for ' + (kidId==='both'?'both kids':state.kids.find(k=>k.id===kidId).name) + '?')) return;
+  if (!confirm('Reset lesson progress and Brain Bucks earned today for ' + (kidId==='both'?'both kids':state.kids.find(k=>k.id===kidId).name) + '?')) return;
   targets.forEach(function(id) {
     // Remove today's progress
     const todayKey = getTodayKey();
