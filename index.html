@@ -1226,7 +1226,7 @@ function renderKidDashboard() {
   if (!kidRewards2 || !kidRewards2.length) {
     rewardsEl.innerHTML = '<div class="empty-state"><div class="empty-icon">🎁</div><p>No rewards yet.</p></div>';
   } else {
-    rewardsEl.innerHTML = renderMilestoneBar(currentKidId);
+    rewardsEl.innerHTML = '';
     kidRewards2.forEach(function(r) {
       const item = document.createElement('div');
       item.className = 'reward-item';
