@@ -280,6 +280,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <div class="kid-hero">
       <div class="kid-hero-avatar" id="kid-dash-avatar">🎒</div>
       <div style="flex:1">
+        <div id="kid-dash-greeting" style="display:none;font-size:13px;color:rgba(255,255,255,0.85);font-weight:600;margin-bottom:4px;"></div>
         <div class="kid-hero-name" id="kid-dash-name">Name</div>
         <div class="kid-hero-coins" id="kid-dash-coins">🧠 0 Brain Bucks</div>
         <div class="kid-hero-progress" id="kid-dash-progress">0 of 4 done today</div>
@@ -733,7 +734,8 @@ const DEFAULT_STATE = {
   badgeQuarter: '',
   skipDay:{lauren:0,andrew:0},
   selectedVoice: null,
-  lessonTimers:{spelling:10,math:15,reading:20,writing:15}
+  lessonTimers:{spelling:10,math:15,reading:20,writing:15},
+  brainBucksMilestones:{lauren:[],andrew:[]}
 };
 
 let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
@@ -1070,13 +1072,36 @@ function getTodaySchedule() {
     isRest: false,
     isDayA,
     subjects: isDayA ? ['spelling','math'] : ['reading','writing'],
-    label: isDayA ? 'Day A — Spelling & Math' : 'Day B — Reading & Writing'
+    label: isDayA ? 'Spelling & Math today' : 'Reading & Writing today'
   };
 }
 
 
+function getTimeGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
+function checkBrainBucksMilestones(kidId) {
+  const kid = state.kids.find(k => k.id === kidId);
+  if (!kid) return;
+  const coins = kid.coins;
+  const milestones = [10, 25, 50, 100, 200, 500];
+  if (!state.brainBucksMilestones) state.brainBucksMilestones = {};
+  if (!state.brainBucksMilestones[kidId]) state.brainBucksMilestones[kidId] = [];
+  const hit = milestones.find(m => coins >= m && !state.brainBucksMilestones[kidId].includes(m));
+  if (hit) {
+    state.brainBucksMilestones[kidId].push(hit);
+    saveState();
+    setTimeout(function() {
+      showToast('💰 ' + kid.name + ' has ' + hit + ' Brain Bucks! Check the Rewards Shop 🎁');
+    }, 600);
+  }
+}
+
 function getRewardsForKid(kidId) {
-  if (!state.rewards) return [];
   if (Array.isArray(state.rewards)) return state.rewards; // legacy
   return state.rewards[kidId] || [];
 }
@@ -1092,6 +1117,21 @@ function renderKidDashboard() {
   document.getElementById('kid-dash-avatar').textContent = kid.emoji;
   document.getElementById('kid-dash-name').textContent = kid.name;
   document.getElementById('kid-dash-coins').textContent = '🧠 ' + kid.coins + ' Brain Bucks';
+
+  // Personalized greeting
+  const schedule = getTodaySchedule();
+  const greetingEl = document.getElementById('kid-dash-greeting');
+  if (greetingEl) {
+    if (schedule.isRest) {
+      greetingEl.textContent = getTimeGreeting() + ', ' + kid.name + '! Today is your rest day 😴';
+    } else {
+      const subjectNames = schedule.subjects.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' & ');
+      greetingEl.textContent = getTimeGreeting() + ', ' + kid.name + '! Ready for ' + subjectNames + '? 🌟';
+    }
+    greetingEl.style.display = 'block';
+  }
+
+  checkBrainBucksMilestones(currentKidId);
   renderStreakOnDashboard(currentKidId);
   renderBadges(currentKidId);
 
@@ -1124,7 +1164,6 @@ function renderKidDashboard() {
   }
   const progress = state.progress[currentKidId] || {};
   const grid = document.getElementById('subject-grid');
-  const schedule = getTodaySchedule();
   const prog_el = document.getElementById('kid-dash-progress');
 
   // Rest day
