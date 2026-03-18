@@ -248,11 +248,11 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   <div class="landing-logo">Kid<span>Stuff</span> 🧠</div>
   <div class="landing-tagline">Learn. Earn. Grow.</div>
   <div class="landing-cards">
-    <div class="landing-card" onclick="studentLogin()">
-      <div class="icon">🎒</div><h2>I'm a Student</h2><p>Do my lessons &amp; earn rewards</p>
+    <div class="landing-card" onclick="showScreen('screen-kid-select')">
+      <div class="icon">🎒</div><h2>Students</h2><p>Do my lessons &amp; earn rewards</p>
     </div>
-    <div class="landing-card" onclick="showScreen('screen-pin')" id="parent-landing-btn">
-      <div class="icon">🔐</div><h2>Parent Dashboard</h2><p>Manage lessons &amp; rewards</p>
+    <div class="landing-card" onclick="showPinScreen('parent')" id="parent-landing-btn">
+      <div class="icon">🔐</div><h2>Parents</h2><p>Manage lessons &amp; rewards</p>
     </div>
   </div>
   <div id="sync-status-landing" style="color:rgba(255,255,255,0.6);font-size:12px;margin-top:20px;text-align:center;"></div>
@@ -261,7 +261,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 <!-- KID SELECT -->
 <div id="screen-kid-select" class="screen">
   <div class="kid-select-title">Who's learning today?</div>
-  <div class="kid-select-sub">Tap your name!</div>
+  <div class="kid-select-sub">Tap your name to log in!</div>
   <div class="kid-avatars" id="kid-avatars-container"></div>
   <label style="display:flex;align-items:center;gap:10px;color:rgba(255,255,255,0.85);font-size:15px;font-weight:700;margin-top:28px;cursor:pointer;">
     <input type="checkbox" id="remember-me-checkbox" style="width:20px;height:20px;accent-color:#4F6EF7;cursor:pointer;"/>
@@ -274,7 +274,6 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 <div id="screen-kid" class="screen">
   <div class="app-header">
     <div><div class="logo">Kid<span>Stuff</span></div><div class="header-sub" id="kid-header-sub">Today's Lessons</div></div>
-    <button class="back-btn" onclick="showScreen('screen-kid-select')">Switch</button>
   </div>
   <div class="content">
     <div class="kid-hero">
@@ -374,8 +373,9 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 <!-- PIN -->
 <div id="screen-pin" class="screen">
   <div class="pin-box">
-    <div style="font-size:40px;margin-bottom:10px">🔐</div>
-    <h2>Parent Access</h2><p>Enter your 4-digit PIN</p>
+    <div style="font-size:40px;margin-bottom:10px" id="pin-screen-icon">🔐</div>
+    <h2 id="pin-screen-title">Parent Access</h2>
+    <p id="pin-screen-sub">Enter your 4-digit PIN</p>
     <div class="pin-dots" id="pin-dots">
       <div class="pin-dot" id="dot-0"></div><div class="pin-dot" id="dot-1"></div>
       <div class="pin-dot" id="dot-2"></div><div class="pin-dot" id="dot-3"></div>
@@ -388,7 +388,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
       <button class="pin-key delete" onclick="pinDelete()">⌫</button>
     </div>
     <div class="pin-error" id="pin-error"></div>
-    <div style="margin-top:16px"><button class="back-btn" style="background:#EEF2FF;color:var(--primary);padding:9px 20px;" onclick="showScreen('screen-landing')">← Back</button></div>
+    <div style="margin-top:16px"><button class="back-btn" style="background:#EEF2FF;color:var(--primary);padding:9px 20px;" id="pin-back-btn" onclick="pinBack()">← Back</button></div>
   </div>
 </div>
 
@@ -482,9 +482,11 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <div class="tab-panel" id="tab-settings">
       <div class="card">
         <div class="card-title">⚙️ Settings</div>
-        <div class="form-row"><label>Change PIN</label><input id="new-pin" type="password" maxlength="4" placeholder="New 4-digit PIN"/></div>
-        <button class="btn-primary" onclick="changePin()">Update PIN</button>
-        <div style="height:18px"></div>
+        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
+          <div style="font-weight:800;margin-bottom:8px">🔑 Kid PINs</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Reset a kid's 4-digit login PIN.</div>
+          <div id="kid-pin-reset-list"></div>
+        </div>
         <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
           <div style="font-weight:800;margin-bottom:10px">🔊 Spelling Voice</div>
           <div id="voice-selector-wrap">Loading voices...</div>
@@ -550,11 +552,6 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
           </div>
         </div>
         <div style="height:18px"></div>
-        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
-          <div style="font-weight:800;margin-bottom:8px">📧 Weekly Report</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Send a weekly summary email with both kids' scores, streaks, and Brain Bucks.</div>
-          <button class="btn-primary" style="background:#7C3AED" onclick="sendWeeklyEmail()">📧 Send Report Now</button>
-        </div>
       </div>
     </div>
   </div>
@@ -706,6 +703,7 @@ function unlockSubjectToday(kidId, subjectId) {
 
 const DEFAULT_STATE = {
   pin:'2730',
+  kidPins:{lauren:'0540',andrew:'3005'},
   kids:[{id:'lauren',name:'Lauren',emoji:'👧🏾',coins:0},{id:'andrew',name:'Andrew',emoji:'🧒🏾',coins:0}],
   rewards:{
     lauren:[
@@ -743,6 +741,7 @@ let binId = localStorage.getItem('kidstuff_binId') || null;
 let isSyncing = false;
 let currentKidId = null;
 let pinEntry = '';
+let pinMode = 'parent'; // 'parent' or kid id
 let lessonState = null;
 let syncTimer = null;
 
@@ -808,6 +807,7 @@ async function pullState() {
       if (!state.streaks) state.streaks = JSON.parse(JSON.stringify(DEFAULT_STATE.streaks));
       if (!state.unlockedToday) state.unlockedToday = {};
       if (!state.lessonTimers) state.lessonTimers = {spelling:10,math:15,reading:20,writing:15};
+      if (!state.kidPins) state.kidPins = {lauren:'0540',andrew:'3005'};
       localStorage.setItem('kidstuff_cache', JSON.stringify(state));
       setSyncBar('✅ Synced', '');
       updateBinIdDisplay();
@@ -859,6 +859,7 @@ function loadLocalFallback() {
       if (!state.dailyStreak) state.dailyStreak = JSON.parse(JSON.stringify(DEFAULT_STATE.dailyStreak));
       if (!state.badges) state.badges = {lauren:[],andrew:[]};
       if (!state.skipDay) state.skipDay = {lauren:0,andrew:0};
+      if (!state.kidPins) state.kidPins = {lauren:'0540',andrew:'3005'};
       if (state.selectedVoice === undefined) state.selectedVoice = null;
     }
   } catch(e) { state = JSON.parse(JSON.stringify(DEFAULT_STATE)); }
@@ -992,13 +993,55 @@ function showScreen(id) {
 }
 
 // ── PIN ──────────────────────────────────────────────────
+function showPinScreen(mode) {
+  // mode = 'parent' or a kid id
+  pinMode = mode;
+  pinEntry = '';
+  updatePinDots();
+  document.getElementById('pin-error').textContent = '';
+  if (mode === 'parent') {
+    document.getElementById('pin-screen-icon').textContent = '🔐';
+    document.getElementById('pin-screen-title').textContent = 'Parent Access';
+    document.getElementById('pin-screen-sub').textContent = 'Enter your 4-digit PIN';
+  } else {
+    const kid = state.kids.find(k => k.id === mode);
+    document.getElementById('pin-screen-icon').textContent = kid ? kid.emoji : '🎒';
+    document.getElementById('pin-screen-title').textContent = kid ? kid.name : 'Student';
+    document.getElementById('pin-screen-sub').textContent = 'Enter your PIN';
+  }
+  showScreen('screen-pin');
+}
+
+function pinBack() {
+  if (pinMode === 'parent') {
+    showScreen('screen-landing');
+  } else {
+    showScreen('screen-kid-select');
+  }
+}
+
 function pinKey(d) {
   if (pinEntry.length >= 4) return;
   pinEntry += d; updatePinDots();
   if (pinEntry.length === 4) {
     setTimeout(() => {
-      if (pinEntry === state.pin) showScreen('screen-parent');
-      else { document.getElementById('pin-error').textContent = 'Incorrect PIN.'; pinEntry = ''; updatePinDots(); }
+      if (pinMode === 'parent') {
+        if (pinEntry === state.pin) showScreen('screen-parent');
+        else { document.getElementById('pin-error').textContent = 'Incorrect PIN.'; pinEntry = ''; updatePinDots(); }
+      } else {
+        const kidPins = state.kidPins || {};
+        const expected = kidPins[pinMode];
+        if (pinEntry === expected) {
+          currentKidId = pinMode;
+          const cb = document.getElementById('remember-me-checkbox');
+          if (cb && cb.checked) localStorage.setItem('kidstuff_rememberedKid', currentKidId);
+          else localStorage.removeItem('kidstuff_rememberedKid');
+          showScreen('screen-kid');
+        } else {
+          document.getElementById('pin-error').textContent = 'Incorrect PIN.';
+          pinEntry = ''; updatePinDots();
+        }
+      }
     }, 200);
   }
 }
@@ -1008,7 +1051,7 @@ function updatePinDots() { for(let i=0;i<4;i++) document.getElementById('dot-'+i
 // ── KID SELECT ───────────────────────────────────────────
 function renderKidSelect() {
   document.getElementById('kid-avatars-container').innerHTML = state.kids.map(k =>
-    `<button class="kid-avatar-btn" onclick="selectKid('${k.id}')">
+    `<button class="kid-avatar-btn" onclick="showPinScreen('${k.id}')">
       <div class="avatar-emoji">${k.emoji}</div>
       <div class="avatar-name">${k.name}</div>
       <div class="avatar-coins">🧠 ${k.coins} Brain Bucks</div>
@@ -1049,8 +1092,7 @@ function updateParentBadge() {
 function studentLogin() {
   const remembered = localStorage.getItem('kidstuff_rememberedKid');
   if (remembered && state.kids.find(k => k.id === remembered)) {
-    currentKidId = remembered;
-    pullState().then(() => showScreen('screen-kid'));
+    pullState().then(() => showPinScreen(remembered));
   } else {
     showScreen('screen-kid-select');
   }
@@ -2413,6 +2455,7 @@ function renderParentDashboard() {
     if (coinmaxSel) coinmaxSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.name}</option>`).join('');
     renderCoinMaxInputs();
     renderTimerInputs();
+    renderKidPinReset();
     updateBinIdDisplay();
   } catch(e) {
     console.error('renderParentDashboard error:', e);
@@ -3200,6 +3243,34 @@ function saveTimerSettings() {
   });
   saveState();
   showToast('✅ Time limits saved!');
+}
+
+function renderKidPinReset() {
+  const el = document.getElementById('kid-pin-reset-list');
+  if (!el) return;
+  const pins = state.kidPins || {};
+  el.innerHTML = state.kids.map(k => `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+      <div style="font-size:24px">${k.emoji}</div>
+      <div style="font-weight:700;flex:1">${k.name}</div>
+      <input id="kid-pin-${k.id}" type="password" maxlength="4" placeholder="New PIN"
+        style="width:90px;padding:8px;border:2px solid var(--border);border-radius:8px;font-size:16px;font-weight:800;text-align:center;letter-spacing:4px"/>
+      <button class="btn-primary" style="margin:0;padding:9px 14px;font-size:13px"
+        onclick="saveKidPin('${k.id}')">Save</button>
+    </div>`).join('');
+}
+
+function saveKidPin(kidId) {
+  const input = document.getElementById('kid-pin-' + kidId);
+  if (!input) return;
+  const p = input.value.trim();
+  if (!/^\d{4}$/.test(p)) { showToast('⚠️ PIN must be exactly 4 digits.'); return; }
+  if (!state.kidPins) state.kidPins = {};
+  state.kidPins[kidId] = p;
+  saveState();
+  input.value = '';
+  const kid = state.kids.find(k => k.id === kidId);
+  showToast('✅ ' + (kid ? kid.name : kidId) + '\'s PIN updated!');
 }
 
 function updateSkipDayBalance(kidId) {
