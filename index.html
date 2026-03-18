@@ -213,7 +213,8 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .study-btn{background:linear-gradient(135deg,#F7C948,#FF9500);color:#1A1F36;border:none;padding:14px 20px;border-radius:14px;font-family:'Baloo 2',cursive;font-size:17px;font-weight:800;cursor:pointer;width:100%;margin-bottom:14px;box-shadow:0 4px 16px rgba(247,201,72,0.3);transition:transform 0.15s;}
 .study-btn:hover{transform:translateY(-2px);}
 .lesson-timer{font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;color:white;background:rgba(255,255,255,0.18);border-radius:20px;padding:4px 14px;letter-spacing:1px;}
-.lesson-timer.warn{background:rgba(255,107,107,0.5);}
+.lesson-timer.warn{background:#EF4444;color:white;animation:timerPulse 0.8s ease-in-out infinite;}
+@keyframes timerPulse{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.12);opacity:0.75;}}
 .drill-banner{background:linear-gradient(90deg,#F7C948,#FF9500);color:#1A1F36;text-align:center;padding:10px 16px;font-weight:800;font-size:14px;border-radius:12px;margin-bottom:14px;}
 .streak-dots{display:flex;gap:6px;justify-content:center;margin-top:8px;}
 .streak-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);background:white;transition:all 0.3s;}
