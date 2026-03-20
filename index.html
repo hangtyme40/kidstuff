@@ -299,6 +299,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <div id="no-content-msg" style="display:none"></div>
     <div class="subject-grid" id="subject-grid"></div>
     <button onclick="startStudyMode()" id="study-mode-btn" style="display:none;width:100%;margin-bottom:18px;padding:14px;border-radius:14px;border:2px solid var(--primary);background:#EEF2FF;color:var(--primary);font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;cursor:pointer;">📖 Study Mode — Practice Missed Questions</button>
+    <div id="bonus-challenge-btns"></div>
     <div class="card"><div class="card-title">🎁 Rewards Shop</div><div id="kid-rewards-list"></div></div>
   </div>
 </div>
@@ -318,6 +319,11 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
       <div class="lesson-progress" id="lesson-progress">Q 1 of 10</div>
     </div>
     <div class="progress-bar-wrap"><div class="progress-bar-fill" id="lesson-progress-bar" style="width:0%"></div></div>
+    <!-- Reading story panel — shown for reading lessons -->
+    <div id="reading-story-panel" style="display:none;background:#FAFBFF;border:2px solid var(--border);border-radius:14px;padding:16px 18px;margin:14px 0;font-size:15px;line-height:1.8;max-height:180px;overflow-y:auto;">
+      <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">📖 Read the story, then answer the questions</div>
+      <div id="reading-story-text"></div>
+    </div>
     <div style="height:16px"></div>
     <div id="drill-banner-area"></div>
     <div id="lesson-content"></div>
@@ -449,6 +455,23 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         </div>
         <div id="level-adj-preview" style="font-size:13px;color:var(--muted);margin-top:10px;text-align:center;font-weight:700"></div>
       </div>
+      <div class="card" style="background:#FFFBEA;box-shadow:none;border:2px solid #F7C948">
+        <div style="font-weight:800;margin-bottom:8px">⭐ Assign Bonus Challenge</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Give a kid extra practice on a specific topic. They'll see it on their dashboard.</div>
+        <div class="form-grid">
+          <div class="form-row"><label>Kid</label><select id="bonus-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"></select></div>
+          <div class="form-row"><label>Subject</label><select id="bonus-subject-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;">
+            <option value="spelling">🔤 Spelling</option>
+            <option value="math">🧮 Math</option>
+            <option value="reading">📖 Reading</option>
+            <option value="writing">✏️ Writing</option>
+          </select></div>
+        </div>
+        <div class="form-row"><label>Focus Topic (optional)</label><input id="bonus-topic" type="text" placeholder="e.g. fractions with unlike denominators"/></div>
+        <div class="form-row"><label>Bonus Brain Bucks</label><input id="bonus-coins" type="number" placeholder="10" value="10" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"/></div>
+        <button class="btn-primary" style="background:#F59E0B;color:#1A1F36" onclick="assignBonusChallenge()">⭐ Assign Challenge</button>
+        <div id="bonus-challenges-list" style="margin-top:14px"></div>
+      </div>
     </div><!-- end tab-curriculum -->
 
     <div class="tab-panel" id="tab-writing">
@@ -563,6 +586,7 @@ const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const JSONBIN_API = 'https://api.jsonbin.io/v3';
 // Free JSONBin master key - app creates its own bin on first load
 const JSONBIN_KEY = '$2a$10$sydM3nGoNHAf9PtvxleqcuyyFAmFSm6TTYMxsu3RxguX73/UCwMPm';
+const HISTORY_DAYS = 90; // keep 90 days of history
 
 // ── KUMON-STYLE PROGRESSION ──────────────────────────────
 const PROGRESSION = {
@@ -674,7 +698,7 @@ const PROGRESSION = {
   }
 };
 
-function getProgression(kidId) { return PROGRESSION[kidId] || PROGRESSION.lauren; }
+function getProgression(kidId) { return PROGRESSION[kidId] || PROGRESSION[kidId === 'tester' ? 'andrew' : 'lauren']; }
 function getSubjectProgression(kidId, subjectId) { return getProgression(kidId)[subjectId] || []; }
 function getCurrentLevelIndex(kidId, subjectId) {
   if (!state.levels || !state.levels[kidId]) return 0;
@@ -703,8 +727,12 @@ function unlockSubjectToday(kidId, subjectId) {
 
 const DEFAULT_STATE = {
   pin:'2730',
-  kidPins:{lauren:'0540',andrew:'3005'},
-  kids:[{id:'lauren',name:'Lauren',emoji:'👧🏾',coins:0},{id:'andrew',name:'Andrew',emoji:'🧒🏾',coins:0}],
+  kidPins:{lauren:'0540',andrew:'3005',tester:'2730'},
+  kids:[
+    {id:'lauren',name:'Lauren',emoji:'👧🏾',coins:0},
+    {id:'andrew',name:'Andrew',emoji:'🧒🏾',coins:0},
+    {id:'tester',name:'Parent Tester',emoji:'🧪',coins:0}
+  ],
   rewards:{
     lauren:[
       {id:'r1',name:'30 min extra screen time',cost:40,emoji:'📺'},
@@ -715,29 +743,38 @@ const DEFAULT_STATE = {
       {id:'r1',name:'30 min extra screen time',cost:40,emoji:'📺'},
       {id:'r2',name:'Choose dinner',cost:60,emoji:'🍕'},
       {id:'r3',name:'$1 allowance bonus',cost:80,emoji:'💵'}
+    ],
+    tester:[
+      {id:'r1',name:'30 min extra screen time',cost:40,emoji:'📺'},
+      {id:'r2',name:'Choose dinner',cost:60,emoji:'🍕'},
+      {id:'r3',name:'$1 allowance bonus',cost:80,emoji:'💵'}
     ]
   },
-  curriculum:{lauren:null,andrew:null},
-  progress:{lauren:{},andrew:{}},
-  levels:{lauren:{spelling:0,math:0,reading:0,writing:0},andrew:{spelling:0,math:0,reading:0,writing:0}},
-  streaks:{lauren:{spelling:[],math:[],reading:[],writing:[]},andrew:{spelling:[],math:[],reading:[],writing:[]}},
-  unlockedToday:{lauren:{},andrew:{}},
+  curriculum:{lauren:null,andrew:null,tester:null},
+  progress:{lauren:{},andrew:{},tester:{}},
+  levels:{lauren:{spelling:0,math:0,reading:0,writing:0},andrew:{spelling:0,math:0,reading:0,writing:0},tester:{spelling:0,math:0,reading:0,writing:0}},
+  streaks:{lauren:{spelling:[],math:[],reading:[],writing:[]},andrew:{spelling:[],math:[],reading:[],writing:[]},tester:{spelling:[],math:[],reading:[],writing:[]}},
+  unlockedToday:{lauren:{},andrew:{},tester:{}},
   writingQueue:[],
-  difficultyLevel:{lauren:2,andrew:2},
-  usedTopics:{lauren:[],andrew:[]},
-  coinMax:{lauren:{spelling:30,math:30,reading:30,writing:30},andrew:{spelling:30,math:30,reading:30,writing:30}},
+  difficultyLevel:{lauren:2,andrew:2,tester:2},
+  usedTopics:{lauren:[],andrew:[],tester:[]},
+  coinMax:{lauren:{spelling:30,math:30,reading:30,writing:30},andrew:{spelling:30,math:30,reading:30,writing:30},tester:{spelling:30,math:30,reading:30,writing:30}},
   redemptionQueue:[],
-  dailyStreak:{lauren:{count:0,lastDate:''},andrew:{count:0,lastDate:''}},
-  badges:{lauren:[],andrew:[]},
+  dailyStreak:{lauren:{count:0,lastDate:''},andrew:{count:0,lastDate:''},tester:{count:0,lastDate:''}},
+  badges:{lauren:[],andrew:[],tester:[]},
   badgeQuarter: '',
-  skipDay:{lauren:0,andrew:0},
+  skipDay:{lauren:0,andrew:0,tester:0},
   selectedVoice: null,
   lessonTimers:{spelling:10,math:15,reading:20,writing:15},
-  brainBucksMilestones:{lauren:[],andrew:[]}
+  brainBucksMilestones:{lauren:[],andrew:[],tester:[]},
+  historyBinId: null,
+  bonusChallenges: []
 };
 
 let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
 let binId = localStorage.getItem('kidstuff_binId') || null;
+let historyBinId = localStorage.getItem('kidstuff_historyBinId') || null;
+let lessonHistory = JSON.parse(localStorage.getItem('kidstuff_history') || '{}');
 let isSyncing = false;
 let currentKidId = null;
 let pinEntry = '';
@@ -745,13 +782,96 @@ let pinMode = 'parent'; // 'parent' or kid id
 let lessonState = null;
 let syncTimer = null;
 
+// ── LESSON HISTORY SYSTEM ────────────────────────────────
+// lessonHistory = { lauren: [{date, subject, score, coins, correct, total, duration, level},...], andrew: [...] }
+
+function recordLessonHistory(kidId, subjectId, pct, coins, correct, total, elapsedMin, levelIdx) {
+  if (!lessonHistory[kidId]) lessonHistory[kidId] = [];
+  const entry = {
+    date: new Date().toISOString().slice(0,10),
+    dateDisplay: new Date().toLocaleDateString(),
+    subject: subjectId,
+    score: pct,
+    coins: coins,
+    correct: correct,
+    total: total,
+    duration: elapsedMin || 0,
+    level: levelIdx + 1,
+    wrongAnswers: (lessonState && lessonState.wrongAnswers || []).slice(0, 10)
+  };
+  lessonHistory[kidId].unshift(entry);
+  // Trim to HISTORY_DAYS days
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - HISTORY_DAYS);
+  const cutoffStr = cutoff.toISOString().slice(0,10);
+  lessonHistory[kidId] = lessonHistory[kidId].filter(e => e.date >= cutoffStr);
+  saveHistory();
+}
+
+function saveHistory() {
+  localStorage.setItem('kidstuff_history', JSON.stringify(lessonHistory));
+  clearTimeout(window._historyPushTimer);
+  window._historyPushTimer = setTimeout(pushHistory, 1200);
+}
+
+async function pushHistory() {
+  if (!historyBinId) { await createHistoryBin(); return; }
+  try {
+    await fetch(JSONBIN_API + '/b/' + historyBinId, {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json','X-Master-Key':JSONBIN_KEY},
+      body: JSON.stringify(lessonHistory)
+    });
+  } catch(e) { console.warn('History push failed:', e); }
+}
+
+async function createHistoryBin() {
+  try {
+    const res = await fetch(JSONBIN_API + '/b', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','X-Master-Key':JSONBIN_KEY,'X-Bin-Name':'KidStuff-History','X-Bin-Private':'true'},
+      body: JSON.stringify(lessonHistory)
+    });
+    const data = await res.json();
+    if (data.metadata && data.metadata.id) {
+      historyBinId = data.metadata.id;
+      localStorage.setItem('kidstuff_historyBinId', historyBinId);
+      // Save into main state so all devices get the ID
+      state.historyBinId = historyBinId;
+      saveState();
+    }
+  } catch(e) { console.warn('History bin creation failed:', e); }
+}
+
+async function pullHistory() {
+  if (!historyBinId) return;
+  try {
+    const res = await fetch(JSONBIN_API + '/b/' + historyBinId + '/latest', {
+      headers: {'X-Master-Key': JSONBIN_KEY}
+    });
+    const data = await res.json();
+    if (data.record) {
+      lessonHistory = data.record;
+      localStorage.setItem('kidstuff_history', JSON.stringify(lessonHistory));
+    }
+  } catch(e) { console.warn('History pull failed:', e); }
+}
+
 // ── CLOUD SYNC ─────────────────────────────────────────
 function initSync() {
   loadLocalFallback();
+  // Pick up history bin ID from state if localStorage doesn't have it
+  if (!historyBinId && state.historyBinId) {
+    historyBinId = state.historyBinId;
+    localStorage.setItem('kidstuff_historyBinId', historyBinId);
+  }
   if (binId) {
     pullState().catch(e => console.warn('Sync failed:', e));
   } else {
     createBin().catch(e => { console.warn('Bin failed:', e); setSyncBar('','hide'); });
+  }
+  if (historyBinId) {
+    pullHistory().catch(e => console.warn('History sync failed:', e));
   }
 }
 
@@ -809,9 +929,16 @@ async function pullState() {
       if (!state.lessonTimers) state.lessonTimers = {spelling:10,math:15,reading:20,writing:15};
       if (!state.kidPins) state.kidPins = {lauren:'0540',andrew:'3005'};
       localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+      runMigrations();
       setSyncBar('✅ Synced', '');
       updateBinIdDisplay();
       document.getElementById('sync-status-landing').textContent = '☁️ Cloud sync active · ID: ' + binId.slice(-6);
+      // Pick up history bin ID from state if we don't have it locally
+      if (state.historyBinId && !historyBinId) {
+        historyBinId = state.historyBinId;
+        localStorage.setItem('kidstuff_historyBinId', historyBinId);
+        pullHistory().catch(e => console.warn('History pull failed:', e));
+      }
     }
   } catch(e) {
     console.error('pullState error:', e);
@@ -1292,7 +1419,19 @@ function renderKidDashboard() {
       prog_el.textContent = schedule.label + ' · ' + done + ' of ' + total_subjects + ' done';
     }
   }
-  // Study mode button — show if there are any wrong answers to review
+  // Bonus challenge buttons
+  const bonusBtnsEl = document.getElementById('bonus-challenge-btns');
+  if (bonusBtnsEl) {
+    const pending = (state.bonusChallenges || []).filter(b => b.kidId === currentKidId && b.status === 'pending');
+    bonusBtnsEl.innerHTML = pending.map(function(b) {
+      const icons = {spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'};
+      return '<button onclick="startBonusChallenge(\'' + b.id + '\')" style="width:100%;margin-bottom:12px;padding:16px;border-radius:14px;border:none;background:linear-gradient(135deg,#F59E0B,#F7C948);color:#1A1F36;font-family:\'Baloo 2\',cursive;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 16px rgba(245,158,11,0.3);">'
+        + '⭐ Bonus Challenge: ' + icons[b.subjectId] + ' ' + b.subjectId.charAt(0).toUpperCase() + b.subjectId.slice(1)
+        + (b.topic ? ' — ' + b.topic : '')
+        + ' (+' + b.coins + ' 🧠)'
+        + '</button>';
+    }).join('');
+  }
   const studyBtn = document.getElementById('study-mode-btn');
   if (studyBtn) {
     const hasWrong = ['spelling','math','reading','writing'].some(function(s) {
@@ -1343,6 +1482,45 @@ function redeemReward(id) {
 }
 
 // ── LESSON ENGINE ────────────────────────────────────────
+async function startBonusChallenge(bonusId) {
+  const bc = (state.bonusChallenges || []).find(b => b.id === bonusId);
+  if (!bc) return;
+  const subjectId = bc.subjectId;
+  const subjectIcons = {spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'};
+  const icon = subjectIcons[subjectId] || '📚';
+  const levelData = getCurrentLevelData(currentKidId, subjectId);
+
+  document.getElementById('generating-overlay').style.display = 'flex';
+  document.getElementById('gen-kid-name').textContent = (state.kids.find(k=>k.id===currentKidId)||{}).name || '';
+
+  try {
+    const questions = await generateLessonQuestions(currentKidId, subjectId, subjectId, levelData, bc.topic);
+    document.getElementById('generating-overlay').style.display = 'none';
+    const writingPrompt = questions._writingPrompt || null;
+    delete questions._writingPrompt;
+    const readingStory = questions._readingStory || null;
+    delete questions._readingStory;
+    if (!questions || !questions.length) throw new Error('Empty question list returned');
+
+    lessonState = {
+      subjectId, subjectName: '⭐ ' + (bc.topic || subjectId), subjectIcon: icon, subjectType: subjectId,
+      questions, writingPrompt, readingStory,
+      currentQ: 0, answers: [], correct: 0, streak: 0, missStreak: 0, wrongAnswers: [],
+      diffLevel: state.difficultyLevel[currentKidId] || 2,
+      startTime: Date.now(), isDrillRound: false, drillQuestions: [],
+      timerSeconds: 0, _originalQuestions: questions.slice(),
+      isBonusChallenge: true, bonusChallengeId: bonusId, bonusCoins: bc.coins
+    };
+    showScreen('screen-lesson');
+    document.getElementById('lesson-title').textContent = icon + ' Bonus: ' + (bc.topic || subjectId);
+    startLessonTimer();
+    renderQuestion();
+  } catch(e) {
+    document.getElementById('generating-overlay').style.display = 'none';
+    showToast('❌ ' + (e.message || String(e)));
+  }
+}
+
 async function startLesson(subjectId) {
   const subjectIcons = {spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'};
   const subjectTypes = {spelling:'spelling',math:'math',reading:'reading',writing:'writing'};
@@ -1367,12 +1545,15 @@ async function startLesson(subjectId) {
     document.getElementById('generating-overlay').style.display='none';
     const writingPrompt = questions._writingPrompt || null;
     delete questions._writingPrompt;
+    const readingStory = questions._readingStory || null;
+    delete questions._readingStory;
     if (!questions || !questions.length) throw new Error('Empty question list returned');
 
     lessonState = {
       subjectId, subjectName: levelData.name, subjectIcon: icon, subjectType: type,
       questions: type === 'writing' ? [{type:'writing'}] : questions,
       writingPrompt,
+      readingStory,
       currentQ: 0, answers: [], correct: 0, streak: 0, missStreak: 0, wrongAnswers: [],
       diffLevel: state.difficultyLevel[currentKidId] || 2,
       startTime: Date.now(),
@@ -1391,36 +1572,78 @@ async function startLesson(subjectId) {
   }
 }
 
-async function generateLessonQuestions(kidId, subjectId, type, levelData) {
+async function generateLessonQuestions(kidId, subjectId, type, levelData, bonusTopic) {
   const kid = state.kids.find(k=>k.id===kidId) || {name:'Student'};
   const diffName = ['','easy','medium','hard'][state.difficultyLevel[kidId]||2];
-  const kidProgression = getProgression(kidId);
   const levelDesc = levelData ? levelData.desc : '';
-  const levelName = levelData ? levelData.name : subjectId;
+  const levelName = bonusTopic ? bonusTopic : (levelData ? levelData.name : subjectId);
+  const topicNote = bonusTopic ? '\nThis is a BONUS CHALLENGE specifically focused on: "' + bonusTopic + '". Prioritize this topic above all else.' : '';
+
+  // Build wrong answer context from recent history — focus on recurring mistakes
+  const recentEntries = (lessonHistory[kidId] || [])
+    .filter(e => e.subject === subjectId)
+    .slice(0, 5);
+  const allWrong = recentEntries.flatMap(e => e.wrongAnswers || []);
+  // Deduplicate by question text, keep most recent
+  const seen = new Set();
+  const uniqueWrong = allWrong.filter(w => {
+    const key = (w.question || '').toLowerCase().slice(0, 60);
+    if (seen.has(key)) return false;
+    seen.add(key); return true;
+  }).slice(0, 6);
+
+  let wrongContext = '';
+  if (uniqueWrong.length > 0) {
+    if (type === 'spelling') {
+      wrongContext = '\nThe student recently misspelled these words — include some of them or similar words:\n'
+        + uniqueWrong.map(w => '- "' + (w.question || w.correctAnswer) + '"').join('\n');
+    } else if (type === 'math') {
+      wrongContext = '\nThe student recently struggled with these problems — include similar questions to give extra practice:\n'
+        + uniqueWrong.map(w => '- ' + w.question + ' (they answered "' + w.yourAnswer + '", correct was "' + w.correctAnswer + '")').join('\n');
+    } else if (type === 'reading') {
+      wrongContext = '\nThe student recently struggled with ' + type + ' questions like these — focus on similar comprehension skills:\n'
+        + uniqueWrong.map(w => '- ' + w.question).join('\n');
+    }
+  }
 
   let prompt = '';
   if (type === 'spelling') {
     prompt = `Generate 10 spelling words for a student practicing "${levelName}" (${levelDesc}).
-Difficulty: ${diffName}. Student: ${kid.name}.
+Difficulty: ${diffName}. Student: ${kid.name}.${topicNote}${wrongContext}
 Return ONLY valid JSON array, no markdown:
 [{"word":"WORD","hint":"A natural example sentence using the word, like a teacher would say in a spelling test. Example: for 'pet' return 'I have a pet dog at home.' For 'cake' return 'She baked a birthday cake for her friend.' The sentence must use the word naturally."},...]
 Use 10 real age-appropriate words that fit the pattern "${levelName}". No placeholder text. Every hint must be a complete sentence that uses the word.`;
 
   } else if (type === 'math') {
     prompt = `Generate 10 math questions for a student practicing "${levelName}" (${levelDesc}).
-Difficulty: ${diffName}. Student: ${kid.name}.
+Difficulty: ${diffName}. Student: ${kid.name}.${topicNote}${wrongContext}
 Mix of multiple choice and typed answer questions.
 Return ONLY valid JSON array, no markdown:
 [{"type":"mc","question":"REAL MATH QUESTION","options":["A","B","C","D"],"answer":"A"},{"type":"typed","question":"REAL MATH QUESTION","answer":"ANSWER"},...]
 Use exactly 5 mc and 5 typed questions. All content must be real math problems for "${levelName}". No placeholder text. Use actual numbers and symbols (use x for multiplication, / for division).`;
 
   } else if (type === 'reading') {
-    prompt = `Generate 8 reading comprehension questions for a student practicing "${levelName}" (${levelDesc}).
-Difficulty: ${diffName}. Student: ${kid.name}.
-Write an original short story across the passages, then ask questions.
-Return ONLY valid JSON array, no markdown:
-[{"type":"mc","passage":"2-4 sentence passage or null","question":"COMPREHENSION QUESTION","options":["option A","option B","option C","option D"],"answer":"option A"},...]
-All 8 questions must be multiple choice with 4 full text options (not just A/B/C/D letters). The answer field must match one of the options exactly. Focus questions on "${levelName}". No placeholder text.`;
+    prompt = `Generate a reading comprehension lesson for a student practicing "${levelName}" (${levelDesc}).
+Difficulty: ${diffName}. Student: ${kid.name}.${topicNote}${wrongContext}
+
+First write one complete, engaging short story (8-12 sentences). Then write 8 multiple choice questions about it.
+Each question should reference a specific part of the story.
+
+Return ONLY valid JSON object, no markdown:
+{
+  "story": "The full story text here as one paragraph...",
+  "questions": [
+    {"question":"COMPREHENSION QUESTION","hint":"(optional: e.g. 'See paragraph 2')","options":["option A","option B","option C","option D"],"answer":"option A"},
+    ...
+  ]
+}
+
+Rules:
+- Story must be age-appropriate, fun, and relevant to "${levelName}"
+- All 8 questions must be multiple choice with 4 full text options
+- The answer field must exactly match one of the options
+- No placeholder text
+- The hint field is optional but helpful (e.g. "Look at the second sentence" or "Think about what Maya said")`;
 
   } else if (type === 'writing') {
     prompt = `Generate a writing prompt for a student practicing "${levelName}" (${levelDesc}).
@@ -1463,6 +1686,18 @@ Make it fun, creative, age-appropriate, and specific about what and how much to 
     arr._writingPrompt = parsed.prompt || 'Write 3-5 sentences about your favorite thing to do after school.';
     return arr;
   }
+  if (type === 'reading') {
+    // New format: {story, questions} — attach story to each question for reference
+    if (parsed.story && parsed.questions) {
+      const qs = parsed.questions.map(function(q) {
+        return Object.assign({type:'mc'}, q);
+      });
+      qs._readingStory = parsed.story;
+      return qs;
+    }
+    // Fallback: old array format
+    return Array.isArray(parsed) ? parsed : [];
+  }
   return parsed;
 }
 
@@ -1472,6 +1707,18 @@ function renderQuestion() {
   document.getElementById('lesson-progress').textContent = 'Q ' + (ls.currentQ+1) + ' of ' + total;
   document.getElementById('lesson-header-sub').textContent = ls.isDrillRound ? '🔄 Drill Round' : 'Question ' + (ls.currentQ+1) + ' of ' + total;
   document.getElementById('lesson-progress-bar').style.width = Math.round((ls.currentQ/total)*100) + '%';
+
+  // Show reading story panel if this is a reading lesson with a continuous story
+  const storyPanel = document.getElementById('reading-story-panel');
+  const storyText = document.getElementById('reading-story-text');
+  if (storyPanel && storyText) {
+    if (ls.subjectType === 'reading' && ls.readingStory && !ls.isDrillRound) {
+      storyPanel.style.display = 'block';
+      storyText.textContent = ls.readingStory;
+    } else {
+      storyPanel.style.display = 'none';
+    }
+  }
   
   // Drill banner
   const bannerArea = document.getElementById('drill-banner-area');
@@ -1694,12 +1941,19 @@ function renderMCQ(c, q) {
   const cleanQ = sanitizeUnicode(q.question);
   const cleanOpts = (q.options||[]).map(sanitizeUnicode);
   const cleanAns = sanitizeUnicode(q.answer);
-  const cleanPassage = q.passage ? sanitizeUnicode(q.passage) : null;
   const resolvedAns = resolveAnswer(cleanAns, cleanOpts);
   const drillBadge = (lessonState && lessonState.isDrillRound) ? '<div class="drill-badge">DRILL</div>' : '';
+
+  // For reading with continuous story: no hint shown upfront
+  // For other subjects or old-format reading: show passage as before
+  const isReadingWithStory = lessonState && lessonState.subjectType === 'reading' && lessonState.readingStory;
+  const passageLine = !isReadingWithStory && q.passage
+    ? `<div class="passage-box">${sanitizeUnicode(q.passage)}</div>`
+    : '';
+
   c.innerHTML = `<div class="question-card">
     ${drillBadge}
-    ${cleanPassage ? `<div class="passage-box">${cleanPassage}</div>` : ''}
+    ${passageLine}
     <div class="kumon-q-num">Question ${(lessonState?lessonState.currentQ+1:1)}</div>
     <div class="question-text">${cleanQ}</div>
     <div class="options-list">${cleanOpts.map(o =>
@@ -1745,10 +1999,20 @@ function renderWritingLesson(c) {
     <div class="question-text">✍️ Write about this prompt:</div>
     <div class="writing-prompt">${lessonState.writingPrompt||'Write 3–5 sentences about your favorite season. Use describing words!'}</div>
     <div class="question-sub" style="margin-bottom:12px">Use your finger or Apple Pencil to write your response on the lines below. Try to write at least 3–5 sentences!</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+      <button id="tool-pen" onclick="setCanvasTool('pen')" style="padding:7px 14px;border-radius:8px;border:2px solid var(--primary);background:var(--primary);color:white;font-family:Nunito,sans-serif;font-weight:700;font-size:13px;cursor:pointer;">✏️ Pen</button>
+      <button id="tool-eraser" onclick="setCanvasTool('eraser')" style="padding:7px 14px;border-radius:8px;border:2px solid var(--border);background:white;color:var(--text);font-family:Nunito,sans-serif;font-weight:700;font-size:13px;cursor:pointer;">🧹 Eraser</button>
+      <div style="display:flex;align-items:center;gap:4px;margin-left:6px;">
+        <span style="font-size:12px;color:var(--muted);font-weight:700">Size:</span>
+        <button id="erase-sm" onclick="setEraserSize('sm')" style="width:24px;height:24px;border-radius:50%;border:2px solid var(--border);background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;"><span style="width:6px;height:6px;border-radius:50%;background:#888;display:block"></span></button>
+        <button id="erase-md" onclick="setEraserSize('md')" style="width:24px;height:24px;border-radius:50%;border:2px solid var(--border);background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;"><span style="width:12px;height:12px;border-radius:50%;background:#888;display:block"></span></button>
+        <button id="erase-lg" onclick="setEraserSize('lg')" style="width:24px;height:24px;border-radius:50%;border:2px solid var(--border);background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;"><span style="width:18px;height:18px;border-radius:50%;background:#888;display:block"></span></button>
+      </div>
+      <button onclick="clearCanvas()" style="margin-left:auto;background:rgba(255,255,255,0.9);border:1.5px solid var(--border);border-radius:8px;padding:5px 12px;font-family:Nunito,sans-serif;font-weight:700;font-size:12px;cursor:pointer;color:var(--muted);">🗑 Clear All</button>
+    </div>
     <div style="position:relative;margin-bottom:14px;">
       <canvas id="writing-canvas" width="700" height="380"
         style="width:100%;height:380px;border:2px solid var(--border);border-radius:12px;background:#FAFBFF;touch-action:none;cursor:crosshair;display:block;"></canvas>
-      <button onclick="clearCanvas()" style="position:absolute;top:8px;right:8px;background:rgba(255,255,255,0.9);border:1.5px solid var(--border);border-radius:8px;padding:5px 12px;font-family:Nunito,sans-serif;font-weight:700;font-size:12px;cursor:pointer;color:var(--muted);">🗑 Clear</button>
     </div>
     <div class="feedback-box" id="feedback"></div>
     <button class="btn-primary" id="writing-submit-btn" onclick="submitWriting()">Submit for Review ✉️</button>
@@ -1811,6 +2075,7 @@ function initCanvas() {
     e.preventDefault();
     drawing = true;
     [lastX, lastY] = getPos(e);
+    if (_canvasTool === 'eraser') return; // no dot on eraser start
     ctx.beginPath();
     ctx.arc(lastX, lastY, 1, 0, Math.PI*2);
     ctx.fillStyle = '#1A1F36';
@@ -1821,7 +2086,43 @@ function initCanvas() {
     if (!drawing) return;
     e.preventDefault();
     const [x, y] = getPos(e);
-    // Use pressure if available (Apple Pencil)
+    if (_canvasTool === 'eraser') {
+      const sz = _eraserSizes[_eraserSize] || 24;
+      const r = sz / 2;
+      // Save the region, clear it, then redraw the paper lines clipped to that region
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.clip();
+      // Fill with background colour
+      ctx.fillStyle = '#FAFBFF';
+      ctx.fillRect(x - r, y - r, sz, sz);
+      // Redraw margin line if it falls in this region
+      if (x - r <= 48 && x + r >= 48) {
+        ctx.strokeStyle = '#FFB3B3';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(48, y - r);
+        ctx.lineTo(48, y + r);
+        ctx.stroke();
+      }
+      // Redraw blue lines that pass through this region
+      ctx.strokeStyle = '#C5D0F0';
+      ctx.lineWidth = 1;
+      const lineSpacing = 44;
+      for (let ly = lineSpacing; ly < canvas.height; ly += lineSpacing) {
+        if (ly >= y - r && ly <= y + r) {
+          ctx.beginPath();
+          ctx.moveTo(x - r, ly);
+          ctx.lineTo(x + r, ly);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+      [lastX, lastY] = [x, y];
+      return;
+    }
+    // Pen mode
     const pressure = e.touches && e.touches[0].force ? e.touches[0].force : 0.5;
     const lineWidth = Math.max(1.5, pressure * 4);
     ctx.strokeStyle = '#1A1F36';
@@ -1847,6 +2148,36 @@ function initCanvas() {
   canvas.addEventListener('touchend', endDraw);
 
   canvas._drawLines = drawLines;
+}
+
+let _canvasTool = 'pen'; // 'pen' or 'eraser'
+let _eraserSize = 'md'; // 'sm', 'md', 'lg'
+const _eraserSizes = {sm: 10, md: 24, lg: 48};
+
+function setCanvasTool(tool) {
+  _canvasTool = tool;
+  const penBtn = document.getElementById('tool-pen');
+  const eraserBtn = document.getElementById('tool-eraser');
+  if (penBtn) {
+    penBtn.style.background = tool === 'pen' ? 'var(--primary)' : 'white';
+    penBtn.style.color = tool === 'pen' ? 'white' : 'var(--text)';
+    penBtn.style.borderColor = tool === 'pen' ? 'var(--primary)' : 'var(--border)';
+  }
+  if (eraserBtn) {
+    eraserBtn.style.background = tool === 'eraser' ? '#EF4444' : 'white';
+    eraserBtn.style.color = tool === 'eraser' ? 'white' : 'var(--text)';
+    eraserBtn.style.borderColor = tool === 'eraser' ? '#EF4444' : 'var(--border)';
+  }
+  const canvas = document.getElementById('writing-canvas');
+  if (canvas) canvas.style.cursor = tool === 'eraser' ? 'cell' : 'crosshair';
+}
+
+function setEraserSize(size) {
+  _eraserSize = size;
+  ['sm','md','lg'].forEach(function(s) {
+    const btn = document.getElementById('erase-' + s);
+    if (btn) btn.style.borderColor = s === size ? '#EF4444' : 'var(--border)';
+  });
 }
 
 function clearCanvas() {
@@ -1890,13 +2221,17 @@ function selectOption(btn, selected, correct) {
   const ok = selected === correct;
   btn.classList.add(ok?'correct':'wrong');
   if (!ok) {
-    document.querySelectorAll('.option-btn').forEach(b => { if(b.textContent.trim()===correct) b.classList.add('correct'); });
     if (lessonState) {
       const q = lessonState.questions[lessonState.currentQ];
       lessonState.wrongAnswers.push({question: q.question || q.word || '', yourAnswer: selected, correctAnswer: correct});
     }
     playSound('wrong');
-    const hintText = getHintForQuestion(lessonState && lessonState.questions[lessonState.currentQ], lessonState && lessonState.subjectType);
+    const q = lessonState && lessonState.questions[lessonState.currentQ];
+    // For reading with story: use the question's hint field if available
+    const isReadingWithStory = lessonState && lessonState.subjectType === 'reading' && lessonState.readingStory;
+    const hintText = (isReadingWithStory && q && q.hint)
+      ? '📖 ' + q.hint + ' — look back at the story above.'
+      : getHintForQuestion(q, lessonState && lessonState.subjectType);
     const fb = document.getElementById('feedback');
     if (fb) {
       fb.className = 'feedback-box wrong';
@@ -2025,7 +2360,7 @@ function showNextBtn(flagged) {
     const flagBtn = document.createElement('button');
     flagBtn.id = 'flag-btn';
     flagBtn.style.cssText = 'width:100%;margin-top:10px;padding:11px;border-radius:12px;border:2px solid #F7C948;background:#FFFBEA;color:#B45309;font-family:Nunito,sans-serif;font-weight:700;font-size:14px;cursor:pointer;';
-    flagBtn.textContent = '🚩 I do not understand this question';
+    flagBtn.textContent = '🚩 I think my answer was right — flag for review';
     flagBtn.onclick = flagQuestion;
     qc.appendChild(flagBtn);
   } else if (flagged) {
@@ -2065,7 +2400,7 @@ function flagQuestion() {
   });
   // Mark as wrong + flagged
   recordAnswer(false, true);
-  showFeedback(false, '🚩 Flagged! This counts as incorrect but your parent will be notified.');
+  showFeedback(false, '🚩 Flagged for parent review. It still counts as incorrect until your parent approves it.');
   // Hide check buttons if still visible
   const cb = document.getElementById('check-btn'); if(cb) cb.style.display='none';
   // Disable all option buttons
@@ -2244,6 +2579,16 @@ function finishLesson() {
   }
 
   saveState();
+  // Complete bonus challenge if this was one
+  if (ls.isBonusChallenge && ls.bonusChallengeId) {
+    completeBonusChallenge(ls.bonusChallengeId);
+    return; // completeBonusChallenge handles navigation
+  }
+  // Record to 30-day history
+  if (!alreadyDone) {
+    const curIdx = getCurrentLevelIndex(currentKidId, ls.subjectId);
+    recordLessonHistory(currentKidId, ls.subjectId, pct, coins, origCorrect, total, elapsedMin, curIdx);
+  }
   // Check daily streak and badges
   checkDailyStreak(currentKidId);
   checkBadges(currentKidId);
@@ -2269,7 +2614,6 @@ function finishLesson() {
     + '<div class="breakdown-row"><span>Correct</span><strong>' + origCorrect + ' / ' + total + '</strong></div>'
     + '<div class="breakdown-row"><span>Score</span><strong>' + pct + '%</strong></div>'
     + '<div class="breakdown-row"><span>Brain Bucks Earned</span><strong>' + (alreadyDone ? '0 (replay)' : '🧠 ' + coins) + '</strong></div>'
-    + '<div class="breakdown-row"><span>Difficulty</span><strong>' + (['','Easy','Medium','Hard'][ls.diffLevel]) + '</strong></div>'
     + timeRow + drillRow + flagRow;
   // Wrong answers section on results
   const wrongList = ls.wrongAnswers || [];
@@ -2437,6 +2781,9 @@ function renderParentDashboard() {
     if (coinKidSel) coinKidSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.name}</option>`).join('');
     const unlockSel = document.getElementById('unlock-kid-select');
     if (unlockSel) unlockSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
+    const bonusKidSel = document.getElementById('bonus-kid-select');
+    if (bonusKidSel) bonusKidSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
+    renderBonusChallengesList();
     const levelAdjKid = document.getElementById('level-adj-kid');
     if (levelAdjKid) {
       levelAdjKid.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
@@ -2731,52 +3078,86 @@ function renderParentRewards() {
 function renderProgressOverview() {
   const container = document.getElementById('progress-overview');
   container.innerHTML = '';
+  const subjectIcons = {spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'};
+
   state.kids.forEach(function(k) {
-    const prog = state.progress[k.id]||{};
-    const entries = Object.entries(prog);
+    const history = (lessonHistory[k.id] || []);
     const card = document.createElement('div');
     card.className = 'card';
-    card.innerHTML = '<div class="card-title">' + k.emoji + ' ' + k.name + '</div>';
-    if (!entries.length) {
-      card.innerHTML += '<div class="empty-state"><p>No activity yet.</p></div>';
+
+    // Summary stats
+    const totalSessions = history.length;
+    const avgScore = totalSessions ? Math.round(history.reduce((s,e)=>s+e.score,0)/totalSessions) : 0;
+    const totalCoins = history.reduce((s,e)=>s+e.coins,0);
+    const streak = (state.dailyStreak && state.dailyStreak[k.id]) ? state.dailyStreak[k.id].count : 0;
+
+    card.innerHTML = '<div class="card-title">' + k.emoji + ' ' + k.name + '</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">'
+      + '<div style="background:#EEF2FF;border-radius:12px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--primary)">' + totalSessions + '</div><div style="font-size:11px;color:var(--muted);font-weight:700">SESSIONS</div></div>'
+      + '<div style="background:#F0FBF4;border-radius:12px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:#2ECC71">' + avgScore + '%</div><div style="font-size:11px;color:var(--muted);font-weight:700">AVG SCORE</div></div>'
+      + '<div style="background:#FFFBEA;border-radius:12px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:#F59E0B">🔥 ' + streak + '</div><div style="font-size:11px;color:var(--muted);font-weight:700">DAY STREAK</div></div>'
+      + '</div>';
+
+    if (!history.length) {
+      card.innerHTML += '<div class="empty-state"><p>No lesson history yet.</p></div>';
     } else {
-      entries.forEach(function(entry) {
-        const s = entry[0], p = entry[1];
-        const wrongList = p.wrongAnswers || [];
-        const rowId = 'wrong-' + k.id + '-' + s;
-        const row = document.createElement('div');
-        row.style.cssText = 'border-bottom:1px solid var(--border);padding:10px 0;';
-        const summary = document.createElement('div');
-        summary.style.cssText = 'display:flex;justify-content:space-between;align-items:center;cursor:pointer;';
-        const subjLvlData = getCurrentLevelData(k.id, s);
-        const subjLvlName = subjLvlData ? subjLvlData.name : s;
-        summary.innerHTML = '<span style="font-weight:700">' + ({spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'}[s]||'') + ' ' + subjLvlName + '</span>'
-          + '<span style="display:flex;align-items:center;gap:8px">'
-          + '<strong>' + p.score + '%</strong>'
-          + '<span style="color:var(--muted)">🧠 ' + p.coins + (p.duration != null ? ' · ' + p.duration + 'min' : '') + ' · ' + p.date + '</span>'
-          + (wrongList.length > 0 ? '<span style="background:#FEE2E2;color:#EF4444;border-radius:20px;padding:2px 8px;font-size:12px;font-weight:800">' + wrongList.length + ' missed</span>' : '<span style="background:#DCFCE7;color:#16A34A;border-radius:20px;padding:2px 8px;font-size:12px;font-weight:800">✓ Perfect</span>')
-          + '</span>';
-        const detail = document.createElement('div');
-        detail.id = rowId;
-        detail.style.display = 'none';
-        detail.style.marginTop = '10px';
-        if (wrongList.length === 0) {
-          detail.innerHTML = '<div style="color:#2ECC71;font-weight:700;font-size:13px;padding:8px">🎉 No mistakes!</div>';
-        } else {
-          detail.innerHTML = wrongList.map(function(w) {
-            return '<div style="background:#FFF5F5;border:1px solid #FCA5A5;border-radius:8px;padding:10px;margin-bottom:6px">'
-              + '<div style="font-size:13px;color:#374151;margin-bottom:3px"><strong>Q:</strong> ' + w.question + '</div>'
-              + '<div style="font-size:13px;color:#EF4444"><strong>Got:</strong> ' + w.yourAnswer + '</div>'
-              + '<div style="font-size:13px;color:#2ECC71"><strong>Answer:</strong> ' + w.correctAnswer + '</div>'
-              + (w.hint ? '<div style="font-size:12px;color:#6B7280;margin-top:2px">💡 ' + w.hint + '</div>' : '')
+      // Today's completed lessons with delete option
+      const todayKey = getTodayKey();
+      const todayProg = state.progress[k.id] || {};
+      const todayEntries = Object.entries(todayProg).filter(function(e) { return e[1].date === todayKey; });
+      if (todayEntries.length) {
+        const todayDiv = document.createElement('div');
+        todayDiv.style.cssText = 'margin-bottom:16px;';
+        todayDiv.innerHTML = '<div style="font-weight:800;font-size:14px;margin-bottom:8px;color:var(--muted)">TODAY\'S COMPLETED</div>'
+          + todayEntries.map(function(entry) {
+              const s = entry[0], p = entry[1];
+              return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">'
+                + '<span style="font-size:16px">' + (subjectIcons[s]||'📚') + '</span>'
+                + '<div style="flex:1"><div style="font-weight:700;font-size:13px">' + s.charAt(0).toUpperCase()+s.slice(1) + '</div>'
+                + '<div style="font-size:11px;color:var(--muted)">' + p.score + '% · 🧠 ' + p.coins + ' · ' + p.correct + '/' + p.total + '</div></div>'
+                + '<button onclick="deleteCompletedLesson(\'' + k.id + '\',\'' + s + '\')" style="background:#FEE2E2;color:#EF4444;border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;">🗑 Delete</button>'
+                + '</div>';
+            }).join('');
+        card.appendChild(todayDiv);
+      }
+      // Subject breakdown
+      const subjects = ['spelling','math','reading','writing'];
+      const bySubject = document.createElement('div');
+      bySubject.style.cssText = 'margin-bottom:16px;';
+      bySubject.innerHTML = '<div style="font-weight:800;font-size:14px;margin-bottom:8px;color:var(--muted)">BY SUBJECT</div>'
+        + subjects.map(function(s) {
+            const entries = history.filter(e => e.subject === s);
+            if (!entries.length) return '';
+            const avg = Math.round(entries.reduce((a,e)=>a+e.score,0)/entries.length);
+            const best = Math.max(...entries.map(e=>e.score));
+            const lvlData = getCurrentLevelData(k.id, s);
+            return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">'
+              + '<span style="font-size:18px">' + subjectIcons[s] + '</span>'
+              + '<div style="flex:1"><div style="font-weight:700;font-size:13px">' + (lvlData ? lvlData.name : s) + '</div>'
+              + '<div style="font-size:11px;color:var(--muted)">' + entries.length + ' session' + (entries.length!==1?'s':'') + '</div></div>'
+              + '<div style="text-align:right"><div style="font-weight:800;color:var(--primary)">' + avg + '% avg</div>'
+              + '<div style="font-size:11px;color:#2ECC71">Best: ' + best + '%</div></div>'
               + '</div>';
           }).join('');
-        }
-        summary.onclick = function() { detail.style.display = detail.style.display === 'none' ? 'block' : 'none'; };
-        row.appendChild(summary);
-        row.appendChild(detail);
-        card.appendChild(row);
+      card.appendChild(bySubject);
+
+      // Recent history table
+      const recentDiv = document.createElement('div');
+      recentDiv.innerHTML = '<div style="font-weight:800;font-size:14px;margin-bottom:8px;color:var(--muted)">RECENT SESSIONS</div>';
+      const recent = history.slice(0, 30);
+      recent.forEach(function(e) {
+        const scoreColor = e.score >= 90 ? '#2ECC71' : e.score >= 70 ? 'var(--primary)' : '#EF4444';
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;';
+        row.innerHTML = '<span>' + subjectIcons[e.subject] + '</span>'
+          + '<span style="flex:1;color:var(--muted)">' + e.dateDisplay + '</span>'
+          + '<span style="font-weight:800;color:' + scoreColor + '">' + e.score + '%</span>'
+          + '<span style="color:var(--muted);font-size:11px">' + e.correct + '/' + e.total + '</span>'
+          + '<span style="background:#EEF2FF;color:var(--primary);border-radius:8px;padding:2px 7px;font-size:11px;font-weight:700">Lv ' + e.level + '</span>'
+          + '<span style="color:#F59E0B;font-size:11px;font-weight:700">🧠 ' + e.coins + '</span>';
+        recentDiv.appendChild(row);
       });
+      card.appendChild(recentDiv);
     }
     container.appendChild(card);
   });
@@ -3273,6 +3654,96 @@ function saveKidPin(kidId) {
   showToast('✅ ' + (kid ? kid.name : kidId) + '\'s PIN updated!');
 }
 
+function assignBonusChallenge() {
+  const kidId = document.getElementById('bonus-kid-select').value;
+  const subjectId = document.getElementById('bonus-subject-select').value;
+  const topic = document.getElementById('bonus-topic').value.trim();
+  const coins = parseInt(document.getElementById('bonus-coins').value) || 10;
+  if (!kidId || !subjectId) return;
+  const kid = state.kids.find(k => k.id === kidId);
+  if (!state.bonusChallenges) state.bonusChallenges = [];
+  state.bonusChallenges.push({
+    id: 'bc' + Date.now(),
+    kidId, subjectId, topic, coins,
+    status: 'pending',
+    date: new Date().toLocaleDateString(),
+    assignedBy: 'parent'
+  });
+  saveState();
+  document.getElementById('bonus-topic').value = '';
+  document.getElementById('bonus-coins').value = '10';
+  showToast('⭐ Bonus challenge assigned to ' + (kid ? kid.name : kidId) + '!');
+  renderBonusChallengesList();
+}
+
+function deleteCompletedLesson(kidId, subjectId) {
+  if (!confirm('Delete ' + subjectId + ' progress for ' + state.kids.find(k=>k.id===kidId)?.name + '? This will also remove the coins they earned.')) return;
+  const prog = state.progress[kidId] && state.progress[kidId][subjectId];
+  if (prog) {
+    // Deduct coins
+    const kid = state.kids.find(k => k.id === kidId);
+    if (kid && prog.coins) kid.coins = Math.max(0, kid.coins - prog.coins);
+    // Remove progress
+    delete state.progress[kidId][subjectId];
+    // Remove from streak (pop last entry)
+    if (state.streaks && state.streaks[kidId] && state.streaks[kidId][subjectId]) {
+      state.streaks[kidId][subjectId].pop();
+    }
+    // Remove from history
+    if (lessonHistory[kidId]) {
+      const todayStr = new Date().toISOString().slice(0,10);
+      const idx = lessonHistory[kidId].findIndex(e => e.subject === subjectId && e.date === todayStr);
+      if (idx !== -1) lessonHistory[kidId].splice(idx, 1);
+      saveHistory();
+    }
+  }
+  saveState();
+  showToast('🗑️ Deleted ' + subjectId + ' for ' + (state.kids.find(k=>k.id===kidId)?.name || kidId));
+  renderProgressOverview();
+  renderParentKidSummary();
+}
+
+function renderBonusChallengesList() {
+  const el = document.getElementById('bonus-challenges-list');
+  if (!el) return;
+  const active = (state.bonusChallenges || []).filter(b => b.status === 'pending');
+  if (!active.length) { el.innerHTML = '<div style="font-size:13px;color:var(--muted);text-align:center;padding:8px">No active bonus challenges.</div>'; return; }
+  el.innerHTML = '<div style="font-weight:800;font-size:13px;margin-bottom:8px;color:var(--muted)">ACTIVE CHALLENGES</div>'
+    + active.map(function(b) {
+        const kid = state.kids.find(k => k.id === b.kidId);
+        const icons = {spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'};
+        return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">'
+          + '<span>' + (icons[b.subjectId]||'📚') + '</span>'
+          + '<div style="flex:1">'
+          + '<div style="font-weight:700;font-size:13px">' + (kid ? kid.emoji + ' ' + kid.name : b.kidId) + ' — ' + b.subjectId + '</div>'
+          + (b.topic ? '<div style="font-size:12px;color:var(--muted)">' + b.topic + '</div>' : '')
+          + '</div>'
+          + '<span style="background:#FFFBEA;color:#F59E0B;border-radius:8px;padding:3px 8px;font-size:12px;font-weight:800">🧠 ' + b.coins + '</span>'
+          + '<button onclick="cancelBonusChallenge(\'' + b.id + '\')" style="background:none;border:none;color:var(--red);font-size:16px;cursor:pointer;padding:0 4px">✕</button>'
+          + '</div>';
+      }).join('');
+}
+
+function cancelBonusChallenge(id) {
+  state.bonusChallenges = (state.bonusChallenges || []).filter(b => b.id !== id);
+  saveState();
+  renderBonusChallengesList();
+  showToast('🗑️ Challenge removed.');
+}
+
+function completeBonusChallenge(id) {
+  const bc = (state.bonusChallenges || []).find(b => b.id === id);
+  if (!bc) return;
+  bc.status = 'completed';
+  const kid = state.kids.find(k => k.id === bc.kidId);
+  if (kid) kid.coins += bc.coins;
+  saveState();
+  showToast('⭐ Bonus challenge complete! +' + bc.coins + ' 🧠 Brain Bucks!');
+  launchConfetti(2500);
+  playSound('epic');
+  showScreen('screen-kid');
+}
+
 function updateSkipDayBalance(kidId) {
   const el = document.getElementById('skipday-balance');
   if (!el || !kidId) return;
@@ -3477,8 +3948,38 @@ function devWipe() {
   localStorage.setItem('kidstuff_cache', JSON.stringify(state));
 }
 
+// ── ONE-TIME MIGRATIONS ──────────────────────────────────
+function runMigrations() {
+  let changed = false;
+
+  // Add tester account if missing
+  if (!state.kids.find(k => k.id === 'tester')) {
+    state.kids.push({id:'tester',name:'Parent Tester',emoji:'🧪',coins:0});
+    if (state.rewards && !state.rewards.tester) state.rewards.tester = [
+      {id:'r1',name:'30 min extra screen time',cost:40,emoji:'📺'},
+      {id:'r2',name:'Choose dinner',cost:60,emoji:'🍕'},
+      {id:'r3',name:'$1 allowance bonus',cost:80,emoji:'💵'}
+    ];
+    if (state.levels && !state.levels.tester) state.levels.tester = {spelling:0,math:0,reading:0,writing:0};
+    if (state.streaks && !state.streaks.tester) state.streaks.tester = {spelling:[],math:[],reading:[],writing:[]};
+    if (state.progress && !state.progress.tester) state.progress.tester = {};
+    if (state.dailyStreak && !state.dailyStreak.tester) state.dailyStreak.tester = {count:0,lastDate:''};
+    if (state.badges && !state.badges.tester) state.badges.tester = [];
+    if (state.kidPins && !state.kidPins.tester) state.kidPins.tester = '2730';
+    if (state.coinMax && !state.coinMax.tester) state.coinMax.tester = {spelling:30,math:30,reading:30,writing:30};
+    if (state.skipDay && !state.skipDay.tester) state.skipDay.tester = 0;
+    if (state.difficultyLevel && !state.difficultyLevel.tester) state.difficultyLevel.tester = 2;
+    if (state.brainBucksMilestones && !state.brainBucksMilestones.tester) state.brainBucksMilestones.tester = [];
+    if (state.unlockedToday && !state.unlockedToday.tester) state.unlockedToday.tester = {};
+    changed = true;
+  }
+
+  if (changed) saveState();
+}
+
 // Load local cache immediately so UI is always responsive
 loadLocalFallback();
+runMigrations();
 devWipe();
 checkQuarterlyReset();
 
