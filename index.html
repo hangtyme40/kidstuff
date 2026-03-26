@@ -565,6 +565,14 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         <div style="height:10px"></div>
         <button class="btn-danger" onclick="resetAll()" style="width:100%;padding:12px">⚠️ Reset All Data</button>
         <div style="height:18px"></div>
+        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
+          <div style="font-weight:800;margin-bottom:8px">🔑 Groq API Key</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">When the API key expires, paste a new one here. Get a free key at <strong>console.groq.com</strong>. Updates sync to all devices instantly.</div>
+          <div id="current-api-key-status" style="font-size:12px;margin-bottom:10px;padding:8px;background:white;border-radius:8px;border:1px solid var(--border);font-family:monospace;word-break:break-all;color:var(--muted)"></div>
+          <input id="new-api-key-input" type="text" placeholder="Paste new key here (gsk_...)" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:monospace;font-size:13px;margin-bottom:8px;"/>
+          <button class="btn-primary" style="background:#7C3AED" onclick="saveApiKey()">💾 Save &amp; Sync Key</button>
+        </div>
+        <div style="height:18px"></div>
         <div class="card" style="background:#F0FBF4;box-shadow:none;border:2px solid #86EFAC">
           <div style="font-weight:800;margin-bottom:8px">🛡️ Streak Protection</div>
           <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Grant a skip day so a missed day doesn't break a kid's streak (sick day, vacation, etc.).</div>
@@ -584,7 +592,8 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 </div>
 
 <script>
-const API_KEY = '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';
+const API_KEY_DEFAULT = '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';
+function getApiKey() { return (state.groqApiKey && state.groqApiKey.trim()) || API_KEY_DEFAULT; }
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const JSONBIN_API = 'https://api.jsonbin.io/v3';
 // Free JSONBin master key - app creates its own bin on first load
@@ -772,7 +781,8 @@ const DEFAULT_STATE = {
   brainBucksMilestones:{lauren:[],andrew:[],tester:[]},
   historyBinId: null,
   bonusChallenges: [],
-  lessonHistory: {lauren:[], andrew:[], tester:[]}
+  lessonHistory: {lauren:[], andrew:[], tester:[]},
+  groqApiKey: ''
 };
 
 let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
@@ -1687,7 +1697,7 @@ Make it fun, creative, age-appropriate, and specific about what and how much to 
   try {
     res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + API_KEY },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getApiKey() },
       body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: prompt }], max_tokens: 3000, temperature: 0.7 })
     });
   } catch(netErr) {
@@ -2841,6 +2851,7 @@ function renderParentDashboard() {
     renderCoinMaxInputs();
     renderTimerInputs();
     renderKidPinReset();
+    renderApiKeyStatus();
     updateBinIdDisplay();
   } catch(e) {
     console.error('renderParentDashboard error:', e);
@@ -3329,6 +3340,30 @@ function resetAll() {
     localStorage.clear(); binId=null; state=JSON.parse(JSON.stringify(DEFAULT_STATE));
     showToast('🔄 Reset.'); showScreen('screen-landing'); initSync();
 setTimeout(updateParentBadge, 1500);
+  }
+}
+
+function saveApiKey() {
+  const input = document.getElementById('new-api-key-input');
+  const key = input ? input.value.trim() : '';
+  if (!key.startsWith('gsk_')) { showToast('⚠️ Key should start with gsk_ — check and try again.'); return; }
+  state.groqApiKey = key;
+  saveState();
+  if (input) input.value = '';
+  renderApiKeyStatus();
+  showToast('✅ API key updated and synced to all devices!');
+}
+
+function renderApiKeyStatus() {
+  const el = document.getElementById('current-api-key-status');
+  if (!el) return;
+  const key = state.groqApiKey && state.groqApiKey.trim();
+  if (key) {
+    el.textContent = 'Current: ' + key.slice(0, 8) + '...' + key.slice(-6) + ' (custom)';
+    el.style.color = 'var(--green)';
+  } else {
+    el.textContent = 'Using default key (hardcoded in app)';
+    el.style.color = 'var(--muted)';
   }
 }
 
@@ -4028,17 +4063,6 @@ function runMigrations() {
 
   if (changed) localStorage.setItem('kidstuff_cache', JSON.stringify(state));
 }
-
-
-// ── FRESH START ──────────────────────────────────────────
-// This block runs once to wipe all data, then removes itself from localStorage
-(function() {
-  if (!localStorage.getItem('kidstuff_freshStartDone')) {
-    localStorage.clear();
-    localStorage.setItem('kidstuff_freshStartDone', '1');
-    console.log('KidStuff: fresh start complete.');
-  }
-})();
 
 // Load local cache immediately so UI is always responsive
 loadLocalFallback();
