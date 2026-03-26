@@ -4029,6 +4029,17 @@ function runMigrations() {
   if (changed) localStorage.setItem('kidstuff_cache', JSON.stringify(state));
 }
 
+
+// ── FRESH START ──────────────────────────────────────────
+// This block runs once to wipe all data, then removes itself from localStorage
+(function() {
+  if (!localStorage.getItem('kidstuff_freshStartDone')) {
+    localStorage.clear();
+    localStorage.setItem('kidstuff_freshStartDone', '1');
+    console.log('KidStuff: fresh start complete.');
+  }
+})();
+
 // Load local cache immediately so UI is always responsive
 loadLocalFallback();
 runMigrations();
