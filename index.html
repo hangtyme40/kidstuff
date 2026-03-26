@@ -402,7 +402,10 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 <div id="screen-parent" class="screen">
   <div class="app-header dark">
     <div><div class="logo">Kid<span>Stuff</span></div><div class="header-sub">Parent Dashboard</div></div>
-    <button class="back-btn" onclick="showScreen('screen-landing')">Sign Out</button>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="back-btn" style="background:rgba(255,255,255,0.15);" onclick="forceSyncAndRefresh()">🔄 Sync</button>
+      <button class="back-btn" onclick="showScreen('screen-landing')">Sign Out</button>
+    </div>
   </div>
   <div class="content">
     <div class="parent-header"><h2>👋 Parent Dashboard</h2><p>Generate curriculum, review writing, manage rewards.</p></div>
@@ -2416,9 +2419,19 @@ function flagQuestion() {
   const ls = lessonState;
   const q = ls.questions[ls.currentQ];
   if (!ls.flaggedQuestions) ls.flaggedQuestions = [];
+  // Capture whatever the kid typed or selected
+  const spellVal = document.getElementById('spell-input') ? document.getElementById('spell-input').value.trim() : '';
+  const typedVal = document.getElementById('typed-input') ? document.getElementById('typed-input').value.trim() : '';
+  const shortVal = document.getElementById('short-input') ? document.getElementById('short-input').value.trim() : '';
+  // For MCQ, the kid already clicked a button — find the one marked wrong
+  const selectedBtn = document.querySelector('.option-btn.wrong');
+  const mcqVal = selectedBtn ? selectedBtn.textContent.trim() : '';
+  const kidAnswer = spellVal || typedVal || shortVal || mcqVal || '(not answered)';
+
   ls.flaggedQuestions.push({
     qIndex: ls.currentQ,
     question: q.question || q.word || 'Writing activity',
+    kidAnswer: kidAnswer,
     correctAnswer: q.answer || (q.options ? q.options.find(function(o){ return o; }) : '') || '',
     subject: ls.subjectName
   });
@@ -2556,6 +2569,7 @@ function finishLesson() {
       kidId: currentKidId,
       subject: fq.subject,
       question: fq.question,
+      kidAnswer: fq.kidAnswer || '(not captured)',
       correctAnswer: fq.correctAnswer || '',
       date: new Date().toLocaleDateString(),
       status: 'pending'
@@ -2916,6 +2930,7 @@ function renderFlaggedList() {
       + '<div style="font-size:13px;color:var(--muted);margin-top:2px">' + f.subject + '</div>'
       + '<div style="background:#FFF8E1;border-radius:8px;padding:10px;margin-top:8px;font-size:14px;border-left:3px solid #F7C948;">'
       + '<strong>Q:</strong> ' + f.question + '</div>'
+      + (f.kidAnswer ? '<div style="background:#FFF5F5;border-radius:8px;padding:8px 10px;margin-top:6px;font-size:13px;border-left:3px solid #EF4444;"><strong>Their answer:</strong> ' + f.kidAnswer + '</div>' : '')
       + (f.correctAnswer ? '<div style="background:#F0FDF4;border-radius:8px;padding:8px 10px;margin-top:6px;font-size:13px;border-left:3px solid #2ECC71;"><strong>Correct answer:</strong> ' + f.correctAnswer + '</div>' : '')
       + '</div></div>'
       + '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">'
@@ -3314,6 +3329,17 @@ function resetAll() {
     localStorage.clear(); binId=null; state=JSON.parse(JSON.stringify(DEFAULT_STATE));
     showToast('🔄 Reset.'); showScreen('screen-landing'); initSync();
 setTimeout(updateParentBadge, 1500);
+  }
+}
+
+async function forceSyncAndRefresh() {
+  setSyncBar('⟳ Force syncing...', 'syncing');
+  try {
+    await pullState();
+    renderParentDashboard();
+    showToast('✅ Synced — dashboard refreshed.');
+  } catch(e) {
+    showToast('❌ Sync failed: ' + e.message);
   }
 }
 
