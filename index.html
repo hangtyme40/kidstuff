@@ -921,7 +921,62 @@ async function pullState() {
     });
     const data = await res.json();
     if (data.record) {
-      state = Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATE)), data.record);
+      const remote = data.record;
+      // Deep per-kid merge — don't let one device stomp another kid's data
+      const merged = JSON.parse(JSON.stringify(DEFAULT_STATE));
+      // Merge scalar/non-kid fields normally
+      Object.keys(remote).forEach(function(k) {
+        if (!['progress','coins','streaks','levels','badges','dailyStreak',
+              'brainBucksMilestones','skipDay','difficultyLevel','unlockedToday',
+              'writingQueue','redemptionQueue','flaggedReview','redoNotices',
+              'bonusChallenges','lessonHistory'].includes(k)) {
+          merged[k] = remote[k];
+        }
+      });
+      // Per-kid merge: take the most complete data per kid across local and remote
+      const allKidIds = (remote.kids || []).map(function(k){ return k.id; });
+      merged.kids = remote.kids || merged.kids;
+
+      // For per-kid objects: merge each kid's data independently
+      const perKidFields = ['progress','streaks','levels','badges','dailyStreak',
+                            'brainBucksMilestones','skipDay','difficultyLevel','unlockedToday'];
+      perKidFields.forEach(function(field) {
+        if (remote[field]) {
+          merged[field] = Object.assign({}, state[field] || {}, remote[field]);
+          // For nested objects (progress, streaks etc), merge per-kid per-subject
+          allKidIds.forEach(function(kidId) {
+            if (remote[field][kidId] !== undefined && state[field] && state[field][kidId] !== undefined) {
+              if (typeof remote[field][kidId] === 'object' && !Array.isArray(remote[field][kidId])) {
+                merged[field][kidId] = Object.assign({}, state[field][kidId], remote[field][kidId]);
+              }
+            }
+          });
+        }
+      });
+
+      // For kids coins — take whichever is higher (prevents wiping earned coins)
+      if (remote.kids && state.kids) {
+        merged.kids = remote.kids.map(function(rk) {
+          const lk = state.kids.find(function(k){ return k.id === rk.id; });
+          if (lk) return Object.assign({}, rk, { coins: Math.max(rk.coins || 0, lk.coins || 0) });
+          return rk;
+        });
+      }
+
+      // Queues — merge arrays, deduplicate by id
+      ['writingQueue','redemptionQueue','flaggedReview','redoNotices','bonusChallenges'].forEach(function(q) {
+        const remoteArr = remote[q] || [];
+        const localArr = state[q] || [];
+        const seen = new Set();
+        const combined = remoteArr.concat(localArr).filter(function(item) {
+          const key = item.id || JSON.stringify(item);
+          if (seen.has(key)) return false;
+          seen.add(key); return true;
+        });
+        merged[q] = combined;
+      });
+
+      state = merged;
       // Ensure new fields exist for older saved states
       if (!state.levels) state.levels = JSON.parse(JSON.stringify(DEFAULT_STATE.levels));
       if (!state.streaks) state.streaks = JSON.parse(JSON.stringify(DEFAULT_STATE.streaks));
@@ -3974,7 +4029,7 @@ function runMigrations() {
     changed = true;
   }
 
-  if (changed) saveState();
+  if (changed) localStorage.setItem('kidstuff_cache', JSON.stringify(state));
 }
 
 // Load local cache immediately so UI is always responsive
