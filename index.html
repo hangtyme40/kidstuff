@@ -768,7 +768,8 @@ const DEFAULT_STATE = {
   lessonTimers:{spelling:10,math:15,reading:20,writing:15},
   brainBucksMilestones:{lauren:[],andrew:[],tester:[]},
   historyBinId: null,
-  bonusChallenges: []
+  bonusChallenges: [],
+  lessonHistory: {lauren:[], andrew:[], tester:[]}
 };
 
 let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
@@ -783,10 +784,11 @@ let lessonState = null;
 let syncTimer = null;
 
 // ── LESSON HISTORY SYSTEM ────────────────────────────────
-// lessonHistory = { lauren: [{date, subject, score, coins, correct, total, duration, level},...], andrew: [...] }
+// History now lives inside state.lessonHistory so it syncs with everything else
 
 function recordLessonHistory(kidId, subjectId, pct, coins, correct, total, elapsedMin, levelIdx) {
-  if (!lessonHistory[kidId]) lessonHistory[kidId] = [];
+  if (!state.lessonHistory) state.lessonHistory = {};
+  if (!state.lessonHistory[kidId]) state.lessonHistory[kidId] = [];
   const entry = {
     date: new Date().toISOString().slice(0,10),
     dateDisplay: new Date().toLocaleDateString(),
@@ -799,63 +801,20 @@ function recordLessonHistory(kidId, subjectId, pct, coins, correct, total, elaps
     level: levelIdx + 1,
     wrongAnswers: (lessonState && lessonState.wrongAnswers || []).slice(0, 10)
   };
-  lessonHistory[kidId].unshift(entry);
+  state.lessonHistory[kidId].unshift(entry);
   // Trim to HISTORY_DAYS days
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - HISTORY_DAYS);
   const cutoffStr = cutoff.toISOString().slice(0,10);
-  lessonHistory[kidId] = lessonHistory[kidId].filter(e => e.date >= cutoffStr);
-  saveHistory();
+  state.lessonHistory[kidId] = state.lessonHistory[kidId].filter(e => e.date >= cutoffStr);
+  saveState(); // saves and syncs with main state — no separate bin needed
 }
 
-function saveHistory() {
-  localStorage.setItem('kidstuff_history', JSON.stringify(lessonHistory));
-  clearTimeout(window._historyPushTimer);
-  window._historyPushTimer = setTimeout(pushHistory, 1200);
-}
-
-async function pushHistory() {
-  if (!historyBinId) { await createHistoryBin(); return; }
-  try {
-    await fetch(JSONBIN_API + '/b/' + historyBinId, {
-      method: 'PUT',
-      headers: {'Content-Type':'application/json','X-Master-Key':JSONBIN_KEY},
-      body: JSON.stringify(lessonHistory)
-    });
-  } catch(e) { console.warn('History push failed:', e); }
-}
-
-async function createHistoryBin() {
-  try {
-    const res = await fetch(JSONBIN_API + '/b', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json','X-Master-Key':JSONBIN_KEY,'X-Bin-Name':'KidStuff-History','X-Bin-Private':'true'},
-      body: JSON.stringify(lessonHistory)
-    });
-    const data = await res.json();
-    if (data.metadata && data.metadata.id) {
-      historyBinId = data.metadata.id;
-      localStorage.setItem('kidstuff_historyBinId', historyBinId);
-      // Save into main state so all devices get the ID
-      state.historyBinId = historyBinId;
-      saveState();
-    }
-  } catch(e) { console.warn('History bin creation failed:', e); }
-}
-
-async function pullHistory() {
-  if (!historyBinId) return;
-  try {
-    const res = await fetch(JSONBIN_API + '/b/' + historyBinId + '/latest', {
-      headers: {'X-Master-Key': JSONBIN_KEY}
-    });
-    const data = await res.json();
-    if (data.record) {
-      lessonHistory = data.record;
-      localStorage.setItem('kidstuff_history', JSON.stringify(lessonHistory));
-    }
-  } catch(e) { console.warn('History pull failed:', e); }
-}
+// Keep these as no-ops for backward compatibility in case called anywhere
+function saveHistory() { saveState(); }
+async function pushHistory() {}
+async function pullHistory() {}
+async function createHistoryBin() {}
 
 // ── CLOUD SYNC ─────────────────────────────────────────
 function initSync() {
@@ -939,14 +898,23 @@ async function pullState() {
 
       // For per-kid objects: merge each kid's data independently
       const perKidFields = ['progress','streaks','levels','badges','dailyStreak',
-                            'brainBucksMilestones','skipDay','difficultyLevel','unlockedToday'];
+                            'brainBucksMilestones','skipDay','difficultyLevel','unlockedToday','lessonHistory'];
       perKidFields.forEach(function(field) {
         if (remote[field]) {
           merged[field] = Object.assign({}, state[field] || {}, remote[field]);
-          // For nested objects (progress, streaks etc), merge per-kid per-subject
           allKidIds.forEach(function(kidId) {
             if (remote[field][kidId] !== undefined && state[field] && state[field][kidId] !== undefined) {
-              if (typeof remote[field][kidId] === 'object' && !Array.isArray(remote[field][kidId])) {
+              if (field === 'lessonHistory') {
+                // Merge and deduplicate history arrays by date+subject
+                const remoteArr = (remote[field][kidId] || []);
+                const localArr = (state[field] && state[field][kidId]) || [];
+                const seen = new Set();
+                merged[field][kidId] = remoteArr.concat(localArr).filter(function(e) {
+                  const key = e.date + '|' + e.subject;
+                  if (seen.has(key)) return false;
+                  seen.add(key); return true;
+                });
+              } else if (typeof remote[field][kidId] === 'object' && !Array.isArray(remote[field][kidId])) {
                 merged[field][kidId] = Object.assign({}, state[field][kidId], remote[field][kidId]);
               }
             }
@@ -983,6 +951,7 @@ async function pullState() {
       if (!state.unlockedToday) state.unlockedToday = {};
       if (!state.lessonTimers) state.lessonTimers = {spelling:10,math:15,reading:20,writing:15};
       if (!state.kidPins) state.kidPins = {lauren:'0540',andrew:'3005'};
+      if (!state.lessonHistory) state.lessonHistory = {lauren:[],andrew:[],tester:[]};
       localStorage.setItem('kidstuff_cache', JSON.stringify(state));
       runMigrations();
       setSyncBar('✅ Synced', '');
@@ -1635,7 +1604,7 @@ async function generateLessonQuestions(kidId, subjectId, type, levelData, bonusT
   const topicNote = bonusTopic ? '\nThis is a BONUS CHALLENGE specifically focused on: "' + bonusTopic + '". Prioritize this topic above all else.' : '';
 
   // Build wrong answer context from recent history — focus on recurring mistakes
-  const recentEntries = (lessonHistory[kidId] || [])
+  const recentEntries = (state.lessonHistory[kidId] || [])
     .filter(e => e.subject === subjectId)
     .slice(0, 5);
   const allWrong = recentEntries.flatMap(e => e.wrongAnswers || []);
@@ -3136,7 +3105,7 @@ function renderProgressOverview() {
   const subjectIcons = {spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'};
 
   state.kids.forEach(function(k) {
-    const history = (lessonHistory[k.id] || []);
+    const history = (state.lessonHistory[k.id] || []);
     const card = document.createElement('div');
     card.className = 'card';
 
@@ -3745,10 +3714,10 @@ function deleteCompletedLesson(kidId, subjectId) {
       state.streaks[kidId][subjectId].pop();
     }
     // Remove from history
-    if (lessonHistory[kidId]) {
+    if (state.lessonHistory[kidId]) {
       const todayStr = new Date().toISOString().slice(0,10);
-      const idx = lessonHistory[kidId].findIndex(e => e.subject === subjectId && e.date === todayStr);
-      if (idx !== -1) lessonHistory[kidId].splice(idx, 1);
+      const idx = state.lessonHistory[kidId].findIndex(e => e.subject === subjectId && e.date === todayStr);
+      if (idx !== -1) state.lessonHistory[kidId].splice(idx, 1);
       saveHistory();
     }
   }
@@ -4026,6 +3995,8 @@ function runMigrations() {
     if (state.difficultyLevel && !state.difficultyLevel.tester) state.difficultyLevel.tester = 2;
     if (state.brainBucksMilestones && !state.brainBucksMilestones.tester) state.brainBucksMilestones.tester = [];
     if (state.unlockedToday && !state.unlockedToday.tester) state.unlockedToday.tester = {};
+    if (!state.lessonHistory) state.lessonHistory = {};
+    if (!state.lessonHistory.tester) state.lessonHistory.tester = [];
     changed = true;
   }
 
