@@ -228,8 +228,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .next-level-bar{height:4px;border-radius:4px;background:var(--border);margin-top:8px;overflow:hidden;}
 .next-level-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#2ECC71,#00f2fe);transition:width 0.5s ease;}
 </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 </head>
 <body>
@@ -535,33 +534,6 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
           <div id="coinmax-inputs" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px"></div>
           <button class="btn-primary" style="margin-top:12px" onclick="saveCoinMax()">Save Coin Limits</button>
         </div>
-        <div style="height:18px"></div>
-        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
-          <div style="font-weight:800;margin-bottom:8px">☁️ Cloud Sync ID</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Share this ID with any device to sync data. Scan the QR code or paste the ID manually on another device.</div>
-          <div id="bin-id-display" style="font-family:monospace;font-size:12px;background:white;border:1px solid var(--border);padding:10px;border-radius:8px;word-break:break-all;margin-bottom:10px">Loading...</div>
-          <div style="margin-bottom:12px">
-            <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;text-align:center">📷 Scan with another device to connect</div>
-            <div id="sync-qr-code" style="display:flex;justify-content:center;padding:12px;background:white;border-radius:12px;border:2px solid var(--border)"></div>
-          </div>
-        </div>
-        <div style="height:10px"></div>
-        <div class="form-row"><label>Connect to Existing Sync ID</label><input id="import-bin-id" type="text" placeholder="Paste Sync ID here"/></div>
-        <div style="display:flex;gap:8px">
-          <button class="btn-primary" style="background:#2ECC71;flex:1" onclick="connectBinId()">Connect &amp; Sync</button>
-          <button class="btn-primary" style="background:#7C3AED;flex:1" onclick="startQRScan()">📷 Scan QR Code</button>
-        </div>
-        <!-- QR Scanner -->
-        <div id="qr-scanner-container" style="display:none;margin-top:12px;border-radius:12px;overflow:hidden;border:2px solid var(--border)">
-          <div style="background:#1e1b4b;color:white;font-size:13px;font-weight:700;padding:8px 12px;display:flex;justify-content:space-between;align-items:center">
-            <span>📷 Point camera at QR code</span>
-            <button onclick="stopQRScan()" style="background:none;border:none;color:white;font-size:18px;cursor:pointer;padding:0">✕</button>
-          </div>
-          <video id="qr-video" style="width:100%;display:block;max-height:260px;object-fit:cover" playsinline autoplay muted></video>
-          <canvas id="qr-canvas" style="display:none"></canvas>
-          <div id="qr-scan-status" style="text-align:center;padding:8px;font-size:13px;color:var(--muted)">Scanning...</div>
-        </div>
-        <div style="height:18px"></div>
         <div style="height:10px"></div>
         <button class="btn-danger" onclick="resetAll()" style="width:100%;padding:12px">⚠️ Reset All Data</button>
         <div style="height:18px"></div>
@@ -595,10 +567,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 const API_KEY_DEFAULT = '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';
 function getApiKey() { return (state.groqApiKey && state.groqApiKey.trim()) || API_KEY_DEFAULT; }
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const JSONBIN_API = 'https://api.jsonbin.io/v3';
-// Free JSONBin master key - app creates its own bin on first load
-const JSONBIN_KEY = '$2a$10$sydM3nGoNHAf9PtvxleqcuyyFAmFSm6TTYMxsu3RxguX73/UCwMPm';
-const HISTORY_DAYS = 90; // keep 90 days of history
+const FIREBASE_URL = 'https://kidstuff-11963-default-rtdb.firebaseio.com';
 
 // ── KUMON-STYLE PROGRESSION ──────────────────────────────
 const PROGRESSION = {
@@ -779,16 +748,13 @@ const DEFAULT_STATE = {
   selectedVoice: null,
   lessonTimers:{spelling:10,math:15,reading:20,writing:15},
   brainBucksMilestones:{lauren:[],andrew:[],tester:[]},
-  historyBinId: null,
   bonusChallenges: [],
   lessonHistory: {lauren:[], andrew:[], tester:[]},
   groqApiKey: ''
 };
 
 let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
-let binId = localStorage.getItem('kidstuff_binId') || null;
-let historyBinId = localStorage.getItem('kidstuff_historyBinId') || null;
-let lessonHistory = JSON.parse(localStorage.getItem('kidstuff_history') || '{}');
+const HISTORY_DAYS = 90;
 let isSyncing = false;
 let currentKidId = null;
 let pinEntry = '';
@@ -823,160 +789,122 @@ function recordLessonHistory(kidId, subjectId, pct, coins, correct, total, elaps
   saveState(); // saves and syncs with main state — no separate bin needed
 }
 
-// Keep these as no-ops for backward compatibility in case called anywhere
-function saveHistory() { saveState(); }
-async function pushHistory() {}
-async function pullHistory() {}
-async function createHistoryBin() {}
+// ── FIREBASE SYNC ────────────────────────────────────────
+// Uses Firebase Realtime Database REST API — no SDK needed
+// Structure:
+//   /parent/settings  — PIN, rewards, timers, API key etc
+//   /kids/lauren/     — Lauren's progress, coins, history etc
+//   /kids/andrew/     — Andrew's progress, coins, history etc
+//   /shared/          — writingQueue, redemptions, flagged, bonusChallenges
 
-// ── CLOUD SYNC ─────────────────────────────────────────
-function initSync() {
-  loadLocalFallback();
-  // Pick up history bin ID from state if localStorage doesn't have it
-  if (!historyBinId && state.historyBinId) {
-    historyBinId = state.historyBinId;
-    localStorage.setItem('kidstuff_historyBinId', historyBinId);
-  }
-  if (binId) {
-    pullState().catch(e => console.warn('Sync failed:', e));
-  } else {
-    createBin().catch(e => { console.warn('Bin failed:', e); setSyncBar('','hide'); });
-  }
-  if (historyBinId) {
-    pullHistory().catch(e => console.warn('History sync failed:', e));
-  }
+function fbUrl(path) {
+  return FIREBASE_URL + '/' + path + '.json';
 }
 
-async function createBin() {
-  setSyncBar('⏳ Setting up cloud sync...', '');
-  try {
-    const res = await fetch(JSONBIN_API + '/b', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json','X-Master-Key':JSONBIN_KEY,'X-Bin-Name':'KidStuff','X-Bin-Private':'true'},
-      body: JSON.stringify(DEFAULT_STATE)
-    });
-    const text = await res.text();
-    let data;
-    try { data = JSON.parse(text); } catch(pe) {
-      setSyncBar('❌ Sync error: bad response — ' + text.slice(0,80), 'error');
-      return;
-    }
-    if (!res.ok) {
-      setSyncBar('❌ Sync error ' + res.status + ': ' + (data.message || text.slice(0,80)), 'error');
-      console.error('createBin failed:', res.status, data);
-      return;
-    }
-    if (data.metadata && data.metadata.id) {
-      binId = data.metadata.id;
-      localStorage.setItem('kidstuff_binId', binId);
-      state = JSON.parse(JSON.stringify(DEFAULT_STATE));
-      setSyncBar('✅ Cloud sync ready', '');
-      updateBinIdDisplay();
-      document.getElementById('sync-status-landing').textContent = '☁️ Cloud sync active · ID: ' + binId.slice(-6);
-    } else {
-      setSyncBar('❌ Sync error: no bin ID in response', 'error');
-      console.error('createBin no ID:', data);
-    }
-  } catch(e) {
-    setSyncBar('❌ Sync error: ' + e.message, 'error');
-    console.error('createBin exception:', e);
-    loadLocalFallback();
-  }
+async function fbGet(path) {
+  const res = await fetch(fbUrl(path));
+  if (!res.ok) throw new Error('Firebase GET failed: ' + res.status);
+  return await res.json();
 }
 
+async function fbSet(path, data) {
+  const res = await fetch(fbUrl(path), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) throw new Error('Firebase PUT failed: ' + res.status);
+  return await res.json();
+}
+
+async function fbPatch(path, data) {
+  const res = await fetch(fbUrl(path), {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) throw new Error('Firebase PATCH failed: ' + res.status);
+  return await res.json();
+}
+
+// Pull full state from Firebase and merge into local state
 async function pullState() {
   try {
     isSyncing = true;
     setSyncBar('⟳ Syncing...', 'syncing');
-    const res = await fetch(JSONBIN_API + '/b/' + binId + '/latest', {
-      headers: {'X-Master-Key': JSONBIN_KEY}
+
+    // Pull parent settings
+    const parentData = await fbGet('parent') || {};
+    // Pull each kid's data
+    const kidsData = await fbGet('kids') || {};
+    // Pull shared queues
+    const sharedData = await fbGet('shared') || {};
+
+    // Merge parent settings into state (non-destructive)
+    const parentFields = ['pin','kidPins','rewards','coinMax','lessonTimers','selectedVoice','groqApiKey',
+                          'difficultyLevel','bonusChallenges','badgeQuarter'];
+    parentFields.forEach(function(f) {
+      if (parentData[f] !== undefined) state[f] = parentData[f];
     });
-    const data = await res.json();
-    if (data.record) {
-      const remote = data.record;
-      // Deep per-kid merge — don't let one device stomp another kid's data
-      const merged = JSON.parse(JSON.stringify(DEFAULT_STATE));
-      // Merge scalar/non-kid fields normally
-      Object.keys(remote).forEach(function(k) {
-        if (!['progress','coins','streaks','levels','badges','dailyStreak',
-              'brainBucksMilestones','skipDay','difficultyLevel','unlockedToday',
-              'writingQueue','redemptionQueue','flaggedReview','redoNotices',
-              'bonusChallenges','lessonHistory'].includes(k)) {
-          merged[k] = remote[k];
-        }
-      });
-      // Per-kid merge: take the most complete data per kid across local and remote
-      const allKidIds = (remote.kids || []).map(function(k){ return k.id; });
-      merged.kids = remote.kids || merged.kids;
 
-      // For per-kid objects: merge each kid's data independently
-      const perKidFields = ['progress','streaks','levels','badges','dailyStreak',
-                            'brainBucksMilestones','skipDay','difficultyLevel','unlockedToday','lessonHistory'];
-      perKidFields.forEach(function(field) {
-        if (remote[field]) {
-          merged[field] = Object.assign({}, state[field] || {}, remote[field]);
-          allKidIds.forEach(function(kidId) {
-            if (remote[field][kidId] !== undefined && state[field] && state[field][kidId] !== undefined) {
-              if (field === 'lessonHistory') {
-                // Merge and deduplicate history arrays by date+subject
-                const remoteArr = (remote[field][kidId] || []);
-                const localArr = (state[field] && state[field][kidId]) || [];
-                const seen = new Set();
-                merged[field][kidId] = remoteArr.concat(localArr).filter(function(e) {
-                  const key = e.date + '|' + e.subject;
-                  if (seen.has(key)) return false;
-                  seen.add(key); return true;
-                });
-              } else if (typeof remote[field][kidId] === 'object' && !Array.isArray(remote[field][kidId])) {
-                merged[field][kidId] = Object.assign({}, state[field][kidId], remote[field][kidId]);
-              }
-            }
-          });
-        }
-      });
-
-      // For kids coins — take whichever is higher (prevents wiping earned coins)
-      if (remote.kids && state.kids) {
-        merged.kids = remote.kids.map(function(rk) {
-          const lk = state.kids.find(function(k){ return k.id === rk.id; });
-          if (lk) return Object.assign({}, rk, { coins: Math.max(rk.coins || 0, lk.coins || 0) });
-          return rk;
+    // Merge each kid's data independently
+    const kidIds = Object.keys(kidsData);
+    kidIds.forEach(function(kidId) {
+      const remote = kidsData[kidId];
+      if (!remote) return;
+      // Find kid in state
+      const kidIdx = state.kids.findIndex(k => k.id === kidId);
+      if (kidIdx === -1 && remote.info) {
+        state.kids.push(remote.info);
+      } else if (kidIdx !== -1 && remote.info) {
+        // Take higher coin value
+        state.kids[kidIdx] = Object.assign({}, state.kids[kidIdx], remote.info, {
+          coins: Math.max(state.kids[kidIdx].coins || 0, remote.info.coins || 0)
         });
       }
-
-      // Queues — merge arrays, deduplicate by id
-      ['writingQueue','redemptionQueue','flaggedReview','redoNotices','bonusChallenges'].forEach(function(q) {
-        const remoteArr = remote[q] || [];
-        const localArr = state[q] || [];
-        const seen = new Set();
-        const combined = remoteArr.concat(localArr).filter(function(item) {
-          const key = item.id || JSON.stringify(item);
-          if (seen.has(key)) return false;
-          seen.add(key); return true;
-        });
-        merged[q] = combined;
+      // Per-kid data fields
+      const kidFields = ['progress','streaks','levels','badges','dailyStreak',
+                         'brainBucksMilestones','skipDay','unlockedToday','lessonHistory'];
+      kidFields.forEach(function(f) {
+        if (remote[f] !== undefined) {
+          if (!state[f]) state[f] = {};
+          if (f === 'lessonHistory' && Array.isArray(remote[f]) && Array.isArray(state[f][kidId])) {
+            // Merge and deduplicate history
+            const seen = new Set();
+            state[f][kidId] = (remote[f] || []).concat(state[f][kidId] || []).filter(function(e) {
+              const key = e.date + '|' + e.subject;
+              if (seen.has(key)) return false;
+              seen.add(key); return true;
+            });
+          } else {
+            state[f][kidId] = remote[f];
+          }
+        }
       });
+    });
 
-      state = merged;
-      // Ensure new fields exist for older saved states
-      if (!state.levels) state.levels = JSON.parse(JSON.stringify(DEFAULT_STATE.levels));
-      if (!state.streaks) state.streaks = JSON.parse(JSON.stringify(DEFAULT_STATE.streaks));
-      if (!state.unlockedToday) state.unlockedToday = {};
-      if (!state.lessonTimers) state.lessonTimers = {spelling:10,math:15,reading:20,writing:15};
-      if (!state.kidPins) state.kidPins = {lauren:'0540',andrew:'3005'};
-      if (!state.lessonHistory) state.lessonHistory = {lauren:[],andrew:[],tester:[]};
-      localStorage.setItem('kidstuff_cache', JSON.stringify(state));
-      runMigrations();
-      setSyncBar('✅ Synced', '');
-      updateBinIdDisplay();
-      document.getElementById('sync-status-landing').textContent = '☁️ Cloud sync active · ID: ' + binId.slice(-6);
-      // Pick up history bin ID from state if we don't have it locally
-      if (state.historyBinId && !historyBinId) {
-        historyBinId = state.historyBinId;
-        localStorage.setItem('kidstuff_historyBinId', historyBinId);
-        pullHistory().catch(e => console.warn('History pull failed:', e));
-      }
-    }
+    // Merge shared queues — deduplicate by id
+    ['writingQueue','redemptionQueue','flaggedReview','redoNotices'].forEach(function(q) {
+      const remoteArr = sharedData[q] || [];
+      const localArr = state[q] || [];
+      const seen = new Set();
+      state[q] = remoteArr.concat(localArr).filter(function(item) {
+        const key = item.id || JSON.stringify(item);
+        if (seen.has(key)) return false;
+        seen.add(key); return true;
+      });
+    });
+
+    // Migrations
+    if (!state.lessonTimers) state.lessonTimers = {spelling:10,math:15,reading:20,writing:15};
+    if (!state.kidPins) state.kidPins = {lauren:'0540',andrew:'3005',tester:'2730'};
+    if (!state.lessonHistory) state.lessonHistory = {lauren:[],andrew:[],tester:[]};
+
+    localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+    runMigrations();
+    setSyncBar('✅ Synced', '');
+    setTimeout(() => setSyncBar('', 'hide'), 2000);
+    document.getElementById('sync-status-landing').textContent = '☁️ Firebase sync active';
   } catch(e) {
     console.error('pullState error:', e);
     loadLocalFallback();
@@ -986,22 +914,78 @@ async function pullState() {
   }
 }
 
-async function pushState() {
-  if (!binId) { localStorage.setItem('kidstuff_cache', JSON.stringify(state)); return; }
+// Push only the current kid's data (called from kid devices)
+async function pushKidData(kidId) {
+  if (!kidId) return;
   try {
-    setSyncBar('⟳ Saving...', 'syncing');
-    const res = await fetch(JSONBIN_API + '/b/' + binId, {
-      method: 'PUT',
-      headers: {'Content-Type':'application/json','X-Master-Key':JSONBIN_KEY},
-      body: JSON.stringify(state)
-    });
-    if (!res.ok) throw new Error('Push failed');
-    localStorage.setItem('kidstuff_cache', JSON.stringify(state));
-    setSyncBar('✅ Saved', '');
-    setTimeout(() => setSyncBar('', 'hide'), 2000);
+    const kid = state.kids.find(k => k.id === kidId);
+    const kidPayload = {
+      info: kid || null,
+      progress: (state.progress || {})[kidId] || {},
+      streaks: (state.streaks || {})[kidId] || {},
+      levels: (state.levels || {})[kidId] || {},
+      badges: (state.badges || {})[kidId] || [],
+      dailyStreak: (state.dailyStreak || {})[kidId] || {},
+      brainBucksMilestones: (state.brainBucksMilestones || {})[kidId] || [],
+      skipDay: (state.skipDay || {})[kidId] || 0,
+      unlockedToday: (state.unlockedToday || {})[kidId] || {},
+      lessonHistory: (state.lessonHistory || {})[kidId] || []
+    };
+    await fbSet('kids/' + kidId, kidPayload);
   } catch(e) {
-    localStorage.setItem('kidstuff_cache', JSON.stringify(state));
-    setSyncBar('⚠️ Saved locally (no connection)', 'error');
+    console.warn('pushKidData error:', e);
+  }
+}
+
+// Push parent settings (called from parent dashboard)
+async function pushParentData() {
+  try {
+    const parentPayload = {
+      pin: state.pin,
+      kidPins: state.kidPins,
+      rewards: state.rewards,
+      coinMax: state.coinMax,
+      lessonTimers: state.lessonTimers,
+      selectedVoice: state.selectedVoice,
+      groqApiKey: state.groqApiKey || '',
+      difficultyLevel: state.difficultyLevel,
+      badgeQuarter: state.badgeQuarter
+    };
+    await fbSet('parent', parentPayload);
+  } catch(e) {
+    console.warn('pushParentData error:', e);
+  }
+}
+
+// Push shared queues
+async function pushSharedData() {
+  try {
+    await fbSet('shared', {
+      writingQueue: state.writingQueue || [],
+      redemptionQueue: state.redemptionQueue || [],
+      flaggedReview: state.flaggedReview || [],
+      redoNotices: state.redoNotices || []
+    });
+  } catch(e) {
+    console.warn('pushSharedData error:', e);
+  }
+}
+
+// Smart push — pushes the right paths based on who's active
+function pushState() {
+  localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+  // Push kid data if a kid is active
+  if (currentKidId) {
+    pushKidData(currentKidId).catch(e => console.warn('Kid push error:', e));
+    pushSharedData().catch(e => console.warn('Shared push error:', e));
+  } else {
+    // Parent is active — push everything
+    pushParentData().catch(e => console.warn('Parent push error:', e));
+    pushSharedData().catch(e => console.warn('Shared push error:', e));
+    // Also push all kids' data in case parent made changes (e.g. adjusting coins)
+    state.kids.forEach(function(k) {
+      pushKidData(k.id).catch(e => console.warn('Kid push error:', e));
+    });
   }
 }
 
@@ -1012,6 +996,23 @@ function saveState() {
   syncTimer = setTimeout(pushState, 800);
 }
 
+function initSync() {
+  loadLocalFallback();
+  pullState().catch(e => console.warn('Sync failed:', e));
+}
+
+// No-ops kept for backward compatibility
+function saveHistory() { saveState(); }
+async function pushHistory() {}
+async function pullHistory() {}
+async function createHistoryBin() {}
+function updateBinIdDisplay() {}
+function copyBinId() {}
+function startQRScan() {}
+function stopQRScan() {}
+function scanQRFrame() {}
+async function connectBinId() { await pullState(); renderParentDashboard(); showToast('✅ Synced!'); }
+
 function loadLocalFallback() {
   try {
     const cached = localStorage.getItem('kidstuff_cache');
@@ -1021,9 +1022,10 @@ function loadLocalFallback() {
       if (!state.streaks) state.streaks = JSON.parse(JSON.stringify(DEFAULT_STATE.streaks));
       if (!state.unlockedToday) state.unlockedToday = {};
       if (!state.dailyStreak) state.dailyStreak = JSON.parse(JSON.stringify(DEFAULT_STATE.dailyStreak));
-      if (!state.badges) state.badges = {lauren:[],andrew:[]};
-      if (!state.skipDay) state.skipDay = {lauren:0,andrew:0};
-      if (!state.kidPins) state.kidPins = {lauren:'0540',andrew:'3005'};
+      if (!state.badges) state.badges = {lauren:[],andrew:[],tester:[]};
+      if (!state.skipDay) state.skipDay = {lauren:0,andrew:0,tester:0};
+      if (!state.kidPins) state.kidPins = {lauren:'0540',andrew:'3005',tester:'2730'};
+      if (!state.lessonHistory) state.lessonHistory = {lauren:[],andrew:[],tester:[]};
       if (state.selectedVoice === undefined) state.selectedVoice = null;
     }
   } catch(e) { state = JSON.parse(JSON.stringify(DEFAULT_STATE)); }
@@ -1031,111 +1033,11 @@ function loadLocalFallback() {
 
 function setSyncBar(msg, type) {
   const bar = document.getElementById('sync-bar');
+  if (!bar) return;
   if (!msg || type === 'hide') { bar.style.display = 'none'; return; }
   bar.style.display = 'block';
   bar.textContent = msg;
   bar.className = 'sync-bar' + (type ? ' ' + type : '');
-}
-
-function updateBinIdDisplay() {
-  const el = document.getElementById('bin-id-display');
-  if (el) el.textContent = binId || 'Not initialized';
-  const qrDiv = document.getElementById('sync-qr-code');
-  if (qrDiv) {
-    qrDiv.innerHTML = '';
-    if (binId) {
-      new QRCode(qrDiv, {
-        text: binId,
-        width: 200,
-        height: 200,
-        colorDark: '#1e1b4b',
-        colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel.M
-      });
-    }
-  }
-}
-
-function copyBinId() {
-  if (!binId) return;
-  navigator.clipboard.writeText(binId).then(() => showToast('📋 Sync ID copied!'));
-}
-
-function startQRScan() {
-  const container = document.getElementById('qr-scanner-container');
-  const video = document.getElementById('qr-video');
-  const status = document.getElementById('qr-scan-status');
-  if (!container || !video) return;
-  container.style.display = 'block';
-  if (status) status.textContent = 'Starting camera...';
-  window._qrScanning = true;
-  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-    .then(function(stream) {
-      video._stream = stream;
-      video.srcObject = stream;
-      video.onloadedmetadata = function() {
-        video.play();
-        requestAnimationFrame(scanQRFrame);
-      };
-    })
-    .catch(function(e) {
-      window._qrScanning = false;
-      if (status) status.textContent = '❌ Camera access denied — allow camera in Safari Settings.';
-    });
-}
-
-function stopQRScan() {
-  window._qrScanning = false;
-  const video = document.getElementById('qr-video');
-  const container = document.getElementById('qr-scanner-container');
-  if (video && video._stream) {
-    video._stream.getTracks().forEach(function(t){ t.stop(); });
-    video._stream = null;
-    video.srcObject = null;
-  }
-  if (container) container.style.display = 'none';
-}
-
-function scanQRFrame() {
-  if (!window._qrScanning) return;
-  const video = document.getElementById('qr-video');
-  const canvas = document.getElementById('qr-canvas');
-  const status = document.getElementById('qr-scan-status');
-  if (!video || !canvas || !video._stream) return;
-  if (video.readyState < video.HAVE_ENOUGH_DATA) {
-    requestAnimationFrame(scanQRFrame);
-    return;
-  }
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-  if (typeof jsQR === 'undefined') {
-    if (status) status.textContent = '⚠️ Scanner not loaded yet — try again in a moment.';
-    return;
-  }
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
-  if (code) {
-    document.getElementById('import-bin-id').value = code.data;
-    if (status) status.textContent = '✅ Scanned!';
-    showToast('✅ Sync ID scanned — tap Connect & Sync!');
-    setTimeout(stopQRScan, 600);
-  } else {
-    if (status) status.textContent = '📷 Point camera at QR code...';
-    requestAnimationFrame(scanQRFrame);
-  }
-}
-
-async function connectBinId() {
-  const val = document.getElementById('import-bin-id').value.trim();
-  if (!val) { showToast('⚠️ Paste a Sync ID first.'); return; }
-  binId = val;
-  localStorage.setItem('kidstuff_binId', binId);
-  document.getElementById('import-bin-id').value = '';
-  await pullState();
-  renderParentDashboard();
-  showToast('✅ Connected and synced!');
 }
 
 // ── SCREENS ─────────────────────────────────────────────
@@ -3337,9 +3239,9 @@ function resetProgress() {
 
 function resetAll() {
   if (confirm('Reset ALL data? Cannot be undone.')) {
-    localStorage.clear(); binId=null; state=JSON.parse(JSON.stringify(DEFAULT_STATE));
+    localStorage.clear(); state=JSON.parse(JSON.stringify(DEFAULT_STATE));
     showToast('🔄 Reset.'); showScreen('screen-landing'); initSync();
-setTimeout(updateParentBadge, 1500);
+    setTimeout(updateParentBadge, 1500);
   }
 }
 
