@@ -568,8 +568,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 </div>
 
 <script>
-const API_KEY_DEFAULT = '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';
-function getApiKey() { return (state.groqApiKey && state.groqApiKey.trim()) || API_KEY_DEFAULT; }
+function getApiKey() { return (state.groqApiKey && state.groqApiKey.trim()) || ''; }
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const FIREBASE_URL = 'https://kidstuff-11963-default-rtdb.firebaseio.com';
 const FIREBASE_API_KEY = 'AIzaSyAInfGxWV421176cfs7uI0sqp0B1dcASts';
@@ -968,6 +967,8 @@ async function pullState() {
     state.lastSynced = new Date().toISOString();
     localStorage.setItem('kidstuff_cache', JSON.stringify(state));
     updateLastSyncedDisplay();
+    // Re-run holiday protection after sync in case state was overwritten
+    state.kids.forEach(function(k) { checkHolidayStreakProtection(k.id); });
   } catch(e) {
     console.error('pullState error:', e);
     loadLocalFallback();
@@ -1690,10 +1691,16 @@ Make it fun, creative, age-appropriate, and specific about what and how much to 
   }
 
   let res;
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    hideGeneratingOverlay();
+    showToast('⚠️ No Groq API key set. Go to Parent Dashboard → Settings to add one.');
+    return;
+  }
   try {
     res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getApiKey() },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
       body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: prompt }], max_tokens: 3000, temperature: 0.7 })
     });
   } catch(netErr) {
@@ -3505,6 +3512,77 @@ function playSound(type) {
 }
 
 // ── DAILY STREAK ─────────────────────────────────────────
+// ── US FEDERAL HOLIDAYS ─────────────────────────────────
+// Returns true if the given Date falls on a US federal holiday
+function isUSFederalHoliday(date) {
+  const y = date.getFullYear();
+  const m = date.getMonth(); // 0-based
+  const d = date.getDate();
+  const dow = date.getDay(); // 0=Sun
+
+  // Helper: nth weekday of a month (1-based n)
+  function nthWeekday(year, month, weekday, n) {
+    let count = 0;
+    for (let day = 1; day <= 31; day++) {
+      const dt = new Date(year, month, day);
+      if (dt.getMonth() !== month) break;
+      if (dt.getDay() === weekday) { count++; if (count === n) return day; }
+    }
+    return -1;
+  }
+  // Helper: last weekday of a month
+  function lastWeekday(year, month, weekday) {
+    for (let day = 31; day >= 1; day--) {
+      const dt = new Date(year, month, day);
+      if (dt.getMonth() !== month) continue;
+      if (dt.getDay() === weekday) return day;
+    }
+    return -1;
+  }
+
+  const holidays = [
+    // New Year's Day
+    { m: 0, d: 1 },
+    // MLK Day — 3rd Monday of January
+    { m: 0, d: nthWeekday(y, 0, 1, 3) },
+    // Presidents' Day — 3rd Monday of February
+    { m: 1, d: nthWeekday(y, 1, 1, 3) },
+    // Memorial Day — last Monday of May
+    { m: 4, d: lastWeekday(y, 4, 1) },
+    // Juneteenth
+    { m: 5, d: 19 },
+    // Independence Day
+    { m: 6, d: 4 },
+    // Labor Day — 1st Monday of September
+    { m: 8, d: nthWeekday(y, 8, 1, 1) },
+    // Columbus Day — 2nd Monday of October
+    { m: 9, d: nthWeekday(y, 9, 1, 2) },
+    // Veterans Day
+    { m: 10, d: 11 },
+    // Thanksgiving — 4th Thursday of November
+    { m: 10, d: nthWeekday(y, 10, 4, 4) },
+    // Christmas
+    { m: 11, d: 25 }
+  ];
+
+  return holidays.some(function(h) { return h.m === m && h.d === d; });
+}
+
+function checkHolidayStreakProtection(kidId) {
+  const today = new Date();
+  if (!isUSFederalHoliday(today)) return;
+  if (!state.dailyStreak) state.dailyStreak = {};
+  if (!state.dailyStreak[kidId]) state.dailyStreak[kidId] = { count: 0, lastDate: '' };
+  const ds = state.dailyStreak[kidId];
+  const todayKey = today.toDateString();
+  if (ds.lastDate === todayKey) return; // already handled today
+  // Preserve the streak by setting lastDate to today without requiring completion
+  if (ds.count > 0) {
+    ds.lastDate = todayKey;
+    saveState();
+  }
+}
+
 function checkDailyStreak(kidId) {
   if (!state.dailyStreak) state.dailyStreak = {};
   if (!state.dailyStreak[kidId]) state.dailyStreak[kidId] = { count: 0, lastDate: '' };
@@ -4065,6 +4143,8 @@ loadLocalFallback();
 runMigrations();
 devWipe();
 checkQuarterlyReset();
+// Auto-protect streaks on US federal holidays
+state.kids.forEach(function(k) { checkHolidayStreakProtection(k.id); });
 updateLastSyncedDisplay();
 
 // Init on load
