@@ -568,6 +568,34 @@ const API_KEY_DEFAULT = 'gsk_vNwkGTsQZ9I5tD8jjKblWGdyb3FYpyduy2SSYhnfPoLkjHE60PC
 function getApiKey() { return (state.groqApiKey && state.groqApiKey.trim()) || API_KEY_DEFAULT; }
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const FIREBASE_URL = 'https://kidstuff-11963-default-rtdb.firebaseio.com';
+const FIREBASE_API_KEY = 'AIzaSyAInfGxWV421176cfs7uI0sqp0B1dcASts';
+let _fbToken = null;
+let _fbTokenExpiry = 0;
+
+async function getFirebaseToken() {
+  // Return cached token if still valid (with 5 min buffer)
+  if (_fbToken && Date.now() < _fbTokenExpiry - 300000) return _fbToken;
+  // Try cached token from localStorage
+  const cachedToken = localStorage.getItem('kidstuff_fbToken');
+  const cachedExpiry = parseInt(localStorage.getItem('kidstuff_fbTokenExpiry') || '0');
+  if (cachedToken && Date.now() < cachedExpiry - 300000) {
+    _fbToken = cachedToken;
+    _fbTokenExpiry = cachedExpiry;
+    return _fbToken;
+  }
+  // Sign in anonymously via Firebase Auth REST API
+  const res = await fetch(
+    'https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + FIREBASE_API_KEY,
+    { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({returnSecureToken:true}) }
+  );
+  if (!res.ok) throw new Error('Auth failed: ' + res.status);
+  const data = await res.json();
+  _fbToken = data.idToken;
+  _fbTokenExpiry = Date.now() + (parseInt(data.expiresIn) * 1000);
+  localStorage.setItem('kidstuff_fbToken', _fbToken);
+  localStorage.setItem('kidstuff_fbTokenExpiry', String(_fbTokenExpiry));
+  return _fbToken;
+}
 
 // ── KUMON-STYLE PROGRESSION ──────────────────────────────
 const PROGRESSION = {
@@ -797,18 +825,20 @@ function recordLessonHistory(kidId, subjectId, pct, coins, correct, total, elaps
 //   /kids/andrew/     — Andrew's progress, coins, history etc
 //   /shared/          — writingQueue, redemptions, flagged, bonusChallenges
 
-function fbUrl(path) {
-  return FIREBASE_URL + '/' + path + '.json';
+function fbUrl(path, token) {
+  return FIREBASE_URL + '/' + path + '.json?auth=' + token;
 }
 
 async function fbGet(path) {
-  const res = await fetch(fbUrl(path));
+  const token = await getFirebaseToken();
+  const res = await fetch(fbUrl(path, token));
   if (!res.ok) throw new Error('Firebase GET failed: ' + res.status);
   return await res.json();
 }
 
 async function fbSet(path, data) {
-  const res = await fetch(fbUrl(path), {
+  const token = await getFirebaseToken();
+  const res = await fetch(fbUrl(path, token), {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
@@ -818,7 +848,8 @@ async function fbSet(path, data) {
 }
 
 async function fbPatch(path, data) {
-  const res = await fetch(fbUrl(path), {
+  const token = await getFirebaseToken();
+  const res = await fetch(fbUrl(path, token), {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
