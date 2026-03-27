@@ -273,6 +273,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 <div id="screen-kid" class="screen">
   <div class="app-header">
     <div><div class="logo">Kid<span>Stuff</span></div><div class="header-sub" id="kid-header-sub">Today's Lessons</div></div>
+    <div style="font-size:11px;color:rgba(255,255,255,0.6);font-weight:600;text-align:right;" class="last-synced-ts"></div>
   </div>
   <div class="content">
     <div class="kid-hero">
@@ -401,9 +402,12 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 <div id="screen-parent" class="screen">
   <div class="app-header dark">
     <div><div class="logo">Kid<span>Stuff</span></div><div class="header-sub">Parent Dashboard</div></div>
-    <div style="display:flex;gap:8px;align-items:center;">
-      <button class="back-btn" style="background:rgba(255,255,255,0.15);" onclick="forceSyncAndRefresh()">🔄 Sync</button>
-      <button class="back-btn" onclick="showScreen('screen-landing')">Sign Out</button>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="back-btn" style="background:rgba(255,255,255,0.15);" onclick="forceSyncAndRefresh()">🔄 Sync</button>
+        <button class="back-btn" onclick="showScreen('screen-landing')">Sign Out</button>
+      </div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.55);font-weight:600;" class="last-synced-ts"></div>
     </div>
   </div>
   <div class="content">
@@ -778,7 +782,8 @@ const DEFAULT_STATE = {
   brainBucksMilestones:{lauren:[],andrew:[],tester:[]},
   bonusChallenges: [],
   lessonHistory: {lauren:[], andrew:[], tester:[]},
-  groqApiKey: ''
+  groqApiKey: '',
+  lastSynced: null
 };
 
 let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
@@ -789,6 +794,29 @@ let pinEntry = '';
 let pinMode = 'parent'; // 'parent' or kid id
 let lessonState = null;
 let syncTimer = null;
+
+// ── OFFLINE QUEUE ────────────────────────────────────────
+let offlineQueue = [];  // [{fn, args}] — actions buffered while offline
+let isOnline = navigator.onLine;
+
+window.addEventListener('online', function() {
+  isOnline = true;
+  flushOfflineQueue();
+});
+window.addEventListener('offline', function() {
+  isOnline = false;
+});
+
+async function flushOfflineQueue() {
+  if (!offlineQueue.length) return;
+  const queue = offlineQueue.slice();
+  offlineQueue = [];
+  for (const item of queue) {
+    try { await item(); } catch(e) { console.warn('Offline queue flush error:', e); }
+  }
+  // After flushing, do a full push to make sure everything is persisted
+  pushState();
+}
 
 // ── LESSON HISTORY SYSTEM ────────────────────────────────
 // History now lives inside state.lessonHistory so it syncs with everything else
@@ -936,6 +964,10 @@ async function pullState() {
     setSyncBar('✅ Synced', '');
     setTimeout(() => setSyncBar('', 'hide'), 2000);
     document.getElementById('sync-status-landing').textContent = '☁️ Firebase sync active';
+    // Record last-synced time
+    state.lastSynced = new Date().toISOString();
+    localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+    updateLastSyncedDisplay();
   } catch(e) {
     console.error('pullState error:', e);
     loadLocalFallback();
@@ -1024,6 +1056,11 @@ function saveState() {
   localStorage.setItem('kidstuff_cache', JSON.stringify(state));
   updateParentBadge();
   clearTimeout(syncTimer);
+  if (!isOnline) {
+    // Queue a push to run when we come back online
+    offlineQueue.push(pushState);
+    return;
+  }
   syncTimer = setTimeout(pushState, 800);
 }
 
@@ -1071,10 +1108,36 @@ function setSyncBar(msg, type) {
   bar.className = 'sync-bar' + (type ? ' ' + type : '');
 }
 
+function updateLastSyncedDisplay() {
+  const ts = state.lastSynced;
+  let label = '';
+  if (ts) {
+    const d = new Date(ts);
+    const now = new Date();
+    const diffMin = Math.floor((now - d) / 60000);
+    if (diffMin < 1) label = 'Synced just now';
+    else if (diffMin < 60) label = 'Synced ' + diffMin + 'm ago';
+    else {
+      const h = d.getHours() % 12 || 12;
+      const m = String(d.getMinutes()).padStart(2,'0');
+      const ampm = d.getHours() >= 12 ? 'pm' : 'am';
+      label = 'Synced at ' + h + ':' + m + ampm;
+    }
+  }
+  // Update all sync timestamp elements
+  document.querySelectorAll('.last-synced-ts').forEach(function(el) {
+    el.textContent = label;
+  });
+  // Also update landing page status
+  const landingStatus = document.getElementById('sync-status-landing');
+  if (landingStatus && ts) landingStatus.textContent = '☁️ Firebase • ' + label;
+}
+
 // ── SCREENS ─────────────────────────────────────────────
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  updateLastSyncedDisplay();
   if (id === 'screen-kid-select') {
     pullState().then(() => {
       renderKidSelect();
@@ -4002,6 +4065,7 @@ loadLocalFallback();
 runMigrations();
 devWipe();
 checkQuarterlyReset();
+updateLastSyncedDisplay();
 
 // Init on load
 initSync();
