@@ -1666,6 +1666,8 @@ function renderKidHistory(kidId) {
       + rows + '</div>';
   }).join('');
 }
+
+function redeemReward(id) {
   const r = getRewardsForKid(currentKidId).find(x => x.id === id);
   const kid = state.kids.find(k => k.id === currentKidId);
   if (!r || !kid || kid.coins < r.cost) return;
@@ -4171,6 +4173,8 @@ function toggleVacationMode() {
   saveState();
   renderVacationBtn();
 }
+
+function cancelBonusChallenge(id) {
   state.bonusChallenges = (state.bonusChallenges || []).filter(b => b.id !== id);
   saveState();
   renderBonusChallengesList();
