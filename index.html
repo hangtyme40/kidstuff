@@ -230,7 +230,6 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 </style>
 
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 
@@ -517,11 +516,6 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <div class="tab-panel" id="tab-settings">
       <div class="card">
         <div class="card-title">⚙️ Settings</div>
-        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
-          <div style="font-weight:800;margin-bottom:8px">🔑 Kid PINs</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Reset a kid's 4-digit login PIN.</div>
-          <div id="kid-pin-reset-list"></div>
-        </div>
         <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
           <div style="font-weight:800;margin-bottom:10px">🔊 Spelling Voice</div>
           <div id="voice-selector-wrap">Loading voices...</div>
@@ -554,15 +548,9 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         <button class="btn-danger" onclick="resetAll()" style="width:100%;padding:12px">⚠️ Reset All Data</button>
         <div style="height:18px"></div>
         <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
-          <div style="font-weight:800;margin-bottom:8px">🔑 Groq API Key</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">When the API key expires, paste a new one here. Get a free key at <strong>console.groq.com</strong>. Updates sync to all devices instantly.</div>
-          <div id="current-api-key-status" style="font-size:12px;margin-bottom:10px;padding:8px;background:white;border-radius:8px;border:1px solid var(--border);font-family:monospace;word-break:break-all;color:var(--muted)"></div>
-          <input id="new-api-key-input" type="text" placeholder="Paste new key here (gsk_...)" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:monospace;font-size:13px;margin-bottom:8px;"/>
-          <button class="btn-primary" style="background:#7C3AED" onclick="saveApiKey()">💾 Save &amp; Sync Key</button>
-          <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px">
-            <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px">📱 Scan to enter key on another device</div>
-            <div id="groq-qr-container" style="display:flex;justify-content:center;padding:8px 0"></div>
-          </div>
+          <div style="font-weight:800;margin-bottom:8px">🤖 AI Lesson Engine</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Lessons are generated via a secure Cloudflare Worker proxy. The API key is stored in the Worker environment — never in this app.</div>
+          <div id="worker-status" style="font-size:12px;padding:8px;background:white;border-radius:8px;border:1px solid var(--border);font-family:monospace;word-break:break-all;"></div>
         </div>
         <div style="height:18px"></div>
         <div class="card" style="background:#F0FBF4;box-shadow:none;border:2px solid #86EFAC">
@@ -584,9 +572,12 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 </div>
 
 <script>
-function getApiKey() { return (state.groqApiKey && state.groqApiKey.trim()) || ''; }
+// ── CLOUDFLARE WORKER PROXY ──────────────────────────────
+// Replace this with your deployed Worker URL after setup
+// e.g. https://kidstuff-ai.YOUR-SUBDOMAIN.workers.dev
+const WORKER_URL = 'https://kidstuf-ai.marc-humphrey.workers.dev';
+function getApiKey() { return ''; } // Key lives in Worker env — not needed here
 function hideGeneratingOverlay() { const o = document.getElementById('generating-overlay'); if(o) o.style.display='none'; }
-const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const FIREBASE_URL = 'https://kidstuff-11963-default-rtdb.firebaseio.com';
 const FIREBASE_API_KEY = 'AIzaSyAInfGxWV421176cfs7uI0sqp0B1dcASts';
 let _fbToken = null;
@@ -787,18 +778,17 @@ const DEFAULT_STATE = {
   writingQueue:[],
   difficultyLevel:{lauren:2,andrew:2,tester:2},
   usedTopics:{lauren:[],andrew:[],tester:[]},
-  coinMax:{lauren:{spelling:30,math:30,reading:30,writing:30},andrew:{spelling:30,math:30,reading:30,writing:30},tester:{spelling:30,math:30,reading:30,writing:30}},
+  coinMax:{lauren:{spelling:2,math:2,reading:2,writing:2},andrew:{spelling:2,math:2,reading:2,writing:2},tester:{spelling:2,math:2,reading:2,writing:2}},
   redemptionQueue:[],
   dailyStreak:{lauren:{count:0,lastDate:''},andrew:{count:0,lastDate:''},tester:{count:0,lastDate:''}},
   badges:{lauren:[],andrew:[],tester:[]},
   badgeQuarter: '',
   skipDay:{lauren:0,andrew:0,tester:0},
   selectedVoice: null,
-  lessonTimers:{spelling:10,math:15,reading:20,writing:15},
+  lessonTimers:{spelling:15,math:15,reading:15,writing:15},
   brainBucksMilestones:{lauren:[],andrew:[],tester:[]},
   bonusChallenges: [],
   lessonHistory: {lauren:[], andrew:[], tester:[]},
-  groqApiKey: '',
   lastSynced: null,
   vacationMode: false,
   paceData: {lauren:{}, andrew:{}, tester:{}},
@@ -973,7 +963,7 @@ async function pullState() {
     const sharedData = await fbGet('shared') || {};
 
     // Merge parent settings into state (non-destructive)
-    const parentFields = ['pin','kidPins','rewards','coinMax','lessonTimers','selectedVoice','groqApiKey',
+    const parentFields = ['pin','kidPins','rewards','coinMax','lessonTimers','selectedVoice',
                           'difficultyLevel','bonusChallenges','badgeQuarter','vacationMode','paceData','adaptiveQ'];
     parentFields.forEach(function(f) {
       if (parentData[f] !== undefined) state[f] = parentData[f];
@@ -1028,7 +1018,7 @@ async function pullState() {
     });
 
     // Migrations
-    if (!state.lessonTimers) state.lessonTimers = {spelling:10,math:15,reading:20,writing:15};
+    if (!state.lessonTimers) state.lessonTimers = {spelling:15,math:15,reading:15,writing:15};
     if (!state.kidPins) state.kidPins = {lauren:'0540',andrew:'3005',tester:'2730'};
     if (!state.lessonHistory) state.lessonHistory = {lauren:[],andrew:[],tester:[]};
 
@@ -1084,7 +1074,6 @@ async function pushParentData() {
       coinMax: state.coinMax,
       lessonTimers: state.lessonTimers,
       selectedVoice: state.selectedVoice,
-      groqApiKey: state.groqApiKey || '',
       difficultyLevel: state.difficultyLevel,
       badgeQuarter: state.badgeQuarter,
       vacationMode: state.vacationMode || false,
@@ -1534,7 +1523,7 @@ function renderKidDashboard() {
       writing:'linear-gradient(135deg,#43e97b,#38f9d7)'
     };
     const subjects = schedule.subjects;
-    const timerMins = state.lessonTimers || {spelling:10,math:15,reading:20,writing:15};
+    const timerMins = state.lessonTimers || {spelling:15,math:15,reading:15,writing:15};
 
     subjects.forEach(function(subjectId) {
       const p = progress[subjectId]; const d = p && p.date === todayKey; if(d) done++;
@@ -1864,17 +1853,16 @@ Return ONLY valid JSON object, no markdown:
 Make it fun, creative, age-appropriate, and specific about what and how much to write.`;
   }
 
-  let res;
-  const apiKey = getApiKey();
-  if (!apiKey) {
+  if (!WORKER_URL || WORKER_URL.includes('YOUR-SUBDOMAIN')) {
     hideGeneratingOverlay();
-    showToast('⚠️ No Groq API key set. Go to Parent Dashboard → Settings to add one.');
+    showToast('⚠️ Worker URL not configured. See README.');
     return;
   }
+  let res;
   try {
-    res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    res = await fetch(WORKER_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: prompt }], max_tokens: 3000, temperature: 0.7 })
     });
   } catch(netErr) {
@@ -1917,12 +1905,17 @@ Make it fun, creative, age-appropriate, and specific about what and how much to 
 function dedupeQuestions(arr, key) {
   if (!Array.isArray(arr)) return arr;
   const seen = new Set();
-  return arr.filter(function(q) {
+  const result = arr.filter(function(q) {
     const val = (q[key] || '').toLowerCase().trim().slice(0, 80);
     if (!val || seen.has(val)) return false;
     seen.add(val);
     return true;
   });
+  // Preserve any custom properties attached to the original array
+  Object.keys(arr).forEach(function(k) {
+    if (isNaN(k)) result[k] = arr[k];
+  });
+  return result;
 }
 
 function renderQuestion() {
@@ -2744,7 +2737,7 @@ function finishLesson() {
   const pct = Math.round((origCorrect / total) * 100);
   if (!state.progress[currentKidId]) state.progress[currentKidId]={};
   const alreadyDone = state.progress[currentKidId][ls.subjectId] && state.progress[currentKidId][ls.subjectId].date === getTodayKey();
-  const maxCoins = (state.coinMax && state.coinMax[currentKidId] && state.coinMax[currentKidId][ls.subjectId]) || 30;
+  const maxCoins = (state.coinMax && state.coinMax[currentKidId] && state.coinMax[currentKidId][ls.subjectId]) || 2;
   const originalCoins = alreadyDone ? (state.progress[currentKidId][ls.subjectId].coins || 0) : Math.round(pct * (maxCoins / 100));
   const coins = alreadyDone ? 0 : originalCoins;
   const flaggedCount = ls.flagged || 0;
@@ -2898,7 +2891,7 @@ let _timerInterval = null;
 function startLessonTimer() {
   stopLessonTimer();
   const subjectId = lessonState ? lessonState.subjectId : null;
-  const timers = state.lessonTimers || {spelling:10,math:15,reading:20,writing:15};
+  const timers = state.lessonTimers || {spelling:15,math:15,reading:15,writing:15};
   const totalSeconds = (timers[subjectId] || 15) * 60;
   if (lessonState) lessonState.timerSeconds = 0;
   if (lessonState) lessonState.timerTotal = totalSeconds;
@@ -3050,7 +3043,6 @@ function renderParentDashboard() {
     if (coinmaxSel) coinmaxSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.name}</option>`).join('');
     renderCoinMaxInputs();
     renderTimerInputs();
-    renderKidPinReset();
     renderApiKeyStatus();
     renderVacationBtn();
     updateBinIdDisplay();
@@ -3185,7 +3177,7 @@ function resolveFlag(id, award) {
       const subj = state.curriculum[f.kidId] && state.curriculum[f.kidId].subjects &&
         state.curriculum[f.kidId].subjects.find(function(s){ return s.name === f.subject; });
       const subjId = subj ? subj.id : null;
-      const max = (subjId && maxCoins[subjId]) || 30;
+      const max = (subjId && maxCoins[subjId]) || 2;
       // Score without flagged question: (correct + 1) / (total - 1)
       const newCorrect = Math.min(p.correct + 1, total - 1);
       const newTotal = total - 1;
@@ -3480,14 +3472,14 @@ function renderCoinMaxInputs() {
   const kidId = document.getElementById('coinmax-kid-select').value;
   if (!kidId) return;
   if (!state.coinMax) state.coinMax = {};
-  if (!state.coinMax[kidId]) state.coinMax[kidId] = {spelling:30,math:30,reading:30,writing:30};
+  if (!state.coinMax[kidId]) state.coinMax[kidId] = {spelling:2,math:2,reading:2,writing:2};
   const subjects = [{id:'spelling',label:'🔤 Spelling'},{id:'math',label:'🧮 Math'},{id:'reading',label:'📖 Reading'},{id:'writing',label:'✏️ Writing'}];
   const container = document.getElementById('coinmax-inputs');
   container.innerHTML = '';
   subjects.forEach(function(s) {
     const wrap = document.createElement('div');
     wrap.innerHTML = '<label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">' + s.label + '</label>'
-      + '<input type="number" min="0" max="100" style="width:100%;padding:8px;border:2px solid var(--border);border-radius:8px;font-size:14px;font-weight:700" id="coinmax-' + s.id + '" value="' + (state.coinMax[kidId][s.id] || 30) + '">';
+      + '<input type="number" min="0" max="100" style="width:100%;padding:8px;border:2px solid var(--border);border-radius:8px;font-size:14px;font-weight:700" id="coinmax-' + s.id + '" value="' + (state.coinMax[kidId][s.id] || 2) + '">';
     container.appendChild(wrap);
   });
 }
@@ -3552,50 +3544,20 @@ function resetAll() {
   }
 }
 
-function saveApiKey() {
-  const input = document.getElementById('new-api-key-input');
-  const key = input ? input.value.trim() : '';
-  if (!key.startsWith('gsk_')) { showToast('⚠️ Key should start with gsk_ — check and try again.'); return; }
-  state.groqApiKey = key;
-  saveState();
-  if (input) input.value = '';
-  renderApiKeyStatus();
-  showToast('✅ API key updated and synced to all devices!');
-}
-
-function renderApiKeyStatus() {
-  const el = document.getElementById('current-api-key-status');
+function renderWorkerStatus() {
+  const el = document.getElementById('worker-status');
   if (!el) return;
-  const key = state.groqApiKey && state.groqApiKey.trim();
-  if (key) {
-    el.textContent = 'Current: ' + key.slice(0, 8) + '...' + key.slice(-6);
+  if (WORKER_URL && !WORKER_URL.includes('YOUR-SUBDOMAIN')) {
+    el.textContent = '✅ Connected: ' + WORKER_URL;
     el.style.color = 'var(--green)';
   } else {
-    el.textContent = 'No key saved — paste one below.';
+    el.textContent = '⚠️ Worker URL not set — update WORKER_URL in index.html';
     el.style.color = 'var(--red)';
   }
-  renderGroqQR();
 }
-
-function renderGroqQR() {
-  const container = document.getElementById('groq-qr-container');
-  if (!container) return;
-  const key = (state.groqApiKey && state.groqApiKey.trim()) || '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';
-  container.innerHTML = '';
-  if (typeof QRCode === 'undefined') {
-    container.innerHTML = '<div style="font-size:12px;color:var(--muted)">QR library loading...</div>';
-    setTimeout(renderGroqQR, 800);
-    return;
-  }
-  new QRCode(container, {
-    text: key,
-    width: 160,
-    height: 160,
-    colorDark: '#1A1F36',
-    colorLight: '#ffffff',
-    correctLevel: QRCode.CorrectLevel.M
-  });
-}
+function saveApiKey() {}
+function renderApiKeyStatus() { renderWorkerStatus(); }
+function renderGroqQR() {}
 
 async function forceSyncAndRefresh() {
   setSyncBar('⟳ Force syncing...', 'syncing');
@@ -3999,7 +3961,7 @@ function startStudyMode() {
 function renderTimerInputs() {
   const container = document.getElementById('timer-inputs');
   if (!container) return;
-  const timers = state.lessonTimers || {spelling:10,math:15,reading:20,writing:15};
+  const timers = state.lessonTimers || {spelling:15,math:15,reading:15,writing:15};
   const subjects = [
     {id:'spelling', label:'🔤 Spelling'},
     {id:'math',     label:'🧮 Math'},
@@ -4416,7 +4378,7 @@ function runMigrations() {
     if (state.dailyStreak && !state.dailyStreak.tester) state.dailyStreak.tester = {count:0,lastDate:''};
     if (state.badges && !state.badges.tester) state.badges.tester = [];
     if (state.kidPins && !state.kidPins.tester) state.kidPins.tester = '2730';
-    if (state.coinMax && !state.coinMax.tester) state.coinMax.tester = {spelling:30,math:30,reading:30,writing:30};
+    if (state.coinMax && !state.coinMax.tester) state.coinMax.tester = {spelling:2,math:2,reading:2,writing:2};
     if (state.skipDay && !state.skipDay.tester) state.skipDay.tester = 0;
     if (state.difficultyLevel && !state.difficultyLevel.tester) state.difficultyLevel.tester = 2;
     if (state.brainBucksMilestones && !state.brainBucksMilestones.tester) state.brainBucksMilestones.tester = [];
