@@ -230,6 +230,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 </style>
 
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 
@@ -299,8 +300,13 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <div id="no-content-msg" style="display:none"></div>
     <div class="subject-grid" id="subject-grid"></div>
     <button onclick="startStudyMode()" id="study-mode-btn" style="display:none;width:100%;margin-bottom:18px;padding:14px;border-radius:14px;border:2px solid var(--primary);background:#EEF2FF;color:var(--primary);font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;cursor:pointer;">📖 Study Mode — Practice Missed Questions</button>
+    <div id="vacation-banner" style="display:none;background:linear-gradient(90deg,#0EA5E9,#7C3AED);color:white;text-align:center;padding:10px 16px;font-weight:800;font-size:14px;border-radius:12px;margin-bottom:14px;">✈️ Vacation Mode — Enjoy your break! Streaks are protected.</div>
     <div id="bonus-challenge-btns"></div>
     <div class="card"><div class="card-title">🎁 Rewards Shop</div><div id="kid-rewards-list"></div></div>
+    <div class="card" id="kid-history-card" style="display:none">
+      <div class="card-title">📅 My Recent Lessons</div>
+      <div id="kid-history-list"></div>
+    </div>
   </div>
 </div>
 
@@ -538,6 +544,12 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
           <div id="coinmax-inputs" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px"></div>
           <button class="btn-primary" style="margin-top:12px" onclick="saveCoinMax()">Save Coin Limits</button>
         </div>
+        <div style="height:18px"></div>
+        <div class="card" style="background:#EEF9FF;box-shadow:none;border:2px solid #7DD3FC" id="vacation-mode-card">
+          <div style="font-weight:800;margin-bottom:8px">✈️ Vacation Mode</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:14px">While on, streaks are protected daily — no lessons required. Turn off when you return home.</div>
+          <button id="vacation-toggle-btn" class="btn-primary" onclick="toggleVacationMode()" style="background:#0EA5E9">Loading...</button>
+        </div>
         <div style="height:10px"></div>
         <button class="btn-danger" onclick="resetAll()" style="width:100%;padding:12px">⚠️ Reset All Data</button>
         <div style="height:18px"></div>
@@ -547,6 +559,10 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
           <div id="current-api-key-status" style="font-size:12px;margin-bottom:10px;padding:8px;background:white;border-radius:8px;border:1px solid var(--border);font-family:monospace;word-break:break-all;color:var(--muted)"></div>
           <input id="new-api-key-input" type="text" placeholder="Paste new key here (gsk_...)" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:monospace;font-size:13px;margin-bottom:8px;"/>
           <button class="btn-primary" style="background:#7C3AED" onclick="saveApiKey()">💾 Save &amp; Sync Key</button>
+          <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px">
+            <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px">📱 Scan to enter key on another device</div>
+            <div id="groq-qr-container" style="display:flex;justify-content:center;padding:8px 0"></div>
+          </div>
         </div>
         <div style="height:18px"></div>
         <div class="card" style="background:#F0FBF4;box-shadow:none;border:2px solid #86EFAC">
@@ -569,6 +585,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 
 <script>
 function getApiKey() { return (state.groqApiKey && state.groqApiKey.trim()) || ''; }
+function hideGeneratingOverlay() { const o = document.getElementById('generating-overlay'); if(o) o.style.display='none'; }
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const FIREBASE_URL = 'https://kidstuff-11963-default-rtdb.firebaseio.com';
 const FIREBASE_API_KEY = 'AIzaSyAInfGxWV421176cfs7uI0sqp0B1dcASts';
@@ -782,7 +799,10 @@ const DEFAULT_STATE = {
   bonusChallenges: [],
   lessonHistory: {lauren:[], andrew:[], tester:[]},
   groqApiKey: '',
-  lastSynced: null
+  lastSynced: null,
+  vacationMode: false,
+  paceData: {lauren:{}, andrew:{}, tester:{}},
+  adaptiveQ: {lauren:10, andrew:10, tester:10}
 };
 
 let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
@@ -801,6 +821,10 @@ let isOnline = navigator.onLine;
 window.addEventListener('online', function() {
   isOnline = true;
   flushOfflineQueue();
+  // Restart the realtime listener if it dropped
+  if (!_realtimeES || _realtimeES.readyState === EventSource.CLOSED) {
+    startRealtimeListener();
+  }
 });
 window.addEventListener('offline', function() {
   isOnline = false;
@@ -841,7 +865,57 @@ function recordLessonHistory(kidId, subjectId, pct, coins, correct, total, elaps
   cutoff.setDate(cutoff.getDate() - HISTORY_DAYS);
   const cutoffStr = cutoff.toISOString().slice(0,10);
   state.lessonHistory[kidId] = state.lessonHistory[kidId].filter(e => e.date >= cutoffStr);
-  saveState(); // saves and syncs with main state — no separate bin needed
+  // Update pace data for this kid/day
+  updatePaceData(kidId, elapsedMin || 0);
+  saveState();
+}
+
+// ── PACE TRACKING ────────────────────────────────────────
+const PACE_TARGET_MIN = 30;
+const PACE_WINDOW_DAYS = 7;
+
+function updatePaceData(kidId, elapsedMin) {
+  if (!state.paceData) state.paceData = {};
+  if (!state.paceData[kidId]) state.paceData[kidId] = {};
+  const today = new Date().toISOString().slice(0,10);
+  state.paceData[kidId][today] = (state.paceData[kidId][today] || 0) + elapsedMin;
+  // Trim to window
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - PACE_WINDOW_DAYS);
+  const cutoffStr = cutoff.toISOString().slice(0,10);
+  Object.keys(state.paceData[kidId]).forEach(function(d) {
+    if (d < cutoffStr) delete state.paceData[kidId][d];
+  });
+}
+
+function getAvgDailyMinutes(kidId) {
+  if (!state.paceData || !state.paceData[kidId]) return 0;
+  const entries = Object.values(state.paceData[kidId]);
+  if (!entries.length) return 0;
+  return entries.reduce(function(s, v) { return s + v; }, 0) / entries.length;
+}
+
+function getAdaptiveQuestionCount(kidId) {
+  if (!state.paceData || !state.paceData[kidId]) return 10;
+  if (!state.adaptiveQ) state.adaptiveQ = {};
+  if (!state.adaptiveQ[kidId]) state.adaptiveQ[kidId] = 10;
+  return state.adaptiveQ[kidId];
+}
+
+function updateAdaptiveQuestionCount(kidId) {
+  if (!state.adaptiveQ) state.adaptiveQ = {};
+  if (!state.adaptiveQ[kidId]) state.adaptiveQ[kidId] = 10;
+  const avg = getAvgDailyMinutes(kidId);
+  // Need at least 3 days of data before adjusting
+  const dayCount = state.paceData && state.paceData[kidId] ? Object.keys(state.paceData[kidId]).length : 0;
+  if (dayCount < 3) return;
+  const diff = PACE_TARGET_MIN - avg; // positive = under target, negative = over
+  let delta = 0;
+  const absDiff = Math.abs(diff);
+  if (absDiff <= 5) delta = diff > 0 ? 1 : -1;        // close — nudge ±1
+  else if (absDiff <= 10) delta = diff > 0 ? 2 : -2;  // moderate — ±2
+  else delta = diff > 0 ? 4 : -4;                      // way off — aggressive ±4
+  state.adaptiveQ[kidId] = Math.max(5, Math.min(25, state.adaptiveQ[kidId] + delta));
 }
 
 // ── FIREBASE SYNC ────────────────────────────────────────
@@ -900,7 +974,7 @@ async function pullState() {
 
     // Merge parent settings into state (non-destructive)
     const parentFields = ['pin','kidPins','rewards','coinMax','lessonTimers','selectedVoice','groqApiKey',
-                          'difficultyLevel','bonusChallenges','badgeQuarter'];
+                          'difficultyLevel','bonusChallenges','badgeQuarter','vacationMode','paceData','adaptiveQ'];
     parentFields.forEach(function(f) {
       if (parentData[f] !== undefined) state[f] = parentData[f];
     });
@@ -969,8 +1043,7 @@ async function pullState() {
     updateLastSyncedDisplay();
     // Re-run holiday protection after sync in case state was overwritten
     state.kids.forEach(function(k) { checkHolidayStreakProtection(k.id); });
-  } catch(e) {
-    console.error('pullState error:', e);
+    applyVacationStreakProtection();
     loadLocalFallback();
     setSyncBar('⚠️ Using cached data', 'error');
   } finally {
@@ -1013,7 +1086,10 @@ async function pushParentData() {
       selectedVoice: state.selectedVoice,
       groqApiKey: state.groqApiKey || '',
       difficultyLevel: state.difficultyLevel,
-      badgeQuarter: state.badgeQuarter
+      badgeQuarter: state.badgeQuarter,
+      vacationMode: state.vacationMode || false,
+      paceData: state.paceData || {},
+      adaptiveQ: state.adaptiveQ || {}
     };
     await fbSet('parent', parentPayload);
   } catch(e) {
@@ -1065,9 +1141,55 @@ function saveState() {
   syncTimer = setTimeout(pushState, 800);
 }
 
+let _realtimeES = null;
+let _realtimeRetryTimer = null;
+
+function startRealtimeListener() {
+  if (_realtimeES) { _realtimeES.close(); _realtimeES = null; }
+  getFirebaseToken().then(function(token) {
+    // Listen to the root — any change triggers a pull
+    const url = FIREBASE_URL + '/.json?accept=text/event-stream&auth=' + token;
+    _realtimeES = new EventSource(url);
+    _realtimeES.addEventListener('put', function(e) {
+      // Ignore our own pushes (they arrive ~800ms after saveState debounce)
+      // Only pull if we're not currently pushing
+      if (isSyncing) return;
+      clearTimeout(_realtimeRetryTimer);
+      _realtimeRetryTimer = setTimeout(function() {
+        pullState().then(function() {
+          // Re-render whichever screen is active
+          const parent = document.getElementById('screen-parent');
+          const kid = document.getElementById('screen-kid');
+          if (parent && parent.classList.contains('active')) renderParentDashboard();
+          if (kid && kid.classList.contains('active')) renderKidDashboard();
+        }).catch(e => console.warn('Realtime pull error:', e));
+      }, 1200); // small debounce so rapid changes don't flood pulls
+    });
+    _realtimeES.addEventListener('patch', function() {
+      if (isSyncing) return;
+      clearTimeout(_realtimeRetryTimer);
+      _realtimeRetryTimer = setTimeout(function() {
+        pullState().catch(e => console.warn('Realtime patch pull error:', e));
+      }, 1200);
+    });
+    _realtimeES.onerror = function() {
+      // Token may have expired — reconnect after 30s
+      _realtimeES.close();
+      _realtimeES = null;
+      setTimeout(startRealtimeListener, 30000);
+    };
+  }).catch(function(e) {
+    console.warn('Realtime listener auth error:', e);
+    setTimeout(startRealtimeListener, 60000);
+  });
+}
+
 function initSync() {
   loadLocalFallback();
-  pullState().catch(e => console.warn('Sync failed:', e));
+  pullState().then(startRealtimeListener).catch(function(e) {
+    console.warn('Sync failed:', e);
+    setTimeout(startRealtimeListener, 10000);
+  });
 }
 
 // No-ops kept for backward compatibility
@@ -1096,6 +1218,14 @@ function loadLocalFallback() {
       if (!state.kidPins) state.kidPins = {lauren:'0540',andrew:'3005',tester:'2730'};
       if (!state.lessonHistory) state.lessonHistory = {lauren:[],andrew:[],tester:[]};
       if (state.selectedVoice === undefined) state.selectedVoice = null;
+      if (!state.adaptiveQ) state.adaptiveQ = {lauren:10, andrew:10, tester:10};
+      if (!state.paceData) state.paceData = {lauren:{}, andrew:{}, tester:{}};
+      if (state.vacationMode === undefined) state.vacationMode = false;
+      // Per-kid adaptiveQ guard for existing kids
+      state.kids.forEach(function(k) {
+        if (!state.adaptiveQ[k.id]) state.adaptiveQ[k.id] = 10;
+        if (!state.paceData[k.id]) state.paceData[k.id] = {};
+      });
     }
   } catch(e) { state = JSON.parse(JSON.stringify(DEFAULT_STATE)); }
 }
@@ -1338,6 +1468,10 @@ function renderKidDashboard() {
   renderStreakOnDashboard(currentKidId);
   renderBadges(currentKidId);
 
+  // Vacation mode banner
+  const vacBanner = document.getElementById('vacation-banner');
+  if (vacBanner) vacBanner.style.display = state.vacationMode ? 'block' : 'none';
+
   // Show redo notice or quarterly badge reset notice
   const redoNotice = (state.redoNotices||[]).find(function(n){ return n.kidId === currentKidId && n.subject === 'writing'; });
   const quarterNotice = (state.redoNotices||[]).find(function(n){ return n.kidId === currentKidId && n.subject === 'quarterReset'; });
@@ -1495,9 +1629,43 @@ function renderKidDashboard() {
       rewardsEl.appendChild(item);
     });
   }
+  renderKidHistory(currentKidId);
 }
 
-function redeemReward(id) {
+function renderKidHistory(kidId) {
+  const card = document.getElementById('kid-history-card');
+  const list = document.getElementById('kid-history-list');
+  if (!card || !list) return;
+  const history = (state.lessonHistory && state.lessonHistory[kidId]) || [];
+  const recent = history.slice(0, 14); // last 14 entries
+  if (!recent.length) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  const subjectIcons = {spelling:'🔤', math:'🧮', reading:'📖', writing:'✏️'};
+  // Group by date
+  const byDate = {};
+  recent.forEach(function(e) {
+    if (!byDate[e.date]) byDate[e.date] = [];
+    byDate[e.date].push(e);
+  });
+  list.innerHTML = Object.keys(byDate).sort((a,b)=>b.localeCompare(a)).map(function(date) {
+    const entries = byDate[date];
+    const rows = entries.map(function(e) {
+      const scoreColor = e.score >= 90 ? '#2ECC71' : e.score >= 70 ? '#F59E0B' : '#EF4444';
+      return '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)">'
+        + '<span style="font-size:20px">' + (subjectIcons[e.subject]||'📚') + '</span>'
+        + '<div style="flex:1">'
+        + '<div style="font-weight:700;font-size:14px;text-transform:capitalize">' + e.subject + ' — Level ' + e.level + '</div>'
+        + '<div style="font-size:12px;color:var(--muted)">' + (e.duration||0) + ' min · ' + e.correct + '/' + e.total + ' correct</div>'
+        + '</div>'
+        + '<div style="font-weight:800;font-size:15px;color:' + scoreColor + '">' + e.score + '%</div>'
+        + '</div>';
+    }).join('');
+    const displayDate = new Date(date + 'T12:00:00').toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'});
+    return '<div style="margin-bottom:10px">'
+      + '<div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;padding:6px 0 2px">' + displayDate + '</div>'
+      + rows + '</div>';
+  }).join('');
+}
   const r = getRewardsForKid(currentKidId).find(x => x.id === id);
   const kid = state.kids.find(k => k.id === currentKidId);
   if (!r || !kid || kid.coins < r.cost) return;
@@ -1641,26 +1809,30 @@ async function generateLessonQuestions(kidId, subjectId, type, levelData, bonusT
   }
 
   let prompt = '';
+  const qCount = getAdaptiveQuestionCount(kidId);
+  const readingQCount = Math.max(4, Math.round(qCount * 0.8)); // reading slightly fewer since they read a passage too
   if (type === 'spelling') {
-    prompt = `Generate 10 spelling words for a student practicing "${levelName}" (${levelDesc}).
+    prompt = `Generate ${qCount} spelling words for a student practicing "${levelName}" (${levelDesc}).
 Difficulty: ${diffName}. Student: ${kid.name}.${topicNote}${wrongContext}
 Return ONLY valid JSON array, no markdown:
 [{"word":"WORD","hint":"A natural example sentence using the word, like a teacher would say in a spelling test. Example: for 'pet' return 'I have a pet dog at home.' For 'cake' return 'She baked a birthday cake for her friend.' The sentence must use the word naturally."},...]
-Use 10 real age-appropriate words that fit the pattern "${levelName}". No placeholder text. Every hint must be a complete sentence that uses the word.`;
+Use ${qCount} real age-appropriate words that fit the pattern "${levelName}". No placeholder text. Every hint must be a complete sentence that uses the word.`;
 
   } else if (type === 'math') {
-    prompt = `Generate 10 math questions for a student practicing "${levelName}" (${levelDesc}).
+    const mcCount = Math.ceil(qCount / 2);
+    const typedCount = qCount - mcCount;
+    prompt = `Generate ${qCount} math questions for a student practicing "${levelName}" (${levelDesc}).
 Difficulty: ${diffName}. Student: ${kid.name}.${topicNote}${wrongContext}
 Mix of multiple choice and typed answer questions.
 Return ONLY valid JSON array, no markdown:
 [{"type":"mc","question":"REAL MATH QUESTION","options":["A","B","C","D"],"answer":"A"},{"type":"typed","question":"REAL MATH QUESTION","answer":"ANSWER"},...]
-Use exactly 5 mc and 5 typed questions. All content must be real math problems for "${levelName}". No placeholder text. Use actual numbers and symbols (use x for multiplication, / for division).`;
+Use exactly ${mcCount} mc and ${typedCount} typed questions. All content must be real math problems for "${levelName}". No placeholder text. Use actual numbers and symbols (use x for multiplication, / for division).`;
 
   } else if (type === 'reading') {
     prompt = `Generate a reading comprehension lesson for a student practicing "${levelName}" (${levelDesc}).
 Difficulty: ${diffName}. Student: ${kid.name}.${topicNote}${wrongContext}
 
-First write one complete, engaging short story (8-12 sentences). Then write 8 multiple choice questions about it.
+First write one complete, engaging short story (8-12 sentences). Then write ${readingQCount} multiple choice questions about it.
 Each question should reference a specific part of the story.
 
 Return ONLY valid JSON object, no markdown:
@@ -1674,7 +1846,7 @@ Return ONLY valid JSON object, no markdown:
 
 Rules:
 - Story must be age-appropriate, fun, and relevant to "${levelName}"
-- All 8 questions must be multiple choice with 4 full text options
+- All ${readingQCount} questions must be multiple choice with 4 full text options
 - The answer field must exactly match one of the options
 - No placeholder text
 - The hint field is optional but helpful (e.g. "Look at the second sentence" or "Think about what Maya said")`;
@@ -1727,18 +1899,28 @@ Make it fun, creative, age-appropriate, and specific about what and how much to 
     return arr;
   }
   if (type === 'reading') {
-    // New format: {story, questions} — attach story to each question for reference
     if (parsed.story && parsed.questions) {
-      const qs = parsed.questions.map(function(q) {
+      const qs = dedupeQuestions(parsed.questions.map(function(q) {
         return Object.assign({type:'mc'}, q);
-      });
+      }), 'question');
       qs._readingStory = parsed.story;
       return qs;
     }
-    // Fallback: old array format
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed) ? dedupeQuestions(parsed, 'question') : [];
   }
-  return parsed;
+  if (type === 'spelling') return dedupeQuestions(parsed, 'word');
+  return dedupeQuestions(parsed, 'question');
+}
+
+function dedupeQuestions(arr, key) {
+  if (!Array.isArray(arr)) return arr;
+  const seen = new Set();
+  return arr.filter(function(q) {
+    const val = (q[key] || '').toLowerCase().trim().slice(0, 80);
+    if (!val || seen.has(val)) return false;
+    seen.add(val);
+    return true;
+  });
 }
 
 function renderQuestion() {
@@ -2639,10 +2821,23 @@ function finishLesson() {
   if (!alreadyDone) {
     const curIdx = getCurrentLevelIndex(currentKidId, ls.subjectId);
     recordLessonHistory(currentKidId, ls.subjectId, pct, coins, origCorrect, total, elapsedMin, curIdx);
+    updateAdaptiveQuestionCount(currentKidId);
   }
   // Check daily streak and badges
   checkDailyStreak(currentKidId);
   checkBadges(currentKidId);
+  // Check if all subjects are done today — trigger celebration
+  const schedule = getTodaySchedule();
+  const allDoneNow = !alreadyDone && schedule.subjects.every(function(s) {
+    return state.progress[currentKidId] && state.progress[currentKidId][s] && state.progress[currentKidId][s].date === getTodayKey();
+  });
+  if (allDoneNow) {
+    setTimeout(function() {
+      launchConfetti(6000);
+      playSound('epic');
+      showToast('🎉 All done for today! Amazing work!');
+    }, 600);
+  }
   const emoji = pct>=90?'🌟':pct>=70?'😊':pct>=50?'💪':'📚';
   const resEmoji = document.getElementById('results-emoji');
   const resScore = document.getElementById('results-score');
@@ -2855,6 +3050,7 @@ function renderParentDashboard() {
     renderTimerInputs();
     renderKidPinReset();
     renderApiKeyStatus();
+    renderVacationBtn();
     updateBinIdDisplay();
   } catch(e) {
     console.error('renderParentDashboard error:', e);
@@ -2863,13 +3059,21 @@ function renderParentDashboard() {
 }
 
 function renderParentKidSummary() {
-  document.getElementById('parent-kid-summary').innerHTML = state.kids.map(k=>`
-    <div class="kid-summary-card">
+  document.getElementById('parent-kid-summary').innerHTML = state.kids.map(k => {
+    const qCount = getAdaptiveQuestionCount(k.id);
+    const avgMin = Math.round(getAvgDailyMinutes(k.id));
+    const dayCount = state.paceData && state.paceData[k.id] ? Object.keys(state.paceData[k.id]).length : 0;
+    const paceLabel = dayCount < 3
+      ? '<div style="font-size:11px;color:var(--muted);margin-top:4px">⏱ Pace calibrating…</div>'
+      : '<div style="font-size:11px;color:var(--muted);margin-top:4px">⏱ ~' + avgMin + ' min/day · ' + qCount + ' q/lesson</div>';
+    return `<div class="kid-summary-card">
       <div class="ks-emoji">${k.emoji}</div>
       <div class="ks-name">${k.name}</div>
       <div class="ks-coins">${k.coins}</div>
       <div style="font-size:12px;color:var(--muted)">🧠 Brain Bucks</div>
-    </div>`).join('');
+      ${paceLabel}
+    </div>`;
+  }).join('');
 }
 
 function renderCurriculumOverview() {
@@ -3222,7 +3426,7 @@ function addReward() {
   const cost=parseInt(document.getElementById('r-cost').value)||50;
   const emoji=document.getElementById('r-emoji').value.trim()||'🎁';
   if (!name) { showToast('⚠️ Enter a reward name.'); return; }
-  const targets = kidId === 'both' ? state.kids.map(k=>k.id) : [kidId];
+  const targets = kidId === 'both' ? state.kids.filter(k=>k.id!=='tester').map(k=>k.id) : [kidId];
   targets.forEach(function(id) {
     const arr = getRewardsForKid(id);
     arr.push({id:'r'+Date.now()+id, name, cost, emoji});
@@ -3362,12 +3566,33 @@ function renderApiKeyStatus() {
   if (!el) return;
   const key = state.groqApiKey && state.groqApiKey.trim();
   if (key) {
-    el.textContent = 'Current: ' + key.slice(0, 8) + '...' + key.slice(-6) + ' (custom)';
+    el.textContent = 'Current: ' + key.slice(0, 8) + '...' + key.slice(-6);
     el.style.color = 'var(--green)';
   } else {
-    el.textContent = 'Using default key (hardcoded in app)';
-    el.style.color = 'var(--muted)';
+    el.textContent = 'No key saved — paste one below.';
+    el.style.color = 'var(--red)';
   }
+  renderGroqQR();
+}
+
+function renderGroqQR() {
+  const container = document.getElementById('groq-qr-container');
+  if (!container) return;
+  const key = (state.groqApiKey && state.groqApiKey.trim()) || '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';
+  container.innerHTML = '';
+  if (typeof QRCode === 'undefined') {
+    container.innerHTML = '<div style="font-size:12px;color:var(--muted)">QR library loading...</div>';
+    setTimeout(renderGroqQR, 800);
+    return;
+  }
+  new QRCode(container, {
+    text: key,
+    width: 160,
+    height: 160,
+    colorDark: '#1A1F36',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.M
+  });
 }
 
 async function forceSyncAndRefresh() {
@@ -3575,12 +3800,22 @@ function checkHolidayStreakProtection(kidId) {
   if (!state.dailyStreak[kidId]) state.dailyStreak[kidId] = { count: 0, lastDate: '' };
   const ds = state.dailyStreak[kidId];
   const todayKey = today.toDateString();
-  if (ds.lastDate === todayKey) return; // already handled today
-  // Preserve the streak by setting lastDate to today without requiring completion
-  if (ds.count > 0) {
-    ds.lastDate = todayKey;
-    saveState();
-  }
+  if (ds.lastDate === todayKey) return;
+  if (ds.count > 0) { ds.lastDate = todayKey; saveState(); }
+}
+
+function applyVacationStreakProtection() {
+  if (!state.vacationMode) return;
+  const todayKey = new Date().toDateString();
+  state.kids.forEach(function(k) {
+    if (!state.dailyStreak) state.dailyStreak = {};
+    if (!state.dailyStreak[k.id]) state.dailyStreak[k.id] = { count: 0, lastDate: '' };
+    const ds = state.dailyStreak[k.id];
+    if (ds.lastDate === todayKey) return;
+    if (ds.count > 0) { ds.lastDate = todayKey; }
+  });
+  // Save quietly without triggering full push loop
+  localStorage.setItem('kidstuff_cache', JSON.stringify(state));
 }
 
 function checkDailyStreak(kidId) {
@@ -3826,6 +4061,7 @@ function assignBonusChallenge() {
     kidId, subjectId, topic, coins,
     status: 'pending',
     date: new Date().toLocaleDateString(),
+    assignedDate: new Date().toISOString(),
     assignedBy: 'parent'
   });
   saveState();
@@ -3862,6 +4098,29 @@ function deleteCompletedLesson(kidId, subjectId) {
   renderParentKidSummary();
 }
 
+function purgeBonusChallenges() {
+  if (!state.bonusChallenges) return;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 7);
+  const before = state.bonusChallenges.length;
+  state.bonusChallenges = state.bonusChallenges.filter(function(b) {
+    if (b.status !== 'pending') return true;
+    if (!b.assignedDate) return true; // no date = keep
+    return new Date(b.assignedDate) >= cutoff;
+  });
+  if (state.bonusChallenges.length !== before) saveState();
+}
+
+function bonusChallengeAge(b) {
+  const assigned = b.assignedDate ? new Date(b.assignedDate) : null;
+  if (!assigned) return '';
+  const days = Math.floor((Date.now() - assigned) / 86400000);
+  if (days === 0) return '<span style="font-size:11px;color:#2ECC71;font-weight:700">Assigned today</span>';
+  if (days === 1) return '<span style="font-size:11px;color:#F59E0B;font-weight:700">1 day old</span>';
+  const color = days >= 5 ? '#EF4444' : '#F59E0B';
+  return '<span style="font-size:11px;color:' + color + ';font-weight:700">' + days + ' days old</span>';
+}
+
 function renderBonusChallengesList() {
   const el = document.getElementById('bonus-challenges-list');
   if (!el) return;
@@ -3876,6 +4135,7 @@ function renderBonusChallengesList() {
           + '<div style="flex:1">'
           + '<div style="font-weight:700;font-size:13px">' + (kid ? kid.emoji + ' ' + kid.name : b.kidId) + ' — ' + b.subjectId + '</div>'
           + (b.topic ? '<div style="font-size:12px;color:var(--muted)">' + b.topic + '</div>' : '')
+          + '<div style="margin-top:2px">' + bonusChallengeAge(b) + '</div>'
           + '</div>'
           + '<span style="background:#FFFBEA;color:#F59E0B;border-radius:8px;padding:3px 8px;font-size:12px;font-weight:800">🧠 ' + b.coins + '</span>'
           + '<button onclick="cancelBonusChallenge(\'' + b.id + '\')" style="background:none;border:none;color:var(--red);font-size:16px;cursor:pointer;padding:0 4px">✕</button>'
@@ -3883,7 +4143,34 @@ function renderBonusChallengesList() {
       }).join('');
 }
 
-function cancelBonusChallenge(id) {
+function renderVacationBtn() {
+  const btn = document.getElementById('vacation-toggle-btn');
+  const card = document.getElementById('vacation-mode-card');
+  if (!btn) return;
+  if (state.vacationMode) {
+    btn.textContent = '🏠 Back Home — Turn Off Vacation Mode';
+    btn.style.background = '#2ECC71';
+    if (card) card.style.background = '#F0FBF4';
+    if (card) card.style.borderColor = '#86EFAC';
+  } else {
+    btn.textContent = '✈️ Going on Vacation — Protect Streaks';
+    btn.style.background = '#0EA5E9';
+    if (card) card.style.background = '#EEF9FF';
+    if (card) card.style.borderColor = '#7DD3FC';
+  }
+}
+
+function toggleVacationMode() {
+  state.vacationMode = !state.vacationMode;
+  if (state.vacationMode) {
+    applyVacationStreakProtection();
+    showToast('✈️ Vacation mode ON — streaks protected!');
+  } else {
+    showToast('🏠 Vacation mode OFF — back to lessons!');
+  }
+  saveState();
+  renderVacationBtn();
+}
   state.bonusChallenges = (state.bonusChallenges || []).filter(b => b.id !== id);
   saveState();
   renderBonusChallengesList();
@@ -4145,6 +4432,8 @@ devWipe();
 checkQuarterlyReset();
 // Auto-protect streaks on US federal holidays
 state.kids.forEach(function(k) { checkHolidayStreakProtection(k.id); });
+applyVacationStreakProtection();
+purgeBonusChallenges();
 updateLastSyncedDisplay();
 
 // Init on load
