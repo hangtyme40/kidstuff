@@ -783,6 +783,7 @@ const DEFAULT_STATE = {
   curriculum:{lauren:null,andrew:null,tester:null},
   progress:{lauren:{},andrew:{},tester:{}},
   levels:{lauren:{spelling:0,math:0,reading:0,writing:0},andrew:{spelling:0,math:0,reading:0,writing:0},tester:{spelling:0,math:0,reading:0,writing:0}},
+  levelsUpdatedAt:{lauren:0,andrew:0,tester:0},
   streaks:{lauren:{spelling:[],math:[],reading:[],writing:[]},andrew:{spelling:[],math:[],reading:[],writing:[]},tester:{spelling:[],math:[],reading:[],writing:[]}},
   unlockedToday:{lauren:{},andrew:{},tester:{}},
   writingQueue:[],
@@ -994,7 +995,7 @@ async function pullState() {
         state.kids[kidIdx] = Object.assign({}, state.kids[kidIdx], remote.info);
       }
       // Per-kid data fields
-      const kidFields = ['progress','streaks','levels','badges','dailyStreak',
+      const kidFields = ['progress','streaks','levels','levelsUpdatedAt','badges','dailyStreak',
                          'brainBucksMilestones','skipDay','unlockedToday','lessonHistory','perfectWeekClaimed'];
       kidFields.forEach(function(f) {
         if (remote[f] !== undefined) {
@@ -1007,6 +1008,18 @@ async function pullState() {
               if (seen.has(key)) return false;
               seen.add(key); return true;
             });
+          } else if (f === 'levels') {
+            // Only overwrite local levels if remote is newer
+            const remoteTs = (remote['levelsUpdatedAt'] !== undefined) ? remote['levelsUpdatedAt'] : 0;
+            const localTs = (state.levelsUpdatedAt && state.levelsUpdatedAt[kidId]) || 0;
+            if (remoteTs >= localTs) {
+              state[f][kidId] = remote[f];
+            }
+            // Always update the timestamp tracking regardless
+            if (!state.levelsUpdatedAt) state.levelsUpdatedAt = {};
+            state.levelsUpdatedAt[kidId] = Math.max(remoteTs, localTs);
+          } else if (f === 'levelsUpdatedAt') {
+            // Handled above — skip
           } else {
             state[f][kidId] = remote[f];
           }
@@ -1060,6 +1073,7 @@ async function pushKidData(kidId) {
       progress: (state.progress || {})[kidId] || {},
       streaks: (state.streaks || {})[kidId] || {},
       levels: (state.levels || {})[kidId] || {},
+      levelsUpdatedAt: (state.levelsUpdatedAt || {})[kidId] || 0,
       badges: (state.badges || {})[kidId] || [],
       dailyStreak: (state.dailyStreak || {})[kidId] || {},
       brainBucksMilestones: (state.brainBucksMilestones || {})[kidId] || [],
@@ -1221,10 +1235,12 @@ function loadLocalFallback() {
       if (!state.paceData) state.paceData = {lauren:{}, andrew:{}, tester:{}};
       if (state.vacationMode === undefined) state.vacationMode = false;
       if (!state.perfectWeekClaimed) state.perfectWeekClaimed = {lauren:'', andrew:'', tester:''};
+      if (!state.levelsUpdatedAt) state.levelsUpdatedAt = {lauren:0, andrew:0, tester:0};
       state.kids.forEach(function(k) {
         if (!state.adaptiveQ[k.id]) state.adaptiveQ[k.id] = 10;
         if (!state.paceData[k.id]) state.paceData[k.id] = {};
         if (state.perfectWeekClaimed[k.id] === undefined) state.perfectWeekClaimed[k.id] = '';
+        if (!state.levelsUpdatedAt[k.id]) state.levelsUpdatedAt[k.id] = 0;
       });
     }
   } catch(e) { state = JSON.parse(JSON.stringify(DEFAULT_STATE)); }
@@ -2801,6 +2817,8 @@ function finishLesson() {
       if (curIdx < subjLevels.length - 1) {
         state.levels[currentKidId][ls.subjectId] = curIdx + 1;
         state.streaks[currentKidId][ls.subjectId] = [];
+        if (!state.levelsUpdatedAt) state.levelsUpdatedAt = {};
+        state.levelsUpdatedAt[currentKidId] = Date.now();
         triggerLevelUpIfNeeded(currentKidId, ls.subjectId, curIdx, curIdx + 1, subjLevels);
       }
     }
@@ -2809,6 +2827,8 @@ function finishLesson() {
       if (curIdx > 0) {
         state.levels[currentKidId][ls.subjectId] = curIdx - 1;
         state.streaks[currentKidId][ls.subjectId] = [];
+        if (!state.levelsUpdatedAt) state.levelsUpdatedAt = {};
+        state.levelsUpdatedAt[currentKidId] = Date.now();
         setTimeout(function() {
           const prevLevel = subjLevels[curIdx-1];
           showToast('📚 Let\'s practice: ' + (prevLevel ? prevLevel.name : 'previous level') + ' a bit more.');
@@ -2978,6 +2998,9 @@ function adjustLevel(delta) {
   const newIdx = Math.max(0, Math.min(subjLevels.length - 1, curIdx + delta));
   if (newIdx === curIdx) { showToast('Already at ' + (delta > 0 ? 'max' : 'min') + ' level.'); return; }
   state.levels[kidId][subjectId] = newIdx;
+  // Stamp timestamp so this change wins over stale remote data
+  if (!state.levelsUpdatedAt) state.levelsUpdatedAt = {};
+  state.levelsUpdatedAt[kidId] = Date.now();
   // Clear streak so advancement check resets cleanly
   if (state.streaks && state.streaks[kidId]) state.streaks[kidId][subjectId] = [];
   saveState();
