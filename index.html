@@ -3213,6 +3213,15 @@ function approveWriting(id) {
   if (!w) return;
   w.status = 'approved';
   const kid = state.kids.find(k=>k.id===w.kidId);
+  // Award Brain Bucks if not already awarded (covers redo submissions)
+  const writingProgress = state.progress[w.kidId] && state.progress[w.kidId]['writing'];
+  if (kid && writingProgress && !writingProgress.coinsAwarded) {
+    const earned = writingProgress.coins || 0;
+    if (earned > 0) {
+      kid.coins += earned;
+      writingProgress.coinsAwarded = true;
+    }
+  }
   saveState();
   showToast('✅ Approved — ' + (kid?kid.name:'') + '\'s writing looks great!');
   renderWritingApprovals();
@@ -3227,16 +3236,21 @@ function denyWriting(id) {
   const kid = state.kids.find(k=>k.id===w.kidId);
   // Deduct Brain Bucks earned from the writing lesson
   const writingProgress = state.progress[w.kidId] && state.progress[w.kidId]['writing'];
-  if (kid && writingProgress && writingProgress.coins) {
-    kid.coins = Math.max(0, kid.coins - writingProgress.coins);
+  if (kid && writingProgress && writingProgress.coinsAwarded) {
+    // Coins were already awarded on a previous approval — deduct them
+    kid.coins = Math.max(0, kid.coins - (writingProgress.coins || 0));
+    writingProgress.coinsAwarded = false;
+  } else if (kid && writingProgress && writingProgress.coins) {
+    // Coins not yet awarded (first deny) — just clear so they aren't awarded later
+    writingProgress.coinsAwarded = false;
   }
   // Clear progress so they can redo it today
   if (state.progress[w.kidId]) delete state.progress[w.kidId]['writing'];
-  // Pop the last streak entry so level meter reflects the redo
+  // Pop the last streak entry
   if (state.streaks && state.streaks[w.kidId] && state.streaks[w.kidId]['writing'] && state.streaks[w.kidId]['writing'].length) {
     state.streaks[w.kidId]['writing'].pop();
   }
-  // Add redo notice — replace any existing one for this kid
+  // Add redo notice
   if (!state.redoNotices) state.redoNotices = [];
   state.redoNotices = state.redoNotices.filter(function(n){ return !(n.kidId === w.kidId && n.subject === 'writing'); });
   state.redoNotices.push({ kidId: w.kidId, subject: 'writing', message: 'Your parent asked you to redo your writing. Give it another try!', date: new Date().toLocaleDateString() });
