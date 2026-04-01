@@ -503,7 +503,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         <div class="form-row"><label>For</label><select id="r-kid" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"></select></div>
         <div class="form-row"><label>Name</label><input id="r-name" type="text" placeholder="e.g. 30 min extra screen time"/></div>
         <div class="form-grid">
-          <div class="form-row"><label>Coin Cost</label><input id="r-cost" type="number" placeholder="50"/></div>
+          <div class="form-row"><label>Brain Bucks Cost</label><input id="r-cost" type="number" placeholder="50"/></div>
           <div class="form-row"><label>Emoji</label><input id="r-emoji" type="text" placeholder="📺" maxlength="2"/></div>
         </div>
         <button class="btn-primary" onclick="addReward()">Add Reward</button>
@@ -536,7 +536,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
           <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Set the max Brain Bucks a kid can earn on their first attempt at each subject (score% × max).</div>
           <div class="form-row"><label>Kid</label><select id="coinmax-kid-select" onchange="renderCoinMaxInputs()"></select></div>
           <div id="coinmax-inputs" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px"></div>
-          <button class="btn-primary" style="margin-top:12px" onclick="saveCoinMax()">Save Coin Limits</button>
+          <button class="btn-primary" style="margin-top:12px" onclick="saveCoinMax()">Save Brain Bucks Limits</button>
         </div>
         <div style="height:18px"></div>
         <div class="card" style="background:#EEF9FF;box-shadow:none;border:2px solid #7DD3FC" id="vacation-mode-card">
@@ -564,6 +564,16 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
             <button class="btn-primary" style="background:#2ECC71;flex:1" onclick="grantSkipDay(document.getElementById('skipday-kid-select').value)">➕ Grant Skip Day</button>
             <button class="btn-primary" style="background:#F7C948;color:#1A1F36;flex:1" onclick="useSkipDay(document.getElementById('skipday-kid-select').value)">🛡️ Use Skip Day</button>
           </div>
+        </div>
+        <div style="height:18px"></div>
+        <div class="card" style="background:#FFF5F5;box-shadow:none;border:2px solid #FCA5A5">
+          <div style="font-weight:800;margin-bottom:8px">🔥 Streak Override</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Manually restore a kid's streak if it was lost due to a bug or update.</div>
+          <div class="form-grid">
+            <div class="form-row"><label>Kid</label><select id="streak-override-kid" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"></select></div>
+            <div class="form-row"><label>Streak Days</label><input id="streak-override-val" type="number" min="0" placeholder="e.g. 7" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"/></div>
+          </div>
+          <button class="btn-primary" style="background:#EF4444" onclick="overrideStreak()">🔥 Set Streak</button>
         </div>
         <div style="height:18px"></div>
       </div>
@@ -792,7 +802,8 @@ const DEFAULT_STATE = {
   lastSynced: null,
   vacationMode: false,
   paceData: {lauren:{}, andrew:{}, tester:{}},
-  adaptiveQ: {lauren:10, andrew:10, tester:10}
+  adaptiveQ: {lauren:10, andrew:10, tester:10},
+  perfectWeekClaimed: {lauren:'', andrew:'', tester:''}
 };
 
 let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
@@ -979,14 +990,12 @@ async function pullState() {
       if (kidIdx === -1 && remote.info) {
         state.kids.push(remote.info);
       } else if (kidIdx !== -1 && remote.info) {
-        // Take higher coin value
-        state.kids[kidIdx] = Object.assign({}, state.kids[kidIdx], remote.info, {
-          coins: Math.max(state.kids[kidIdx].coins || 0, remote.info.coins || 0)
-        });
+        // Trust remote coin value as source of truth
+        state.kids[kidIdx] = Object.assign({}, state.kids[kidIdx], remote.info);
       }
       // Per-kid data fields
       const kidFields = ['progress','streaks','levels','badges','dailyStreak',
-                         'brainBucksMilestones','skipDay','unlockedToday','lessonHistory'];
+                         'brainBucksMilestones','skipDay','unlockedToday','lessonHistory','perfectWeekClaimed'];
       kidFields.forEach(function(f) {
         if (remote[f] !== undefined) {
           if (!state[f]) state[f] = {};
@@ -1056,7 +1065,8 @@ async function pushKidData(kidId) {
       brainBucksMilestones: (state.brainBucksMilestones || {})[kidId] || [],
       skipDay: (state.skipDay || {})[kidId] || 0,
       unlockedToday: (state.unlockedToday || {})[kidId] || {},
-      lessonHistory: (state.lessonHistory || {})[kidId] || []
+      lessonHistory: (state.lessonHistory || {})[kidId] || [],
+      perfectWeekClaimed: (state.perfectWeekClaimed || {})[kidId] || ''
     };
     await fbSet('kids/' + kidId, kidPayload);
   } catch(e) {
@@ -1210,10 +1220,11 @@ function loadLocalFallback() {
       if (!state.adaptiveQ) state.adaptiveQ = {lauren:10, andrew:10, tester:10};
       if (!state.paceData) state.paceData = {lauren:{}, andrew:{}, tester:{}};
       if (state.vacationMode === undefined) state.vacationMode = false;
-      // Per-kid adaptiveQ guard for existing kids
+      if (!state.perfectWeekClaimed) state.perfectWeekClaimed = {lauren:'', andrew:'', tester:''};
       state.kids.forEach(function(k) {
         if (!state.adaptiveQ[k.id]) state.adaptiveQ[k.id] = 10;
         if (!state.paceData[k.id]) state.paceData[k.id] = {};
+        if (state.perfectWeekClaimed[k.id] === undefined) state.perfectWeekClaimed[k.id] = '';
       });
     }
   } catch(e) { state = JSON.parse(JSON.stringify(DEFAULT_STATE)); }
@@ -3039,6 +3050,8 @@ function renderParentDashboard() {
       skipSel.onchange = function() { updateSkipDayBalance(skipSel.value); };
       updateSkipDayBalance(skipSel.value);
     }
+    const streakOverrideSel = document.getElementById('streak-override-kid');
+    if (streakOverrideSel) streakOverrideSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
     const coinmaxSel = document.getElementById('coinmax-kid-select');
     if (coinmaxSel) coinmaxSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.name}</option>`).join('');
     renderCoinMaxInputs();
@@ -3810,7 +3823,87 @@ function checkDailyStreak(kidId) {
     ds.lastDate = today;
     saveState();
     checkBadges(kidId);
+    checkPerfectWeek(kidId);
   }
+}
+
+// ── PERFECT WEEK ─────────────────────────────────────────
+const PERFECT_WEEK_BONUS = 5; // Brain Bucks awarded for a perfect Mon–Sat week
+
+function getWeekStart(date) {
+  // Returns Monday of the week containing date
+  const d = new Date(date);
+  const day = d.getDay(); // 0=Sun
+  const diff = day === 0 ? -6 : 1 - day; // Monday
+  d.setDate(d.getDate() + diff);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+function checkPerfectWeek(kidId) {
+  const today = new Date();
+  const dow = today.getDay();
+  // Only check on Sat (6) — or any non-Sunday day if all 6 days are done
+  // We check every completion — if this week is complete it fires once
+  if (!state.perfectWeekClaimed) state.perfectWeekClaimed = {};
+  if (!state.perfectWeekClaimed[kidId]) state.perfectWeekClaimed[kidId] = '';
+
+  const weekStart = getWeekStart(today);
+  const weekKey = weekStart.toISOString().slice(0,10);
+
+  // Already claimed this week
+  if (state.perfectWeekClaimed[kidId] === weekKey) return;
+
+  const history = (state.lessonHistory && state.lessonHistory[kidId]) || [];
+
+  // Build set of dates kid completed all scheduled subjects this week (Mon–Sat)
+  let perfectDays = 0;
+  let requiredDays = 0;
+
+  for (let i = 0; i < 6; i++) { // Mon(0) through Sat(5)
+    const day = new Date(weekStart);
+    day.setDate(weekStart.getDate() + i);
+    if (day > today) break; // don't count future days
+
+    const dateStr = day.toISOString().slice(0,10);
+    const dayDow = day.getDay();
+
+    if (dayDow === 0) continue;
+    if (isUSFederalHoliday(day) || state.vacationMode) { perfectDays++; requiredDays++; continue; }
+
+    requiredDays++;
+
+    const daySchedule = getScheduleForDow(dayDow);
+    if (daySchedule.isRest) { perfectDays++; continue; }
+
+    // Only look at history entries matching this exact date
+    const dayEntries = history.filter(e => e.date === dateStr);
+    const allDone = daySchedule.subjects.every(function(s) {
+      return dayEntries.some(e => e.subject === s);
+    });
+    if (allDone) perfectDays++;
+  }
+
+  if (requiredDays > 0 && perfectDays >= requiredDays && dow !== 0) {
+    // Perfect week! Award bonus
+    state.perfectWeekClaimed[kidId] = weekKey;
+    const kid = state.kids.find(k => k.id === kidId);
+    if (kid) {
+      kid.coins += PERFECT_WEEK_BONUS;
+      saveState();
+      setTimeout(function() {
+        launchConfetti(5000);
+        playSound('epic');
+        showToast('🏆 Perfect Week! +' + PERFECT_WEEK_BONUS + ' 🧠 Bonus Brain Bucks!');
+      }, 800);
+    }
+  }
+}
+
+function getScheduleForDow(dow) {
+  if (dow === 0) return { isRest: true, subjects: [] };
+  const isDayA = (dow % 2 === 1) || dow === 6; // Mon,Wed,Fri,Sat → spelling+math; Tue,Thu → reading+writing
+  return { isRest: false, subjects: isDayA ? ['spelling','math'] : ['reading','writing'] };
 }
 
 function renderStreakOnDashboard(kidId) {
@@ -4036,7 +4129,7 @@ function assignBonusChallenge() {
 }
 
 function deleteCompletedLesson(kidId, subjectId) {
-  if (!confirm('Delete ' + subjectId + ' progress for ' + state.kids.find(k=>k.id===kidId)?.name + '? This will also remove the coins they earned.')) return;
+  if (!confirm('Delete ' + subjectId + ' progress for ' + state.kids.find(k=>k.id===kidId)?.name + '? This will also remove the Brain Bucks they earned.')) return;
   const prog = state.progress[kidId] && state.progress[kidId][subjectId];
   if (prog) {
     // Deduct coins
@@ -4290,6 +4383,22 @@ function grantSkipDay(kidId) {
   renderParentDashboard();
 }
 
+function overrideStreak() {
+  const kidId = document.getElementById('streak-override-kid').value;
+  const val = parseInt(document.getElementById('streak-override-val').value);
+  if (!kidId || isNaN(val) || val < 0) { showToast('⚠️ Pick a kid and enter a valid streak number.'); return; }
+  if (!state.dailyStreak) state.dailyStreak = {};
+  if (!state.dailyStreak[kidId]) state.dailyStreak[kidId] = { count: 0, lastDate: '' };
+  state.dailyStreak[kidId].count = val;
+  // Set lastDate to today so streak doesn't immediately reset
+  state.dailyStreak[kidId].lastDate = getTodayKey();
+  saveState();
+  const kid = state.kids.find(k => k.id === kidId);
+  document.getElementById('streak-override-val').value = '';
+  showToast('🔥 ' + (kid ? kid.name : kidId) + '\'s streak set to ' + val + ' days!');
+  renderParentDashboard();
+}
+
 // ── WEEKLY EMAIL ─────────────────────────────────────────
 const EMAILJS_SERVICE_ID  = 'YOUR_SERVICE_ID';
 const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';
@@ -4413,7 +4522,7 @@ initSync();
     <input type="hidden" id="edit-reward-id"/>
     <div class="form-row"><label>Name</label><input id="edit-r-name" type="text" placeholder="Reward name"/></div>
     <div class="form-grid">
-      <div class="form-row"><label>Coin Cost</label><input id="edit-r-cost" type="number" placeholder="50"/></div>
+      <div class="form-row"><label>Brain Bucks Cost</label><input id="edit-r-cost" type="number" placeholder="50"/></div>
       <div class="form-row"><label>Emoji</label><input id="edit-r-emoji" type="text" placeholder="🎁" maxlength="2"/></div>
     </div>
     <div style="display:flex;gap:10px;margin-top:8px">
