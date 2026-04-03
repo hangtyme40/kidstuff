@@ -1220,7 +1220,12 @@ function startRealtimeListener() {
       if (isSyncing) return;
       clearTimeout(_realtimeRetryTimer);
       _realtimeRetryTimer = setTimeout(function() {
-        pullState().catch(e => console.warn('Realtime patch pull error:', e));
+        pullState().then(function() {
+          const parent = document.getElementById('screen-parent');
+          const kid = document.getElementById('screen-kid');
+          if (parent && parent.classList.contains('active')) renderParentDashboard();
+          if (kid && kid.classList.contains('active')) renderKidDashboard();
+        }).catch(e => console.warn('Realtime patch pull error:', e));
       }, 1200);
     });
     _realtimeES.onerror = function() {
