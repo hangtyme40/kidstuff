@@ -982,19 +982,7 @@ async function pullState() {
                           'difficultyLevel','bonusChallenges','badgeQuarter','vacationMode','paceData','adaptiveQ'];
     parentFields.forEach(function(f) {
       if (parentData[f] !== undefined) {
-        if (f === 'rewards') {
-          // Only overwrite local rewards if remote is newer
-          const remoteTs = (parentData['rewardsUpdatedAt'] !== undefined) ? parentData['rewardsUpdatedAt'] : 0;
-          const localTs = state.rewardsUpdatedAt || 0;
-          if (remoteTs >= localTs) {
-            state.rewards = parentData.rewards;
-            state.rewardsUpdatedAt = remoteTs;
-          }
-        } else if (f === 'rewardsUpdatedAt') {
-          // Handled above — skip
-        } else {
-          state[f] = parentData[f];
-        }
+        state[f] = parentData[f];
       }
     });
 
