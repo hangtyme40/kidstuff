@@ -806,7 +806,8 @@ const DEFAULT_STATE = {
   vacationMode: false,
   paceData: {lauren:{}, andrew:{}, tester:{}},
   adaptiveQ: {lauren:10, andrew:10, tester:10},
-  perfectWeekClaimed: {lauren:'', andrew:'', tester:''}
+  perfectWeekClaimed: {lauren:'', andrew:'', tester:''},
+  rewardsUpdatedAt: 0
 };
 
 let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
@@ -977,10 +978,24 @@ async function pullState() {
     const sharedData = await fbGet('shared') || {};
 
     // Merge parent settings into state (non-destructive)
-    const parentFields = ['pin','kidPins','rewards','coinMax','lessonTimers','selectedVoice',
+    const parentFields = ['pin','kidPins','rewards','rewardsUpdatedAt','coinMax','lessonTimers','selectedVoice',
                           'difficultyLevel','bonusChallenges','badgeQuarter','vacationMode','paceData','adaptiveQ'];
     parentFields.forEach(function(f) {
-      if (parentData[f] !== undefined) state[f] = parentData[f];
+      if (parentData[f] !== undefined) {
+        if (f === 'rewards') {
+          // Only overwrite local rewards if remote is newer
+          const remoteTs = (parentData['rewardsUpdatedAt'] !== undefined) ? parentData['rewardsUpdatedAt'] : 0;
+          const localTs = state.rewardsUpdatedAt || 0;
+          if (remoteTs >= localTs) {
+            state.rewards = parentData.rewards;
+            state.rewardsUpdatedAt = remoteTs;
+          }
+        } else if (f === 'rewardsUpdatedAt') {
+          // Handled above — skip
+        } else {
+          state[f] = parentData[f];
+        }
+      }
     });
 
     // Merge each kid's data independently
@@ -1074,6 +1089,7 @@ async function pullState() {
       Object.keys(correctRewards).forEach(function(kidId) {
         state.rewards[kidId] = correctRewards[kidId];
       });
+      state.rewardsUpdatedAt = Date.now();
       localStorage.setItem('kidstuff_cache', JSON.stringify(state));
       localStorage.setItem('rewardsMigrationV32', '1');
       // Push immediately so Firebase gets the correct rewards
@@ -1135,7 +1151,8 @@ async function pushParentData() {
       badgeQuarter: state.badgeQuarter,
       vacationMode: state.vacationMode || false,
       paceData: state.paceData || {},
-      adaptiveQ: state.adaptiveQ || {}
+      adaptiveQ: state.adaptiveQ || {},
+      rewardsUpdatedAt: state.rewardsUpdatedAt || 0
     };
     await fbSet('parent', parentPayload);
   } catch(e) {
@@ -1269,6 +1286,7 @@ function loadLocalFallback() {
       if (state.vacationMode === undefined) state.vacationMode = false;
       if (!state.perfectWeekClaimed) state.perfectWeekClaimed = {lauren:'', andrew:'', tester:''};
       if (!state.levelsUpdatedAt) state.levelsUpdatedAt = {lauren:0, andrew:0, tester:0};
+      if (state.rewardsUpdatedAt === undefined) state.rewardsUpdatedAt = 0;
       state.kids.forEach(function(k) {
         if (!state.adaptiveQ[k.id]) state.adaptiveQ[k.id] = 10;
         if (!state.paceData[k.id]) state.paceData[k.id] = {};
@@ -3509,6 +3527,7 @@ function addReward() {
     arr.push({id:'r'+Date.now()+id, name, cost, emoji});
     setRewardsForKid(id, arr);
   });
+  state.rewardsUpdatedAt = Date.now();
   saveState();
   document.getElementById('r-name').value=''; document.getElementById('r-cost').value=''; document.getElementById('r-emoji').value='';
   showToast('✅ Reward added' + (kidId==='both'?' for both!':'!')); renderParentRewards();
@@ -3539,6 +3558,7 @@ function saveEditReward() {
   if (!name) { showToast('⚠️ Enter a reward name.'); return; }
   const arr = getRewardsForKid(kidId).map(r => r.id===id ? {id, name, cost, emoji} : r);
   setRewardsForKid(kidId, arr);
+  state.rewardsUpdatedAt = Date.now();
   saveState();
   closeEditReward();
   showToast('✅ Reward updated!');
@@ -3548,6 +3568,7 @@ function saveEditReward() {
 function deleteReward(kidId, id) {
   const arr = getRewardsForKid(kidId).filter(r=>r.id!==id);
   setRewardsForKid(kidId, arr);
+  state.rewardsUpdatedAt = Date.now();
   saveState(); showToast('🗑️ Deleted.'); renderParentRewards();
 }
 
