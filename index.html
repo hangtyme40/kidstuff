@@ -110,7 +110,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .breakdown-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:15px;}
 .breakdown-row:last-child{border-bottom:none;}
 .writing-prompt{background:linear-gradient(135deg,#FFF8E1,#FFFDE7);border:2px solid var(--yellow);border-radius:14px;padding:20px;margin-bottom:20px;font-size:17px;font-weight:700;line-height:1.5;}
-.lined-area{background:white;border:2px solid var(--border);border-radius:12px;padding:16px;min-height:160px;background-image:repeating-linear-gradient(transparent,transparent 31px,#E2E8F8 31px,#E2E8F8 32px);line-height:32px;font-size:18px;font-family:'Nunito',sans-serif;color:var(--text);outline:none;width:100%;resize:none;}
+.lined-area{background:white;border:2px solid var(--border);border-radius:12px;padding:16px;min-height:280px;background-image:repeating-linear-gradient(transparent,transparent 31px,#E2E8F8 31px,#E2E8F8 32px);line-height:32px;font-size:18px;font-family:'Nunito',sans-serif;color:var(--text);outline:none;width:100%;resize:none;}
 .pin-box{background:white;border-radius:28px;padding:40px 36px;text-align:center;max-width:340px;width:100%;box-shadow:0 16px 48px rgba(0,0,0,0.25);}
 .pin-box h2{font-family:'Baloo 2',cursive;font-size:26px;margin-bottom:6px;}
 .pin-box p{color:var(--muted);font-size:14px;margin-bottom:24px;}
@@ -767,17 +767,19 @@ const DEFAULT_STATE = {
     lauren:[
       {id:'r1',name:'30 min extra screen time',cost:40,emoji:'📺'},
       {id:'r2',name:'Choose dinner',cost:60,emoji:'🍕'},
-      {id:'r3',name:'$1 allowance bonus',cost:80,emoji:'💵'}
+      {id:'r3',name:'$10 at Dollar Tree',cost:80,emoji:'💵'},
+      {id:'r4',name:'New bat grip from TT',cost:75,emoji:'🎁'}
     ],
     andrew:[
-      {id:'r1',name:'30 min extra screen time',cost:40,emoji:'📺'},
+      {id:'r1',name:'Catch with Daddy',cost:40,emoji:'📺'},
       {id:'r2',name:'Choose dinner',cost:60,emoji:'🍕'},
-      {id:'r3',name:'$1 allowance bonus',cost:80,emoji:'💵'}
+      {id:'r3',name:'$10 at Dollar Tree',cost:80,emoji:'💵'},
+      {id:'r4',name:'New bat grip from TT',cost:75,emoji:'🎁'}
     ],
     tester:[
       {id:'r1',name:'30 min extra screen time',cost:40,emoji:'📺'},
       {id:'r2',name:'Choose dinner',cost:60,emoji:'🍕'},
-      {id:'r3',name:'$1 allowance bonus',cost:80,emoji:'💵'}
+      {id:'r3',name:'$10 at Dollar Tree',cost:80,emoji:'💵'}
     ]
   },
   curriculum:{lauren:null,andrew:null,tester:null},
@@ -2255,8 +2257,8 @@ function renderWritingLesson(c) {
       <button onclick="clearCanvas()" style="margin-left:auto;background:rgba(255,255,255,0.9);border:1.5px solid var(--border);border-radius:8px;padding:5px 12px;font-family:Nunito,sans-serif;font-weight:700;font-size:12px;cursor:pointer;color:var(--muted);">🗑 Clear All</button>
     </div>
     <div style="position:relative;margin-bottom:14px;">
-      <canvas id="writing-canvas" width="700" height="380"
-        style="width:100%;height:380px;border:2px solid var(--border);border-radius:12px;background:#FAFBFF;touch-action:none;cursor:crosshair;display:block;"></canvas>
+      <canvas id="writing-canvas" width="700" height="660"
+        style="width:100%;height:660px;border:2px solid var(--border);border-radius:12px;background:#FAFBFF;touch-action:none;cursor:crosshair;display:block;"></canvas>
     </div>
     <div class="feedback-box" id="feedback"></div>
     <button class="btn-primary" id="writing-submit-btn" onclick="submitWriting()">Submit for Review ✉️</button>
@@ -4516,7 +4518,7 @@ function runMigrations() {
     if (state.rewards && !state.rewards.tester) state.rewards.tester = [
       {id:'r1',name:'30 min extra screen time',cost:40,emoji:'📺'},
       {id:'r2',name:'Choose dinner',cost:60,emoji:'🍕'},
-      {id:'r3',name:'$1 allowance bonus',cost:80,emoji:'💵'}
+      {id:'r3',name:'$10 at Dollar Tree',cost:80,emoji:'💵'}
     ];
     if (state.levels && !state.levels.tester) state.levels.tester = {spelling:0,math:0,reading:0,writing:0};
     if (state.streaks && !state.streaks.tester) state.streaks.tester = {spelling:[],math:[],reading:[],writing:[]};
