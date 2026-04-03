@@ -4536,6 +4536,42 @@ function runMigrations() {
     changed = true;
   }
 
+  // ── ONE-TIME REWARD FIX (v3.1) ───────────────────────────
+  // Detects stale default rewards and replaces with correct custom rewards.
+  // Runs once — guarded by rewardsMigrationV31 flag in localStorage.
+  if (!localStorage.getItem('rewardsMigrationV31')) {
+    const correctRewards = {
+      lauren: [
+        {id:'r1',name:'30 min extra screen time',cost:40,emoji:'📺'},
+        {id:'r2',name:'Choose dinner',cost:60,emoji:'🍕'},
+        {id:'r3',name:'$10 at Dollar Tree',cost:80,emoji:'💵'},
+        {id:'r4',name:'New bat grip from TT',cost:75,emoji:'🎁'}
+      ],
+      andrew: [
+        {id:'r1',name:'Catch with Daddy',cost:40,emoji:'📺'},
+        {id:'r2',name:'Choose dinner',cost:60,emoji:'🍕'},
+        {id:'r3',name:'$10 at Dollar Tree',cost:80,emoji:'💵'},
+        {id:'r4',name:'New bat grip from TT',cost:75,emoji:'🎁'}
+      ],
+      tester: [
+        {id:'r1',name:'30 min extra screen time',cost:40,emoji:'📺'},
+        {id:'r2',name:'Choose dinner',cost:60,emoji:'🍕'},
+        {id:'r3',name:'$10 at Dollar Tree',cost:80,emoji:'💵'}
+      ]
+    };
+    if (!state.rewards) state.rewards = {};
+    // Apply correct rewards for each kid
+    Object.keys(correctRewards).forEach(function(kidId) {
+      state.rewards[kidId] = correctRewards[kidId];
+    });
+    localStorage.setItem('rewardsMigrationV31', '1');
+    changed = true;
+    // Force push parent data to Firebase so all devices get the fix
+    setTimeout(function() {
+      pushParentData().catch(function(e) { console.warn('Reward migration push failed:', e); });
+    }, 2000);
+  }
+
   if (changed) localStorage.setItem('kidstuff_cache', JSON.stringify(state));
 }
 
