@@ -110,7 +110,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .breakdown-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:15px;}
 .breakdown-row:last-child{border-bottom:none;}
 .writing-prompt{background:linear-gradient(135deg,#FFF8E1,#FFFDE7);border:2px solid var(--yellow);border-radius:14px;padding:20px;margin-bottom:20px;font-size:17px;font-weight:700;line-height:1.5;}
-.lined-area{background:white;border:2px solid var(--border);border-radius:12px;padding:16px;min-height:280px;background-image:repeating-linear-gradient(transparent,transparent 31px,#E2E8F8 31px,#E2E8F8 32px);line-height:32px;font-size:18px;font-family:'Nunito',sans-serif;color:var(--text);outline:none;width:100%;resize:none;}
+.lined-area{background:white;border:2px solid var(--border);border-radius:12px;padding:16px;min-height:160px;background-image:repeating-linear-gradient(transparent,transparent 31px,#E2E8F8 31px,#E2E8F8 32px);line-height:32px;font-size:18px;font-family:'Nunito',sans-serif;color:var(--text);outline:none;width:100%;resize:none;}
 .pin-box{background:white;border-radius:28px;padding:40px 36px;text-align:center;max-width:340px;width:100%;box-shadow:0 16px 48px rgba(0,0,0,0.25);}
 .pin-box h2{font-family:'Baloo 2',cursive;font-size:26px;margin-bottom:6px;}
 .pin-box p{color:var(--muted);font-size:14px;margin-bottom:24px;}
@@ -450,7 +450,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
       </div>
       <div class="card" style="background:#FFF5F5;box-shadow:none;border:2px solid #FCA5A5">
         <div style="font-weight:800;margin-bottom:8px">🎚️ Adjust Level</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Manually move a kid up or down a level if the content is too easy or too hard.</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Select a kid and subject, then choose a grade and level. Arrows move within the current grade.</div>
         <div class="form-grid">
           <div class="form-row"><label>Kid</label><select id="level-adj-kid" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"></select></div>
           <div class="form-row"><label>Subject</label><select id="level-adj-subject" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;">
@@ -460,6 +460,11 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
             <option value="writing">✏️ Writing</option>
           </select></div>
         </div>
+        <div class="form-grid" style="margin-bottom:10px">
+          <div class="form-row"><label>Grade</label><select id="level-adj-grade" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"></select></div>
+          <div class="form-row"><label>Level within Grade</label><select id="level-adj-level" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"></select></div>
+        </div>
+        <button class="btn-primary" style="background:#7C3AED;margin-bottom:10px" onclick="applyLevelSelection()">✅ Set This Level</button>
         <div style="display:flex;gap:8px">
           <button class="btn-primary" style="flex:1;background:#4F6EF7" onclick="adjustLevel(-1)">⬇️ Level Down</button>
           <button class="btn-primary" style="flex:1;background:#2ECC71" onclick="adjustLevel(1)">⬆️ Level Up</button>
@@ -503,7 +508,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         <div class="form-row"><label>For</label><select id="r-kid" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"></select></div>
         <div class="form-row"><label>Name</label><input id="r-name" type="text" placeholder="e.g. 30 min extra screen time"/></div>
         <div class="form-grid">
-          <div class="form-row"><label>Brain Bucks Cost</label><input id="r-cost" type="number" placeholder="50"/></div>
+          <div class="form-row"><label>Coin Cost</label><input id="r-cost" type="number" placeholder="50"/></div>
           <div class="form-row"><label>Emoji</label><input id="r-emoji" type="text" placeholder="📺" maxlength="2"/></div>
         </div>
         <button class="btn-primary" onclick="addReward()">Add Reward</button>
@@ -536,7 +541,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
           <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Set the max Brain Bucks a kid can earn on their first attempt at each subject (score% × max).</div>
           <div class="form-row"><label>Kid</label><select id="coinmax-kid-select" onchange="renderCoinMaxInputs()"></select></div>
           <div id="coinmax-inputs" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px"></div>
-          <button class="btn-primary" style="margin-top:12px" onclick="saveCoinMax()">Save Brain Bucks Limits</button>
+          <button class="btn-primary" style="margin-top:12px" onclick="saveCoinMax()">Save Coin Limits</button>
         </div>
         <div style="height:18px"></div>
         <div class="card" style="background:#EEF9FF;box-shadow:none;border:2px solid #7DD3FC" id="vacation-mode-card">
@@ -564,16 +569,6 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
             <button class="btn-primary" style="background:#2ECC71;flex:1" onclick="grantSkipDay(document.getElementById('skipday-kid-select').value)">➕ Grant Skip Day</button>
             <button class="btn-primary" style="background:#F7C948;color:#1A1F36;flex:1" onclick="useSkipDay(document.getElementById('skipday-kid-select').value)">🛡️ Use Skip Day</button>
           </div>
-        </div>
-        <div style="height:18px"></div>
-        <div class="card" style="background:#FFF5F5;box-shadow:none;border:2px solid #FCA5A5">
-          <div style="font-weight:800;margin-bottom:8px">🔥 Streak Override</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Manually restore a kid's streak if it was lost due to a bug or update.</div>
-          <div class="form-grid">
-            <div class="form-row"><label>Kid</label><select id="streak-override-kid" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"></select></div>
-            <div class="form-row"><label>Streak Days</label><input id="streak-override-val" type="number" min="0" placeholder="e.g. 7" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"/></div>
-          </div>
-          <button class="btn-primary" style="background:#EF4444" onclick="overrideStreak()">🔥 Set Streak</button>
         </div>
         <div style="height:18px"></div>
       </div>
@@ -619,126 +614,371 @@ async function getFirebaseToken() {
 }
 
 // ── KUMON-STYLE PROGRESSION ──────────────────────────────
-const PROGRESSION = {
-  lauren: {
-    spelling: [
-      {level:1,name:'Short Vowel Words',desc:'CVC words with short vowel sounds'},
-      {level:2,name:'Consonant Blends',desc:'Words with blends like bl, cr, st'},
-      {level:3,name:'Long Vowel Silent-E',desc:'Words with silent-e (cake, bike)'},
-      {level:4,name:'Vowel Teams',desc:'ai, ay, ee, ea combinations'},
-      {level:5,name:'R-Controlled Vowels',desc:'ar, er, ir, or, ur patterns'},
-      {level:6,name:'Digraphs',desc:'ch, sh, th, wh combinations'},
-      {level:7,name:'Prefixes',desc:'un-, re-, pre- word beginnings'},
-      {level:8,name:'Suffixes',desc:'-ing, -ed, -er, -est endings'},
-      {level:9,name:'Compound Words',desc:'Two words joined together'},
-      {level:10,name:'Homophones',desc:'Words that sound alike but differ in meaning'},
-      {level:11,name:'Irregular Sight Words',desc:'High-frequency irregular words'},
-      {level:12,name:'Multi-Syllabic Words',desc:'Words with 3+ syllables'}
+// ── COBB COUNTY GA CURRICULUM ────────────────────────────
+// Grade-based progression: CURRICULUM[subject][grade] = [{name, desc}, ...]
+// Grades K–12. Each grade has multiple levels within it.
+// Auto-advancement: master last level of grade → promote to next grade level 1
+// Manual: parent can jump grade via dropdown; arrows move within grade levels
+
+const CURRICULUM = {
+  spelling: {
+    K: [
+      {name:'Letter Names & Sounds',desc:'Recognizing and writing uppercase and lowercase letters; initial consonant sounds'},
+      {name:'Short Vowel CVC Words',desc:'Simple three-letter words: cat, dog, sit, hop, bug'},
+      {name:'Sight Words Set 1',desc:'Cobb County Kindergarten sight words: the, a, is, it, in, on, can, we, see, I'}
     ],
-    math: [
-      {level:1,name:'Addition Within 20',desc:'Basic addition facts to 20'},
-      {level:2,name:'Addition Within 100',desc:'Two-digit addition with regrouping'},
-      {level:3,name:'Addition Within 1000',desc:'Three-digit addition with regrouping'},
-      {level:4,name:'Subtraction Within 20',desc:'Basic subtraction facts to 20'},
-      {level:5,name:'Subtraction Within 100',desc:'Two-digit subtraction with regrouping'},
-      {level:6,name:'Subtraction Within 1000',desc:'Three-digit subtraction with regrouping'},
-      {level:7,name:'Multiplication — 2s and 5s',desc:'Times tables for 2 and 5'},
-      {level:8,name:'Multiplication — 3s and 4s',desc:'Times tables for 3 and 4'},
-      {level:9,name:'Multiplication — 6s, 7s, 8s, 9s',desc:'Advanced multiplication facts'},
-      {level:10,name:'Division — 2s and 5s',desc:'Basic division with 2 and 5'},
-      {level:11,name:'Division — 3s and 4s',desc:'Division with 3 and 4'},
-      {level:12,name:'Division — 6s, 7s, 8s, 9s',desc:'Advanced division facts'},
-      {level:13,name:'Fractions — Basic Concepts',desc:'Equal parts, halves, thirds, quarters'},
-      {level:14,name:'Fractions — Comparing',desc:'Comparing and ordering fractions'},
-      {level:15,name:'Measurement — Time',desc:'Telling time and elapsed time'},
-      {level:16,name:'Measurement — Length and Weight',desc:'Inches, feet, pounds, ounces'},
-      {level:17,name:'Geometry — Shapes and Area',desc:'2D shapes, area, and perimeter'},
-      {level:18,name:'Word Problems — Mixed',desc:'Multi-step mixed operation word problems'}
+    1: [
+      {name:'Short Vowel Word Families',desc:'Word families: -at, -an, -ap, -ig, -in, -og, -op, -ug, -un'},
+      {name:'Consonant Blends',desc:'Beginning blends: bl, cl, fl, gl, pl, sl, br, cr, dr, fr, gr, pr, tr, st, sk, sp, sn, sw'},
+      {name:'Digraphs',desc:'ch, sh, th, wh, ph — spelling and usage in words'},
+      {name:'Long Vowel Silent-E',desc:'CVCe words: cake, bike, home, cute, Pete'},
+      {name:'Sight Words Set 2',desc:'First grade high-frequency words: said, have, do, they, was, with, you, he, she, are, all'}
     ],
-    reading: [
-      {level:1,name:'Main Idea and Key Details',desc:'Finding the main point of a passage'},
-      {level:2,name:'Story Structure',desc:'Beginning, middle, and end'},
-      {level:3,name:'Character Traits',desc:'Character feelings and motivations'},
-      {level:4,name:'Setting and Influence',desc:'How setting affects the story'},
-      {level:5,name:'Cause and Effect',desc:'Why things happen in stories'},
-      {level:6,name:'Compare and Contrast',desc:'Finding similarities and differences'},
-      {level:7,name:'Inference and Prediction',desc:'Reading between the lines'},
-      {level:8,name:"Author's Purpose",desc:'Why the author wrote the text'},
-      {level:9,name:'Vocabulary in Context',desc:'Understanding word meanings from context'},
-      {level:10,name:'Theme and Central Message',desc:'The deeper lesson of a story'}
+    2: [
+      {name:'Long Vowel Teams',desc:'ai/ay (rain, play), ee/ea (feet, beat), oa/ow (boat, snow), ie/igh (pie, night)'},
+      {name:'R-Controlled Vowels',desc:'ar (car), er (her), ir (bird), or (corn), ur (burn) — reading and spelling'},
+      {name:'Diphthongs',desc:'oi/oy (coin, boy), ou/ow (cloud, cow) — distinguishing and spelling'},
+      {name:'Compound Words',desc:'Combining two words: rainbow, cupcake, baseball, sunflower'},
+      {name:'Inflectional Endings',desc:'-s, -es, -ed, -ing, -er, -est — rules including doubling and dropping e'}
     ],
-    writing: [
-      {level:1,name:'Complete Sentences',desc:'Subject and predicate structure'},
-      {level:2,name:'Narrative — Personal Story',desc:'Writing about real experiences'},
-      {level:3,name:'Narrative — Fictional Story',desc:'Creating an imaginative story'},
-      {level:4,name:'Opinion Writing — Basic',desc:'Stating and supporting an opinion'},
-      {level:5,name:'Opinion Writing — With Evidence',desc:'Using facts and examples'},
-      {level:6,name:'Informational — Basic',desc:'Writing to explain or inform'},
-      {level:7,name:'Informational — With Details',desc:'Adding supporting details'},
-      {level:8,name:'Informational — Full Structure',desc:'Intro, body, and conclusion'}
+    3: [
+      {name:'Prefixes un- re- pre-',desc:'Meaning and spelling of un- (unhappy), re- (redo), pre- (preview)'},
+      {name:'Suffixes -ful -less -ness -ly',desc:'Adding suffixes to base words; spelling changes when needed'},
+      {name:'Homophones',desc:'their/there/they\'re, to/too/two, hear/here, its/it\'s — correct usage'},
+      {name:'Irregular Plurals',desc:'child/children, foot/feet, tooth/teeth, mouse/mice, goose/geese'},
+      {name:'Multi-Syllabic Words',desc:'Dividing words into syllables; accent patterns; 2-3 syllable words from Cobb County 3rd grade lists'},
+      {name:'Commonly Confused Words',desc:'accept/except, affect/effect, than/then, lose/loose — spelling and meaning'}
+    ],
+    4: [
+      {name:'Greek & Latin Roots',desc:'bio, geo, photo, graph, tele, micro — meaning and spelling in context'},
+      {name:'Prefixes mis- dis- non- over-',desc:'Meaning and spelling; using context clues to determine word meaning'},
+      {name:'Suffixes -tion -sion -ment -ous',desc:'Converting verbs/adjectives to nouns; spelling rules for each suffix'},
+      {name:'Homophones & Homographs',desc:'principal/principle, stationary/stationery, desert/dessert, lead/lead'},
+      {name:'Words from Other Languages',desc:'Borrowed words: ballet, spaghetti, kindergarten, canyon — spelling patterns'},
+      {name:'Academic Vocabulary Spelling',desc:'4th grade content-area words: government, equation, organism, sequence, evidence'}
+    ],
+    5: [
+      {name:'Advanced Prefixes & Suffixes',desc:'inter-, sub-, super-, semi-, anti-, mid-, under- with spelling changes'},
+      {name:'Greek & Latin Roots II',desc:'struct, port, rupt, dict, aud, vis, scrib/script — meaning and spelling'},
+      {name:'Word Relationships',desc:'Synonyms, antonyms, connotation — choosing precise words; spelling of each'},
+      {name:'Multisyllabic Words — Advanced',desc:'4-5 syllable words from 5th grade Cobb curriculum; syllable types and stress'},
+      {name:'Commonly Misspelled Words',desc:'necessary, separate, definitely, occurrence, privilege — memory strategies'},
+      {name:'Content-Area Vocabulary',desc:'5th grade science/social studies terms: photosynthesis, amendment, colonization'}
+    ],
+    6: [
+      {name:'Etymology & Word Origins',desc:'Greek, Latin, Anglo-Saxon roots; how origins affect spelling patterns'},
+      {name:'Affixes in Technical Words',desc:'pre-, post-, trans-, uni-, bi-, tri-, quad- in science and math vocabulary'},
+      {name:'Spelling Conventions Review',desc:'ie/ei rules, silent letters, unstressed vowels (schwa) in multi-syllabic words'},
+      {name:'Academic & Domain Vocabulary',desc:'6th grade ELA/Science/Social Studies terms; precision in spelling'},
+      {name:'Commonly Confused Words II',desc:'affect/effect, lay/lie, who/whom, farther/further — spelling and grammar'}
+    ],
+    7: [
+      {name:'Advanced Root Words',desc:'Latin roots: bene, mal, cred, fid, jur, pend, sens — building vocabulary through spelling'},
+      {name:'Formal vs Informal Register',desc:'Choosing and spelling words appropriately for academic writing contexts'},
+      {name:'Technical Vocabulary',desc:'Science and social studies terms from 7th grade Cobb curriculum'},
+      {name:'Word Morphology',desc:'How prefixes, roots, and suffixes combine; spelling complex derivatives'},
+      {name:'Confusing Word Pairs',desc:'elicit/illicit, eminent/imminent, explicit/implicit — spelling and usage'}
+    ],
+    8: [
+      {name:'Advanced Greek & Latin',desc:'Complex root combinations; medical and scientific terminology spelling'},
+      {name:'SAT/ACT Vocabulary Spelling',desc:'High-frequency standardized test words spelled correctly in context'},
+      {name:'Nuanced Word Meanings',desc:'Ambiguous, ambivalent, ubiquitous, ephemeral — precise spelling and meaning'},
+      {name:'Domain-Specific Spelling',desc:'8th grade content-area vocabulary across ELA, Science, Social Studies, Math'}
+    ],
+    9: [
+      {name:'College-Prep Vocabulary',desc:'Tier 3 academic words in 9th grade content areas; etymology-based spelling'},
+      {name:'Advanced Morphology',desc:'Complex word formation rules; spelling of technical and academic derivatives'},
+      {name:'Literary & Rhetorical Terms',desc:'Protagonist, antagonist, metaphor, allegory, allusion — precise spelling'}
+    ],
+    10: [
+      {name:'Sophisticated Academic Vocabulary',desc:'10th grade cross-curricular high-value words; nuanced spelling patterns'},
+      {name:'Research & Argumentative Terms',desc:'Corroborate, substantiate, juxtapose, counterargument — spelling in context'}
+    ],
+    11: [
+      {name:'AP/Pre-College Vocabulary',desc:'Words from AP exam word lists; complex derivations and spelling'},
+      {name:'Interdisciplinary Academic Words',desc:'Words spanning ELA, History, Science — Cobb County 11th grade standards'}
+    ],
+    12: [
+      {name:'College-Ready Vocabulary',desc:'SAT/ACT/AP level words; sophisticated spelling and nuanced usage'},
+      {name:'Advanced Academic Discourse',desc:'Scholarly register words; technical precision in spelling and meaning'}
     ]
   },
-  andrew: {
-    spelling: [
-      {level:7,name:'Prefixes',desc:'un-, re-, pre- word beginnings'},
-      {level:8,name:'Suffixes',desc:'-ing, -ed, -er, -est endings'},
-      {level:9,name:'Compound Words',desc:'Two words joined together'},
-      {level:10,name:'Homophones',desc:'Words that sound alike but differ in meaning'},
-      {level:11,name:'Irregular Sight Words',desc:'High-frequency irregular words'},
-      {level:12,name:'Multi-Syllabic Words',desc:'Words with 3+ syllables'}
+
+  math: {
+    K: [
+      {name:'Counting & Cardinality',desc:'Count to 100 by 1s and 10s; count objects; compare numbers 0-10'},
+      {name:'Addition & Subtraction Concepts',desc:'Understand addition as putting together, subtraction as taking away; within 10'},
+      {name:'Shapes & Measurement',desc:'Identify and describe 2D and 3D shapes; compare lengths and weights'}
     ],
-    math: [
-      {level:1,name:'Multi-Digit Addition',desc:'Adding large numbers with regrouping'},
-      {level:2,name:'Multi-Digit Subtraction',desc:'Subtracting large numbers with regrouping'},
-      {level:3,name:'Multiplication — 2-Digit by 1-Digit',desc:'Multiplying larger numbers'},
-      {level:4,name:'Multiplication — 2-Digit by 2-Digit',desc:'Advanced multiplication'},
-      {level:5,name:'Division With Remainders',desc:'Division that leaves remainders'},
-      {level:6,name:'Long Division',desc:'1-digit divisor long division'},
-      {level:7,name:'Factors and Multiples',desc:'Finding factors and multiples'},
-      {level:8,name:'Prime and Composite Numbers',desc:'Identifying prime vs composite'},
-      {level:9,name:'Equivalent Fractions',desc:'Fractions equal in value'},
-      {level:10,name:'Adding/Subtracting Fractions — Like',desc:'Same denominator fractions'},
-      {level:11,name:'Adding/Subtracting Fractions — Unlike',desc:'Different denominator fractions'},
-      {level:12,name:'Decimals — Tenths and Hundredths',desc:'Understanding decimal place value'},
-      {level:13,name:'Comparing Decimals',desc:'Ordering and comparing decimals'},
-      {level:14,name:'Adding/Subtracting Decimals',desc:'Decimal arithmetic'},
-      {level:15,name:'Converting Measurements',desc:'Converting between units'},
-      {level:16,name:'Geometry — Lines and Angles',desc:'Lines, angles, and triangles'},
-      {level:17,name:'Area and Perimeter',desc:'Complex shapes and compound figures'},
-      {level:18,name:'Multi-Step Word Problems',desc:'Complex multi-operation problems'}
+    1: [
+      {name:'Addition & Subtraction Within 20',desc:'Fluently add and subtract within 20 using strategies; word problems'},
+      {name:'Place Value to 99',desc:'Understand tens and ones; compare two-digit numbers; add multiples of 10'},
+      {name:'Measurement & Time',desc:'Order objects by length; tell time to the hour and half-hour; count coins'}
     ],
-    reading: [
-      {level:1,name:'Main Idea and Supporting Details',desc:'Main idea with text evidence'},
-      {level:2,name:'Plot Development',desc:'How stories develop and change'},
-      {level:3,name:'Character Development and POV',desc:'How characters grow in stories'},
-      {level:4,name:'Setting and Mood',desc:'How setting creates mood'},
-      {level:5,name:'Cause and Effect — Complex',desc:'Multiple causes and effects'},
-      {level:6,name:'Compare and Contrast — Multiple Texts',desc:'Ideas across different texts'},
-      {level:7,name:'Inference and Text Evidence',desc:'Conclusions using evidence'},
-      {level:8,name:"Author's Purpose and Perspective",desc:'Understanding bias and viewpoint'},
-      {level:9,name:'Figurative Language',desc:'Metaphors, similes, and other devices'},
-      {level:10,name:'Theme Across Multiple Texts',desc:'Theme using evidence from texts'}
+    2: [
+      {name:'Addition & Subtraction Within 100',desc:'Add and subtract within 100 using place value strategies; mental math'},
+      {name:'Place Value to 1000',desc:'Hundreds, tens, ones; read, write, compare three-digit numbers'},
+      {name:'Multiplication Concepts',desc:'Use arrays and equal groups to understand multiplication as repeated addition'},
+      {name:'Measurement & Data',desc:'Measure in inches/centimeters; create bar graphs and picture graphs; tell time to 5 minutes'}
     ],
-    writing: [
-      {level:5,name:'Opinion Writing — With Evidence',desc:'Using strong facts and examples'},
-      {level:6,name:'Informational — Basic',desc:'Writing to explain or inform'},
-      {level:7,name:'Informational — With Details',desc:'Adding supporting details'},
-      {level:8,name:'Informational — Full Structure',desc:'Intro, body, and conclusion'}
+    3: [
+      {name:'Multiplication & Division Facts',desc:'Multiply and divide within 100; understand relationship between × and ÷; fluency with facts 0-10'},
+      {name:'Fractions — Basic Concepts',desc:'Understand fractions as equal parts of a whole; unit fractions; fractions on a number line'},
+      {name:'Area & Perimeter',desc:'Find area using unit squares; find perimeter of polygons; relate area to multiplication'},
+      {name:'Multi-Step Word Problems',desc:'Solve two-step word problems using all four operations; assess reasonableness'}
+    ],
+    4: [
+      {name:'Multi-Digit Multiplication',desc:'Multiply up to 4-digit by 1-digit and 2-digit by 2-digit using standard algorithm'},
+      {name:'Division with Remainders',desc:'Divide multi-digit numbers; interpret remainders in context; long division intro'},
+      {name:'Fraction Operations',desc:'Add and subtract fractions with like denominators; equivalent fractions; mixed numbers'},
+      {name:'Decimals — Intro',desc:'Understand tenths and hundredths; compare decimals; relate to fractions'},
+      {name:'Geometry & Measurement',desc:'Classify 2D shapes by properties; find area; convert within measurement systems'}
+    ],
+    5: [
+      {name:'Decimal Operations',desc:'Add, subtract, multiply, divide decimals to hundredths; place value patterns'},
+      {name:'Fraction Operations — Advanced',desc:'Add/subtract fractions with unlike denominators; multiply fractions; divide unit fractions'},
+      {name:'Volume',desc:'Understand volume as packing with unit cubes; apply V = l × w × h'},
+      {name:'Coordinate Plane',desc:'Graph points in first quadrant; solve real-world problems using coordinates'},
+      {name:'Algebraic Thinking',desc:'Analyze patterns and relationships; write and interpret simple expressions'}
+    ],
+    6: [
+      {name:'Ratios & Proportional Relationships',desc:'Understand ratio concepts; use ratio reasoning to solve problems; unit rates'},
+      {name:'Operations with Fractions',desc:'Divide fractions by fractions; multiply and divide multi-digit decimals'},
+      {name:'Expressions & Equations',desc:'Write and evaluate expressions; solve one-variable equations and inequalities'},
+      {name:'Geometry',desc:'Find area of polygons; surface area and volume of 3D figures using nets'},
+      {name:'Statistics',desc:'Understand statistical variability; summarize data distributions; mean, median, mode, range'}
+    ],
+    7: [
+      {name:'Proportional Relationships',desc:'Recognize and represent proportional relationships; constant of proportionality'},
+      {name:'Operations with Rational Numbers',desc:'Add, subtract, multiply, divide rational numbers including negatives'},
+      {name:'Expressions & Equations II',desc:'Rewrite expressions using properties; solve multi-step equations and inequalities'},
+      {name:'Geometry — Scale & Constructions',desc:'Scale drawings; geometric constructions; area and circumference of circles'},
+      {name:'Probability',desc:'Understand probability as a number 0-1; theoretical vs experimental probability; compound events'}
+    ],
+    8: [
+      {name:'Linear Equations',desc:'Solve linear equations in one variable; understand solutions; slope-intercept form'},
+      {name:'Functions',desc:'Understand functions as input-output rules; linear vs non-linear; compare functions'},
+      {name:'Systems of Equations',desc:'Solve systems of two linear equations graphically and algebraically'},
+      {name:'Geometry — Transformations',desc:'Translations, reflections, rotations, dilations; congruence and similarity; Pythagorean theorem'},
+      {name:'Statistics & Probability',desc:'Scatter plots; linear association; two-way tables; relative frequency'}
+    ],
+    9: [
+      {name:'Algebra I — Linear Functions',desc:'Cobb County Algebra I: linear equations, inequalities, systems, functions'},
+      {name:'Algebra I — Polynomials',desc:'Add, subtract, multiply polynomials; factor; quadratic equations intro'},
+      {name:'Algebra I — Statistics',desc:'Descriptive statistics; scatter plots; linear regression; correlation'}
+    ],
+    10: [
+      {name:'Geometry — Proofs & Reasoning',desc:'Cobb County Geometry: congruence proofs; parallel lines; triangle theorems'},
+      {name:'Geometry — Similarity & Trig',desc:'Similar figures; trigonometric ratios; right triangle problem solving'},
+      {name:'Geometry — Circles & Volume',desc:'Circle theorems; arc length; area; volume of 3D solids'}
+    ],
+    11: [
+      {name:'Algebra II — Functions',desc:'Polynomial, rational, exponential, logarithmic functions — Cobb County Algebra II'},
+      {name:'Algebra II — Statistics',desc:'Normal distribution; confidence intervals; hypothesis testing intro'}
+    ],
+    12: [
+      {name:'Pre-Calculus / Calculus Intro',desc:'Limits, derivatives intro, trigonometry — Cobb County Pre-Calculus standards'},
+      {name:'Statistics — Advanced',desc:'AP Statistics topics: regression, probability models, inference'}
+    ]
+  },
+
+  reading: {
+    K: [
+      {name:'Print Concepts',desc:'Book handling; directionality; one-to-one correspondence; identify letters vs words'},
+      {name:'Phonological Awareness',desc:'Rhyme, syllables, onset-rime, blending and segmenting sounds'},
+      {name:'Comprehension — Read-Aloud',desc:'Retell stories; identify characters and setting; ask and answer questions about text'}
+    ],
+    1: [
+      {name:'Decoding & Fluency',desc:'Use phonics knowledge to decode words; read first-grade texts with accuracy and expression'},
+      {name:'Story Elements',desc:'Identify characters, setting, problem, and solution; retell beginning, middle, end'},
+      {name:'Main Idea & Details',desc:'Identify the main topic and key details in informational texts'},
+      {name:'Vocabulary in Context',desc:'Use context clues and picture clues; understand words in stories and informational text'}
+    ],
+    2: [
+      {name:'Character & Plot',desc:'Describe how characters respond to challenges; compare characters within and across stories'},
+      {name:'Informational Text',desc:'Identify main topic and supporting details; use text features (headings, captions, glossary)'},
+      {name:'Author\'s Purpose',desc:'Identify why the author wrote the text (inform, entertain, persuade)'},
+      {name:'Comparing Texts',desc:'Compare and contrast two versions of same story; compare information from two texts on same topic'}
+    ],
+    3: [
+      {name:'Story Structure & Theme',desc:'Describe how chapters build on each other; determine theme and central message'},
+      {name:'Character Motivation & Traits',desc:'Explain character traits using text evidence; how characters change throughout story'},
+      {name:'Informational — Text Structure',desc:'Describe logical connection between sentences using cause/effect, compare/contrast, sequence'},
+      {name:'Vocabulary & Figurative Language',desc:'Distinguish literal vs nonliteral language; identify similes and metaphors; use context clues'},
+      {name:'Point of View',desc:'Distinguish own point of view from narrator\'s; compare first and third person narration'}
+    ],
+    4: [
+      {name:'Theme & Summary',desc:'Determine theme from details; summarize without personal opinion; compare themes across texts'},
+      {name:'Inferencing & Text Evidence',desc:'Use text evidence to support inferences; quote accurately from text'},
+      {name:'Informational — Main Idea',desc:'Determine main idea and supporting details; explain how details support main idea'},
+      {name:'Figurative Language',desc:'Explain meaning of similes, metaphors, alliteration, idioms, and adages'},
+      {name:'Text Structures',desc:'Describe overall structure of text: chronology, comparison, cause/effect, problem/solution'}
+    ],
+    5: [
+      {name:'Theme Across Texts',desc:'Compare and contrast two texts on same theme or topic; analyze how theme is developed'},
+      {name:'Point of View & Perspective',desc:'Describe how narrator\'s or character\'s POV influences how events are described'},
+      {name:'Informational — Integrate Information',desc:'Explain relationships or interactions between two or more individuals, events, or concepts'},
+      {name:'Figurative Language — Advanced',desc:'Interpret figurative language including personification, hyperbole, and symbolism'},
+      {name:'Argumentative Text',desc:'Explain how an author uses reasons and evidence to support points in a text'}
+    ],
+    6: [
+      {name:'Central Idea & Evidence',desc:'Determine central idea; provide summary distinct from personal opinions; cite textual evidence'},
+      {name:'Character & Plot Analysis',desc:'Analyze how plot unfolds; explain how a character responds to challenges'},
+      {name:'Connotation & Word Choice',desc:'Analyze impact of specific word choices on meaning and tone'},
+      {name:'Point of View & Purpose',desc:'Explain how author develops point of view; distinguish from other viewpoints'},
+      {name:'Argument & Evidence',desc:'Trace argument and evaluate claims; distinguish claims from evidence from reasoning'}
+    ],
+    7: [
+      {name:'Theme & Central Idea',desc:'Analyze theme development over course of text; summarize objectively'},
+      {name:'Author\'s Craft',desc:'Analyze how author develops and contrasts points of view of different characters or narrators'},
+      {name:'Informational Analysis',desc:'Analyze the structure author uses to organize text; evaluate effectiveness'},
+      {name:'Figurative & Connotative Language',desc:'Analyze impact of rhymes, repetition, and figurative language on meaning'},
+      {name:'Comparing Across Genres',desc:'Compare and contrast fictional portrayals and historical accounts of same period/event'}
+    ],
+    8: [
+      {name:'Textual Analysis — Theme',desc:'Analyze how modern works draw on myths and traditional stories; compare treatments'},
+      {name:'Author\'s Purpose & Rhetoric',desc:'Analyze how author acknowledges and responds to conflicting evidence or viewpoints'},
+      {name:'Informational — Argument',desc:'Delineate and evaluate argument; assess whether reasoning is sound and evidence is relevant'},
+      {name:'Vocabulary — Connotation & Denotation',desc:'Distinguish connotations of words with similar denotations; analyze word choices'},
+      {name:'Comparing Texts — Perspectives',desc:'Analyze how two different texts address similar topics; evaluate different interpretations'}
+    ],
+    9: [
+      {name:'Literary Analysis',desc:'Cobb County 9th grade ELA: analyze theme, character, structure in complex literary texts'},
+      {name:'Informational & Argumentative',desc:'Evaluate arguments; analyze rhetoric; identify fallacies; synthesize multiple sources'}
+    ],
+    10: [
+      {name:'World Literature Analysis',desc:'Analyze themes in world literature; examine cultural and historical contexts'},
+      {name:'Research & Synthesis',desc:'Synthesize information from multiple complex texts; evaluate credibility and relevance'}
+    ],
+    11: [
+      {name:'American Literature Analysis',desc:'Analyze American literary traditions; Romanticism, Realism, Modernism'},
+      {name:'AP Language & Composition',desc:'Rhetorical analysis; argumentation; synthesis essays — AP level comprehension'}
+    ],
+    12: [
+      {name:'British Literature & World Texts',desc:'Analyze British literary canon and world texts; complex thematic connections'},
+      {name:'AP Literature & Composition',desc:'AP-level literary analysis; close reading; thematic and structural complexity'}
+    ]
+  },
+
+  writing: {
+    K: [
+      {name:'Opinion Writing',desc:'Use a combination of drawing, dictating, and writing to tell about a topic and state an opinion'},
+      {name:'Narrative Writing',desc:'Use drawing, dictating, and writing to narrate a single event with a reaction'}
+    ],
+    1: [
+      {name:'Opinion Writing',desc:'Introduce a topic or book; state an opinion; supply a reason; provide closure'},
+      {name:'Informative Writing',desc:'Name a topic; supply facts; provide closure'},
+      {name:'Narrative Writing',desc:'Recount two or more events; use temporal words; provide a sense of closure'}
+    ],
+    2: [
+      {name:'Opinion Writing',desc:'Introduce topic; state opinion; give two or more reasons; concluding statement'},
+      {name:'Informative Writing',desc:'Introduce a topic; use facts and definitions to develop points; concluding statement'},
+      {name:'Narrative Writing',desc:'Recount a well-elaborated event; include details; use temporal words; closure'}
+    ],
+    3: [
+      {name:'Opinion Writing',desc:'State an opinion; create an organizational structure; provide reasons with linking words; concluding statement'},
+      {name:'Informative/Explanatory',desc:'Introduce a topic; develop with facts, definitions, details; use linking words; concluding statement'},
+      {name:'Narrative Writing',desc:'Establish a situation and narrator; use dialogue and description; temporal words; natural conclusion'}
+    ],
+    4: [
+      {name:'Opinion Writing',desc:'Introduce a topic clearly; state opinion; organize reasons with facts and details; linking words; concluding statement'},
+      {name:'Informative/Explanatory',desc:'Introduce a topic with a topic sentence; develop with facts, definitions, concrete details, quotes; concluding statement'},
+      {name:'Narrative Writing',desc:'Orient the reader; use dialogue, description, and pacing; use concrete words and sensory details; provide conclusion'}
+    ],
+    5: [
+      {name:'Opinion Writing',desc:'Introduce a topic clearly; logically group reasons; provide evidence; use linking language; concluding statement'},
+      {name:'Informative/Explanatory',desc:'Introduce a topic with a thesis; develop with facts, definitions, concrete details; domain-specific vocabulary; conclusion'},
+      {name:'Narrative Writing',desc:'Establish narrator and point of view; use dialogue, description, pacing; varied transitions; reflection in conclusion'}
+    ],
+    6: [
+      {name:'Argumentative Writing',desc:'Introduce claim; organize reasons and evidence clearly; acknowledge counterclaim; use credible sources; concluding statement'},
+      {name:'Informative/Explanatory',desc:'Introduce topic with a thesis; develop with relevant evidence; use varied transitions; domain-specific vocabulary; strong conclusion'},
+      {name:'Narrative Writing',desc:'Engage reader from start; use narrative techniques; well-structured sequence; precise language; conclusion reflects on experience'}
+    ],
+    7: [
+      {name:'Argumentative Writing',desc:'Introduce claim(s); support with logical reasoning and relevant evidence; address counterclaims; maintain formal style'},
+      {name:'Informative/Explanatory',desc:'Examine a topic through multiple relevant facts; use precise language; formal style; strong concluding section'},
+      {name:'Narrative Writing',desc:'Engage reader; develop real or imagined experiences with effective technique; precise words; sequenced narrative'}
+    ],
+    8: [
+      {name:'Argumentative Writing',desc:'Introduce and develop claim(s) with evidence; distinguish claim from counterclaim; use credible sources; maintain formal style'},
+      {name:'Informative/Explanatory',desc:'Introduce topic with clear thesis; develop each point with relevant evidence; precise language; formal conclusion'},
+      {name:'Research Writing',desc:'Write research essay integrating multiple sources; cite sources; avoid plagiarism; present findings clearly'}
+    ],
+    9: [
+      {name:'Literary Analysis Essay',desc:'Analyze literary elements using textual evidence; develop argument; formal academic style'},
+      {name:'Argumentative Essay',desc:'Cobb County 9th grade: develop and support claim; address counterclaims; use credible sources'}
+    ],
+    10: [
+      {name:'Comparative Analysis Essay',desc:'Compare literary or informational texts; develop analytical thesis; use textual evidence'},
+      {name:'Research-Based Argument',desc:'Synthesize multiple sources; develop nuanced argument; MLA/APA citation basics'}
+    ],
+    11: [
+      {name:'Rhetorical Analysis',desc:'Analyze author\'s rhetorical choices; AP Language style argumentation and synthesis'},
+      {name:'AP Argumentative Essay',desc:'AP-level argument; nuanced claim; sophisticated evidence; formal academic voice'}
+    ],
+    12: [
+      {name:'Literary Analysis — Advanced',desc:'AP Literature style close reading essays; complex thesis; sophisticated analysis'},
+      {name:'College Application & Academic Writing',desc:'Personal essays; college-level argumentation; research writing; proper citation'}
     ]
   }
 };
 
-function getProgression(kidId) { return PROGRESSION[kidId] || PROGRESSION[kidId === 'tester' ? 'andrew' : 'lauren']; }
-function getSubjectProgression(kidId, subjectId) { return getProgression(kidId)[subjectId] || []; }
-function getCurrentLevelIndex(kidId, subjectId) {
-  if (!state.levels || !state.levels[kidId]) return 0;
-  return state.levels[kidId][subjectId] || 0;
+const GRADE_LABELS = {
+  K:'Kindergarten', 1:'Grade 1', 2:'Grade 2', 3:'Grade 3', 4:'Grade 4',
+  5:'Grade 5', 6:'Grade 6', 7:'Grade 7', 8:'Grade 8', 9:'Grade 9',
+  10:'Grade 10', 11:'Grade 11', 12:'Grade 12'
+};
+const GRADE_ORDER = ['K',1,2,3,4,5,6,7,8,9,10,11,12];
+
+// ── NEW LEVEL FUNCTIONS ──────────────────────────────────
+// state.levels[kidId][subjectId] = {grade: 3, levelIdx: 0}
+// grade is K,1,2,...,12; levelIdx is 0-based index within that grade
+
+function getGradeLevels(grade, subject) {
+  return (CURRICULUM[subject] && CURRICULUM[subject][grade]) || [];
 }
+
+function getCurrentGradeLevel(kidId, subjectId) {
+  const l = state.levels && state.levels[kidId] && state.levels[kidId][subjectId];
+  if (l && typeof l === 'object' && l.grade !== undefined) return l;
+  // Legacy flat index — migrate to grade 3 level 0 as default
+  return {grade: 3, levelIdx: 0};
+}
+
 function getCurrentLevelData(kidId, subjectId) {
-  const lvls = getSubjectProgression(kidId, subjectId);
-  const idx = getCurrentLevelIndex(kidId, subjectId);
-  return lvls[Math.min(idx, lvls.length-1)] || {name:'Complete',desc:'All levels mastered!'};
+  const gl = getCurrentGradeLevel(kidId, subjectId);
+  const levels = getGradeLevels(gl.grade, subjectId);
+  const idx = Math.min(gl.levelIdx || 0, levels.length - 1);
+  const lvl = levels[idx];
+  if (!lvl) return {name: GRADE_LABELS[gl.grade] || ('Grade ' + gl.grade), desc: subjectId + ' at ' + (GRADE_LABELS[gl.grade] || 'Grade ' + gl.grade)};
+  return {
+    name: (GRADE_LABELS[gl.grade] || ('Grade ' + gl.grade)) + ' — ' + lvl.name,
+    desc: lvl.desc,
+    grade: gl.grade,
+    levelIdx: idx,
+    totalInGrade: levels.length,
+    gradeLabel: GRADE_LABELS[gl.grade] || ('Grade ' + gl.grade)
+  };
 }
+
+// Legacy compatibility — returns flat array for functions that still use it
+function getSubjectProgression(kidId, subjectId) {
+  const gl = getCurrentGradeLevel(kidId, subjectId);
+  return getGradeLevels(gl.grade, subjectId);
+}
+
+// Legacy — returns levelIdx within current grade
+function getCurrentLevelIndex(kidId, subjectId) {
+  const gl = getCurrentGradeLevel(kidId, subjectId);
+  return gl.levelIdx || 0;
+}
+
+function getProgression(kidId) {
+  // No longer per-kid — curriculum is universal, grade-based
+  return {};
+}
+
 function getStreakScores(kidId, subjectId) {
   if (!state.streaks || !state.streaks[kidId]) return [];
   return state.streaks[kidId][subjectId] || [];
@@ -784,8 +1024,26 @@ const DEFAULT_STATE = {
   },
   curriculum:{lauren:null,andrew:null,tester:null},
   progress:{lauren:{},andrew:{},tester:{}},
-  levels:{lauren:{spelling:0,math:0,reading:0,writing:0},andrew:{spelling:0,math:0,reading:0,writing:0},tester:{spelling:0,math:0,reading:0,writing:0}},
-  levelsUpdatedAt:{lauren:0,andrew:0,tester:0},
+  levels:{
+    lauren:{
+      spelling:{grade:3,levelIdx:3},
+      math:{grade:3,levelIdx:2},
+      reading:{grade:3,levelIdx:2},
+      writing:{grade:3,levelIdx:1}
+    },
+    andrew:{
+      spelling:{grade:4,levelIdx:0},
+      math:{grade:3,levelIdx:2},
+      reading:{grade:3,levelIdx:2},
+      writing:{grade:3,levelIdx:1}
+    },
+    tester:{
+      spelling:{grade:3,levelIdx:0},
+      math:{grade:3,levelIdx:0},
+      reading:{grade:3,levelIdx:0},
+      writing:{grade:3,levelIdx:0}
+    }
+  },
   streaks:{lauren:{spelling:[],math:[],reading:[],writing:[]},andrew:{spelling:[],math:[],reading:[],writing:[]},tester:{spelling:[],math:[],reading:[],writing:[]}},
   unlockedToday:{lauren:{},andrew:{},tester:{}},
   writingQueue:[],
@@ -807,7 +1065,8 @@ const DEFAULT_STATE = {
   paceData: {lauren:{}, andrew:{}, tester:{}},
   adaptiveQ: {lauren:10, andrew:10, tester:10},
   perfectWeekClaimed: {lauren:'', andrew:'', tester:''},
-  rewardsUpdatedAt: 0
+  rewardsUpdatedAt: 0,
+  levelsUpdatedAt: {lauren:0, andrew:0, tester:0}
 };
 
 let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
@@ -849,7 +1108,7 @@ async function flushOfflineQueue() {
 // ── LESSON HISTORY SYSTEM ────────────────────────────────
 // History now lives inside state.lessonHistory so it syncs with everything else
 
-function recordLessonHistory(kidId, subjectId, pct, coins, correct, total, elapsedMin, levelIdx) {
+function recordLessonHistory(kidId, subjectId, pct, coins, correct, total, elapsedMin, levelIdx, grade) {
   if (!state.lessonHistory) state.lessonHistory = {};
   if (!state.lessonHistory[kidId]) state.lessonHistory[kidId] = [];
   const entry = {
@@ -862,6 +1121,8 @@ function recordLessonHistory(kidId, subjectId, pct, coins, correct, total, elaps
     total: total,
     duration: elapsedMin || 0,
     level: levelIdx + 1,
+    grade: grade || 3,
+    gradeLabel: grade ? (GRADE_LABELS[grade] || ('Grade ' + grade)) : 'Grade 3',
     wrongAnswers: (lessonState && lessonState.wrongAnswers || []).slice(0, 10)
   };
   state.lessonHistory[kidId].unshift(entry);
@@ -979,11 +1240,10 @@ async function pullState() {
 
     // Merge parent settings into state (non-destructive)
     const parentFields = ['pin','kidPins','rewards','rewardsUpdatedAt','coinMax','lessonTimers','selectedVoice',
-                          'difficultyLevel','bonusChallenges','badgeQuarter','vacationMode','paceData','adaptiveQ'];
+                          'difficultyLevel','bonusChallenges','badgeQuarter','vacationMode','paceData','adaptiveQ',
+                          'perfectWeekClaimed','levelsUpdatedAt'];
     parentFields.forEach(function(f) {
-      if (parentData[f] !== undefined) {
-        state[f] = parentData[f];
-      }
+      if (parentData[f] !== undefined) state[f] = parentData[f];
     });
 
     // Merge each kid's data independently
@@ -991,22 +1251,19 @@ async function pullState() {
     kidIds.forEach(function(kidId) {
       const remote = kidsData[kidId];
       if (!remote) return;
-      // Find kid in state
       const kidIdx = state.kids.findIndex(k => k.id === kidId);
       if (kidIdx === -1 && remote.info) {
         state.kids.push(remote.info);
       } else if (kidIdx !== -1 && remote.info) {
-        // Trust remote coin value as source of truth
+        // Trust remote as source of truth
         state.kids[kidIdx] = Object.assign({}, state.kids[kidIdx], remote.info);
       }
-      // Per-kid data fields
       const kidFields = ['progress','streaks','levels','levelsUpdatedAt','badges','dailyStreak',
                          'brainBucksMilestones','skipDay','unlockedToday','lessonHistory','perfectWeekClaimed'];
       kidFields.forEach(function(f) {
         if (remote[f] !== undefined) {
           if (!state[f]) state[f] = {};
           if (f === 'lessonHistory' && Array.isArray(remote[f]) && Array.isArray(state[f][kidId])) {
-            // Merge and deduplicate history
             const seen = new Set();
             state[f][kidId] = (remote[f] || []).concat(state[f][kidId] || []).filter(function(e) {
               const key = e.date + '|' + e.subject;
@@ -1020,11 +1277,10 @@ async function pullState() {
             if (remoteTs >= localTs) {
               state[f][kidId] = remote[f];
             }
-            // Always update the timestamp tracking regardless
             if (!state.levelsUpdatedAt) state.levelsUpdatedAt = {};
             state.levelsUpdatedAt[kidId] = Math.max(remoteTs, localTs);
           } else if (f === 'levelsUpdatedAt') {
-            // Handled above — skip
+            // Handled above
           } else {
             state[f][kidId] = remote[f];
           }
@@ -1080,7 +1336,6 @@ async function pullState() {
       state.rewardsUpdatedAt = Date.now();
       localStorage.setItem('kidstuff_cache', JSON.stringify(state));
       localStorage.setItem('rewardsMigrationV32', '1');
-      // Push immediately so Firebase gets the correct rewards
       try { await pushParentData(); } catch(e) { console.warn('Reward fix push failed:', e); }
     }
     setSyncBar('✅ Synced', '');
@@ -1132,6 +1387,7 @@ async function pushParentData() {
       pin: state.pin,
       kidPins: state.kidPins,
       rewards: state.rewards,
+      rewardsUpdatedAt: state.rewardsUpdatedAt || 0,
       coinMax: state.coinMax,
       lessonTimers: state.lessonTimers,
       selectedVoice: state.selectedVoice,
@@ -1140,7 +1396,8 @@ async function pushParentData() {
       vacationMode: state.vacationMode || false,
       paceData: state.paceData || {},
       adaptiveQ: state.adaptiveQ || {},
-      rewardsUpdatedAt: state.rewardsUpdatedAt || 0
+      perfectWeekClaimed: state.perfectWeekClaimed || {},
+      levelsUpdatedAt: state.levelsUpdatedAt || {}
     };
     await fbSet('parent', parentPayload);
   } catch(e) {
@@ -1220,12 +1477,7 @@ function startRealtimeListener() {
       if (isSyncing) return;
       clearTimeout(_realtimeRetryTimer);
       _realtimeRetryTimer = setTimeout(function() {
-        pullState().then(function() {
-          const parent = document.getElementById('screen-parent');
-          const kid = document.getElementById('screen-kid');
-          if (parent && parent.classList.contains('active')) renderParentDashboard();
-          if (kid && kid.classList.contains('active')) renderKidDashboard();
-        }).catch(e => console.warn('Realtime patch pull error:', e));
+        pullState().catch(e => console.warn('Realtime patch pull error:', e));
       }, 1200);
     });
     _realtimeES.onerror = function() {
@@ -1601,12 +1853,13 @@ function renderKidDashboard() {
       const locked = d && !isUnlockedToday(currentKidId, subjectId);
       const art = subjectArt[subjectId];
       const col = subjectColors[subjectId];
-      const levelData = getCurrentLevelData(currentKidId, subjectId);
+      const gl = getCurrentGradeLevel(currentKidId, subjectId);
+      const gradeLevels = getGradeLevels(gl.grade, subjectId);
+      const curIdx = gl.levelIdx || 0;
+      const gradeLabel = GRADE_LABELS[gl.grade] || ('Grade ' + gl.grade);
+      const lvl = gradeLevels[curIdx];
+      const lvlName = lvl ? lvl.name : subjectId;
       const streakScores = getStreakScores(currentKidId, subjectId);
-      const subjLevels = getSubjectProgression(currentKidId, subjectId);
-      const curIdx = getCurrentLevelIndex(currentKidId, subjectId);
-      const levelNum = curIdx + 1;
-      const totalLevels = subjLevels.length;
       const mins = timerMins[subjectId] || 15;
 
       const div = document.createElement('div');
@@ -1627,8 +1880,8 @@ function renderKidDashboard() {
       })();
 
       div.innerHTML = '<div style="width:72px;height:72px;border-radius:50%;background:' + col + ';display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 10px;box-shadow:0 4px 16px rgba(0,0,0,0.15);">' + art + '</div>'
-        + '<div class="subj-name">' + (levelData ? levelData.name : subjectId) + '</div>'
-        + '<div style="font-size:11px;color:var(--primary);font-weight:700;margin-top:2px">Level ' + levelNum + ' of ' + totalLevels + '</div>'
+        + '<div class="subj-name">' + lvlName + '</div>'
+        + '<div style="font-size:11px;color:var(--primary);font-weight:700;margin-top:2px">' + gradeLabel + ' · Level ' + (curIdx+1) + '/' + gradeLevels.length + '</div>'
         + (locked
           ? '<div class="subj-score" style="margin-top:6px">✓ ' + p.score + '%</div>'
           : '<div class="subj-status" style="font-size:11px;color:var(--muted);margin-top:4px">⏱ ' + mins + ' min</div>')
@@ -1714,7 +1967,7 @@ function renderKidHistory(kidId) {
       return '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)">'
         + '<span style="font-size:20px">' + (subjectIcons[e.subject]||'📚') + '</span>'
         + '<div style="flex:1">'
-        + '<div style="font-weight:700;font-size:14px;text-transform:capitalize">' + e.subject + ' — Level ' + e.level + '</div>'
+        + '<div style="font-weight:700;font-size:14px;text-transform:capitalize">' + e.subject + ' — ' + (e.gradeLabel || ('Grade ' + (e.grade||3))) + ' L' + e.level + '</div>'
         + '<div style="font-size:12px;color:var(--muted)">' + (e.duration||0) + ' min · ' + e.correct + '/' + e.total + ' correct</div>'
         + '</div>'
         + '<div style="font-weight:800;font-size:15px;color:' + scoreColor + '">' + e.score + '%</div>'
@@ -2299,8 +2552,8 @@ function renderWritingLesson(c) {
       <button onclick="clearCanvas()" style="margin-left:auto;background:rgba(255,255,255,0.9);border:1.5px solid var(--border);border-radius:8px;padding:5px 12px;font-family:Nunito,sans-serif;font-weight:700;font-size:12px;cursor:pointer;color:var(--muted);">🗑 Clear All</button>
     </div>
     <div style="position:relative;margin-bottom:14px;">
-      <canvas id="writing-canvas" width="700" height="660"
-        style="width:100%;height:660px;border:2px solid var(--border);border-radius:12px;background:#FAFBFF;touch-action:none;cursor:crosshair;display:block;"></canvas>
+      <canvas id="writing-canvas" width="700" height="380"
+        style="width:100%;height:380px;border:2px solid var(--border);border-radius:12px;background:#FAFBFF;touch-action:none;cursor:crosshair;display:block;"></canvas>
     </div>
     <div class="feedback-box" id="feedback"></div>
     <button class="btn-primary" id="writing-submit-btn" onclick="submitWriting()">Submit for Review ✉️</button>
@@ -2847,37 +3100,60 @@ function finishLesson() {
     if (!state.streaks[currentKidId][ls.subjectId]) state.streaks[currentKidId][ls.subjectId] = [];
     const streakArr = state.streaks[currentKidId][ls.subjectId];
     streakArr.push(pct);
-    // Keep only last 3 scores
     if (streakArr.length > 3) streakArr.shift();
     state.streaks[currentKidId][ls.subjectId] = streakArr;
 
     if (!state.levels) state.levels = {};
     if (!state.levels[currentKidId]) state.levels[currentKidId] = {};
-    const subjLevels = getSubjectProgression(currentKidId, ls.subjectId);
-    const curIdx = getCurrentLevelIndex(currentKidId, ls.subjectId);
+    const gl = getCurrentGradeLevel(currentKidId, ls.subjectId);
+    const gradeLevels = getGradeLevels(gl.grade, ls.subjectId);
+    const curIdx = gl.levelIdx || 0;
 
     // Advance: 3 consecutive scores >= 90%
     if (streakArr.length >= 3 && streakArr.every(s => s >= 90)) {
-      if (curIdx < subjLevels.length - 1) {
-        state.levels[currentKidId][ls.subjectId] = curIdx + 1;
-        state.streaks[currentKidId][ls.subjectId] = [];
+      state.streaks[currentKidId][ls.subjectId] = [];
+      if (curIdx < gradeLevels.length - 1) {
+        // Move to next level within same grade
+        const newIdx = curIdx + 1;
+        state.levels[currentKidId][ls.subjectId] = {grade: gl.grade, levelIdx: newIdx};
         if (!state.levelsUpdatedAt) state.levelsUpdatedAt = {};
         state.levelsUpdatedAt[currentKidId] = Date.now();
-        triggerLevelUpIfNeeded(currentKidId, ls.subjectId, curIdx, curIdx + 1, subjLevels);
+        const newLvl = gradeLevels[newIdx];
+        setTimeout(function() {
+          showToast('⬆️ Level up! Now on: ' + (GRADE_LABELS[gl.grade]||'Grade '+gl.grade) + ' — ' + (newLvl?newLvl.name:''));
+        }, 400);
+        triggerLevelUpCelebration(currentKidId, ls.subjectId);
+      } else {
+        // Mastered all levels in grade — promote to next grade
+        const gradeIdx = GRADE_ORDER.indexOf(gl.grade);
+        if (gradeIdx < GRADE_ORDER.length - 1) {
+          const nextGrade = GRADE_ORDER[gradeIdx + 1];
+          state.levels[currentKidId][ls.subjectId] = {grade: nextGrade, levelIdx: 0};
+          if (!state.levelsUpdatedAt) state.levelsUpdatedAt = {};
+          state.levelsUpdatedAt[currentKidId] = Date.now();
+          setTimeout(function() {
+            showToast('🎓 Grade promoted! ' + (GRADE_LABELS[nextGrade]||'Grade '+nextGrade) + ' ' + ls.subjectId + ' unlocked!');
+            launchConfetti(5000);
+            playSound('epic');
+          }, 400);
+        }
       }
     }
     // Step back: last 2 scores both < 70%
     if (streakArr.length >= 2 && streakArr.slice(-2).every(s => s < 70)) {
+      state.streaks[currentKidId][ls.subjectId] = [];
       if (curIdx > 0) {
-        state.levels[currentKidId][ls.subjectId] = curIdx - 1;
-        state.streaks[currentKidId][ls.subjectId] = [];
+        // Step back within grade
+        const newIdx = curIdx - 1;
+        state.levels[currentKidId][ls.subjectId] = {grade: gl.grade, levelIdx: newIdx};
         if (!state.levelsUpdatedAt) state.levelsUpdatedAt = {};
         state.levelsUpdatedAt[currentKidId] = Date.now();
+        const prevLvl = gradeLevels[newIdx];
         setTimeout(function() {
-          const prevLevel = subjLevels[curIdx-1];
-          showToast('📚 Let\'s practice: ' + (prevLevel ? prevLevel.name : 'previous level') + ' a bit more.');
+          showToast('📚 Let\'s practice: ' + (prevLvl ? prevLvl.name : 'previous level') + ' a bit more.');
         }, 1500);
       }
+      // At levelIdx 0 — stay at level 0, don't demote grade (parent does that manually)
     }
   }
 
@@ -2889,8 +3165,8 @@ function finishLesson() {
   }
   // Record to 30-day history
   if (!alreadyDone) {
-    const curIdx = getCurrentLevelIndex(currentKidId, ls.subjectId);
-    recordLessonHistory(currentKidId, ls.subjectId, pct, coins, origCorrect, total, elapsedMin, curIdx);
+    const gl = getCurrentGradeLevel(currentKidId, ls.subjectId);
+    recordLessonHistory(currentKidId, ls.subjectId, pct, coins, origCorrect, total, elapsedMin, gl.levelIdx || 0, gl.grade);
     updateAdaptiveQuestionCount(currentKidId);
   }
   // Check daily streak and badges
@@ -3037,22 +3313,79 @@ function adjustLevel(delta) {
   if (!kidId || !subjectId) return;
   if (!state.levels) state.levels = {};
   if (!state.levels[kidId]) state.levels[kidId] = {};
-  const subjLevels = getSubjectProgression(kidId, subjectId);
-  const curIdx = getCurrentLevelIndex(kidId, subjectId);
-  const newIdx = Math.max(0, Math.min(subjLevels.length - 1, curIdx + delta));
-  if (newIdx === curIdx) { showToast('Already at ' + (delta > 0 ? 'max' : 'min') + ' level.'); return; }
-  state.levels[kidId][subjectId] = newIdx;
-  // Stamp timestamp so this change wins over stale remote data
+  const gl = getCurrentGradeLevel(kidId, subjectId);
+  const gradeLevels = getGradeLevels(gl.grade, subjectId);
+  const curIdx = gl.levelIdx || 0;
+  const newIdx = curIdx + delta;
+  if (newIdx < 0) { showToast('⬇️ Already at first level of ' + (GRADE_LABELS[gl.grade]||'Grade '+gl.grade) + '.'); return; }
+  if (newIdx >= gradeLevels.length) { showToast('⬆️ Already at last level of ' + (GRADE_LABELS[gl.grade]||'Grade '+gl.grade) + '.'); return; }
+  state.levels[kidId][subjectId] = {grade: gl.grade, levelIdx: newIdx};
   if (!state.levelsUpdatedAt) state.levelsUpdatedAt = {};
   state.levelsUpdatedAt[kidId] = Date.now();
-  // Clear streak so advancement check resets cleanly
   if (state.streaks && state.streaks[kidId]) state.streaks[kidId][subjectId] = [];
   saveState();
   const kid = state.kids.find(k => k.id === kidId);
-  const newLevel = subjLevels[newIdx];
-  showToast((delta > 0 ? '⬆️' : '⬇️') + ' ' + (kid ? kid.name : kidId) + ' → ' + (newLevel ? newLevel.name : 'Level ' + (newIdx+1)));
+  const newLvl = gradeLevels[newIdx];
+  showToast((delta > 0 ? '⬆️' : '⬇️') + ' ' + (kid ? kid.name : kidId) + ' → ' + (GRADE_LABELS[gl.grade]||'Grade '+gl.grade) + ' — ' + (newLvl ? newLvl.name : ''));
+  populateLevelAdjGrade();
   updateLevelAdjPreview();
   renderCurriculumOverview();
+}
+
+function applyLevelSelection() {
+  const kidId = document.getElementById('level-adj-kid').value;
+  const subjectId = document.getElementById('level-adj-subject').value;
+  const gradeSel = document.getElementById('level-adj-grade');
+  const levelSel = document.getElementById('level-adj-level');
+  if (!kidId || !subjectId || !gradeSel || !levelSel) return;
+  const grade = gradeSel.value;
+  const levelIdx = parseInt(levelSel.value) || 0;
+  if (!state.levels) state.levels = {};
+  if (!state.levels[kidId]) state.levels[kidId] = {};
+  state.levels[kidId][subjectId] = {grade: isNaN(parseInt(grade)) ? grade : parseInt(grade), levelIdx};
+  if (!state.levelsUpdatedAt) state.levelsUpdatedAt = {};
+  state.levelsUpdatedAt[kidId] = Date.now();
+  if (state.streaks && state.streaks[kidId]) state.streaks[kidId][subjectId] = [];
+  saveState();
+  const kid = state.kids.find(k => k.id === kidId);
+  const lvl = getGradeLevels(grade, subjectId)[levelIdx];
+  showToast('✅ ' + (kid ? kid.name : kidId) + ' set to ' + (GRADE_LABELS[grade]||'Grade '+grade) + ' — ' + (lvl ? lvl.name : 'Level '+(levelIdx+1)));
+  updateLevelAdjPreview();
+  renderCurriculumOverview();
+}
+
+function populateLevelAdjGrade() {
+  const gradeSel = document.getElementById('level-adj-grade');
+  const kidId = document.getElementById('level-adj-kid') && document.getElementById('level-adj-kid').value;
+  const subjectId = document.getElementById('level-adj-subject') && document.getElementById('level-adj-subject').value;
+  if (!gradeSel) return;
+  gradeSel.innerHTML = GRADE_ORDER.map(function(g) {
+    return '<option value="' + g + '">' + (GRADE_LABELS[g]||'Grade '+g) + '</option>';
+  }).join('');
+  // Set to current grade
+  if (kidId && subjectId) {
+    const gl = getCurrentGradeLevel(kidId, subjectId);
+    gradeSel.value = gl.grade;
+  }
+  populateLevelAdjLevel();
+}
+
+function populateLevelAdjLevel() {
+  const gradeSel = document.getElementById('level-adj-grade');
+  const levelSel = document.getElementById('level-adj-level');
+  const kidId = document.getElementById('level-adj-kid') && document.getElementById('level-adj-kid').value;
+  const subjectId = document.getElementById('level-adj-subject') && document.getElementById('level-adj-subject').value;
+  if (!gradeSel || !levelSel) return;
+  const grade = gradeSel.value;
+  const gradeLevels = getGradeLevels(grade, subjectId || 'spelling');
+  levelSel.innerHTML = gradeLevels.map(function(lvl, i) {
+    return '<option value="' + i + '">Level ' + (i+1) + ' — ' + lvl.name + '</option>';
+  }).join('');
+  // Set to current levelIdx if same grade
+  if (kidId && subjectId) {
+    const gl = getCurrentGradeLevel(kidId, subjectId);
+    if (String(gl.grade) === String(grade)) levelSel.value = gl.levelIdx || 0;
+  }
 }
 
 function updateLevelAdjPreview() {
@@ -3063,10 +3396,8 @@ function updateLevelAdjPreview() {
   const kidId = kidSel.value;
   const subjectId = subjSel.value;
   if (!kidId || !subjectId) return;
-  const subjLevels = getSubjectProgression(kidId, subjectId);
-  const curIdx = getCurrentLevelIndex(kidId, subjectId);
-  const lvl = subjLevels[curIdx];
-  el.textContent = 'Current: Level ' + (curIdx + 1) + ' — ' + (lvl ? lvl.name : '');
+  const lvlData = getCurrentLevelData(kidId, subjectId);
+  el.textContent = 'Current: ' + lvlData.name;
 }
 
 function parentUnlockLesson() {
@@ -3106,9 +3437,12 @@ function renderParentDashboard() {
     const levelAdjKid = document.getElementById('level-adj-kid');
     if (levelAdjKid) {
       levelAdjKid.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
-      levelAdjKid.onchange = updateLevelAdjPreview;
+      levelAdjKid.onchange = function() { populateLevelAdjGrade(); updateLevelAdjPreview(); };
       const levelAdjSubj = document.getElementById('level-adj-subject');
-      if (levelAdjSubj) levelAdjSubj.onchange = updateLevelAdjPreview;
+      if (levelAdjSubj) levelAdjSubj.onchange = function() { populateLevelAdjGrade(); updateLevelAdjPreview(); };
+      const levelAdjGrade = document.getElementById('level-adj-grade');
+      if (levelAdjGrade) levelAdjGrade.onchange = populateLevelAdjLevel;
+      populateLevelAdjGrade();
       updateLevelAdjPreview();
     }
     const skipSel = document.getElementById('skipday-kid-select');
@@ -3117,8 +3451,6 @@ function renderParentDashboard() {
       skipSel.onchange = function() { updateSkipDayBalance(skipSel.value); };
       updateSkipDayBalance(skipSel.value);
     }
-    const streakOverrideSel = document.getElementById('streak-override-kid');
-    if (streakOverrideSel) streakOverrideSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
     const coinmaxSel = document.getElementById('coinmax-kid-select');
     if (coinmaxSel) coinmaxSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.name}</option>`).join('');
     renderCoinMaxInputs();
@@ -3155,23 +3487,26 @@ function renderCurriculumOverview() {
   const icons = {spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'};
   document.getElementById('curriculum-overview').innerHTML = state.kids.map(k => {
     return '<div style="margin-bottom:18px">'
-      + '<div style="font-family:\"Baloo 2\",cursive;font-size:17px;font-weight:700;margin-bottom:10px">' + k.emoji + ' ' + k.name + '</div>'
+      + '<div style="font-family:\'Baloo 2\',cursive;font-size:17px;font-weight:700;margin-bottom:10px">' + k.emoji + ' ' + k.name + '</div>'
       + subjects.map(function(s) {
-          const lvlData = getCurrentLevelData(k.id, s);
+          const gl = getCurrentGradeLevel(k.id, s);
+          const gradeLevels = getGradeLevels(gl.grade, s);
+          const lvlIdx = gl.levelIdx || 0;
+          const lvl = gradeLevels[lvlIdx];
           const streakArr = getStreakScores(k.id, s);
-          const lvlIdx = getCurrentLevelIndex(k.id, s);
-          const totalLvls = getSubjectProgression(k.id, s).length;
-          const streakToAdvance = 3;
           const goodScores = streakArr.filter(function(sc){ return sc >= 90; }).length;
           const badScores = streakArr.filter(function(sc){ return sc < 70; }).length;
           let statusColor = '#6B7280';
           let statusTxt = streakArr.length ? 'Last: ' + streakArr.slice(-1)[0] + '%' : 'Not started';
           if (goodScores >= 2) { statusColor = '#2ECC71'; statusTxt = '🔥 ' + goodScores + '/3 toward level up'; }
           if (badScores >= 1) { statusColor = '#EF4444'; statusTxt = '⚠️ ' + badScores + ' low score(s)'; }
+          const gradeLabel = GRADE_LABELS[gl.grade] || ('Grade ' + gl.grade);
+          const lvlName = lvl ? lvl.name : 'Level ' + (lvlIdx+1);
           return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px">'
-            + '<span>' + icons[s] + ' ' + (lvlData ? lvlData.name : s) + '</span>'
+            + '<div><div>' + icons[s] + ' ' + s.charAt(0).toUpperCase()+s.slice(1) + '</div>'
+            + '<div style="font-size:12px;color:var(--muted)">' + lvlName + '</div></div>'
             + '<span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">'
-            + '<span style="font-weight:700;color:var(--primary)">Level ' + (lvlIdx+1) + ' / ' + totalLvls + '</span>'
+            + '<span style="font-weight:700;color:var(--primary)">' + gradeLabel + ' · L' + (lvlIdx+1) + '/' + gradeLevels.length + '</span>'
             + '<span style="font-size:11px;color:' + statusColor + '">' + statusTxt + '</span>'
             + '</span></div>';
         }).join('')
@@ -3280,15 +3615,6 @@ function approveWriting(id) {
   if (!w) return;
   w.status = 'approved';
   const kid = state.kids.find(k=>k.id===w.kidId);
-  // Award Brain Bucks if not already awarded (covers redo submissions)
-  const writingProgress = state.progress[w.kidId] && state.progress[w.kidId]['writing'];
-  if (kid && writingProgress && !writingProgress.coinsAwarded) {
-    const earned = writingProgress.coins || 0;
-    if (earned > 0) {
-      kid.coins += earned;
-      writingProgress.coinsAwarded = true;
-    }
-  }
   saveState();
   showToast('✅ Approved — ' + (kid?kid.name:'') + '\'s writing looks great!');
   renderWritingApprovals();
@@ -3303,21 +3629,16 @@ function denyWriting(id) {
   const kid = state.kids.find(k=>k.id===w.kidId);
   // Deduct Brain Bucks earned from the writing lesson
   const writingProgress = state.progress[w.kidId] && state.progress[w.kidId]['writing'];
-  if (kid && writingProgress && writingProgress.coinsAwarded) {
-    // Coins were already awarded on a previous approval — deduct them
-    kid.coins = Math.max(0, kid.coins - (writingProgress.coins || 0));
-    writingProgress.coinsAwarded = false;
-  } else if (kid && writingProgress && writingProgress.coins) {
-    // Coins not yet awarded (first deny) — just clear so they aren't awarded later
-    writingProgress.coinsAwarded = false;
+  if (kid && writingProgress && writingProgress.coins) {
+    kid.coins = Math.max(0, kid.coins - writingProgress.coins);
   }
   // Clear progress so they can redo it today
   if (state.progress[w.kidId]) delete state.progress[w.kidId]['writing'];
-  // Pop the last streak entry
+  // Pop the last streak entry so level meter reflects the redo
   if (state.streaks && state.streaks[w.kidId] && state.streaks[w.kidId]['writing'] && state.streaks[w.kidId]['writing'].length) {
     state.streaks[w.kidId]['writing'].pop();
   }
-  // Add redo notice
+  // Add redo notice — replace any existing one for this kid
   if (!state.redoNotices) state.redoNotices = [];
   state.redoNotices = state.redoNotices.filter(function(n){ return !(n.kidId === w.kidId && n.subject === 'writing'); });
   state.redoNotices.push({ kidId: w.kidId, subject: 'writing', message: 'Your parent asked you to redo your writing. Give it another try!', date: new Date().toLocaleDateString() });
@@ -3520,7 +3841,6 @@ function addReward() {
     arr.push({id:'r'+Date.now()+id, name, cost, emoji});
     setRewardsForKid(id, arr);
   });
-  state.rewardsUpdatedAt = Date.now();
   saveState();
   document.getElementById('r-name').value=''; document.getElementById('r-cost').value=''; document.getElementById('r-emoji').value='';
   showToast('✅ Reward added' + (kidId==='both'?' for both!':'!')); renderParentRewards();
@@ -3551,7 +3871,6 @@ function saveEditReward() {
   if (!name) { showToast('⚠️ Enter a reward name.'); return; }
   const arr = getRewardsForKid(kidId).map(r => r.id===id ? {id, name, cost, emoji} : r);
   setRewardsForKid(kidId, arr);
-  state.rewardsUpdatedAt = Date.now();
   saveState();
   closeEditReward();
   showToast('✅ Reward updated!');
@@ -3561,7 +3880,6 @@ function saveEditReward() {
 function deleteReward(kidId, id) {
   const arr = getRewardsForKid(kidId).filter(r=>r.id!==id);
   setRewardsForKid(kidId, arr);
-  state.rewardsUpdatedAt = Date.now();
   saveState(); showToast('🗑️ Deleted.'); renderParentRewards();
 }
 
@@ -3907,87 +4225,7 @@ function checkDailyStreak(kidId) {
     ds.lastDate = today;
     saveState();
     checkBadges(kidId);
-    checkPerfectWeek(kidId);
   }
-}
-
-// ── PERFECT WEEK ─────────────────────────────────────────
-const PERFECT_WEEK_BONUS = 5; // Brain Bucks awarded for a perfect Mon–Sat week
-
-function getWeekStart(date) {
-  // Returns Monday of the week containing date
-  const d = new Date(date);
-  const day = d.getDay(); // 0=Sun
-  const diff = day === 0 ? -6 : 1 - day; // Monday
-  d.setDate(d.getDate() + diff);
-  d.setHours(0,0,0,0);
-  return d;
-}
-
-function checkPerfectWeek(kidId) {
-  const today = new Date();
-  const dow = today.getDay();
-  // Only check on Sat (6) — or any non-Sunday day if all 6 days are done
-  // We check every completion — if this week is complete it fires once
-  if (!state.perfectWeekClaimed) state.perfectWeekClaimed = {};
-  if (!state.perfectWeekClaimed[kidId]) state.perfectWeekClaimed[kidId] = '';
-
-  const weekStart = getWeekStart(today);
-  const weekKey = weekStart.toISOString().slice(0,10);
-
-  // Already claimed this week
-  if (state.perfectWeekClaimed[kidId] === weekKey) return;
-
-  const history = (state.lessonHistory && state.lessonHistory[kidId]) || [];
-
-  // Build set of dates kid completed all scheduled subjects this week (Mon–Sat)
-  let perfectDays = 0;
-  let requiredDays = 0;
-
-  for (let i = 0; i < 6; i++) { // Mon(0) through Sat(5)
-    const day = new Date(weekStart);
-    day.setDate(weekStart.getDate() + i);
-    if (day > today) break; // don't count future days
-
-    const dateStr = day.toISOString().slice(0,10);
-    const dayDow = day.getDay();
-
-    if (dayDow === 0) continue;
-    if (isUSFederalHoliday(day) || state.vacationMode) { perfectDays++; requiredDays++; continue; }
-
-    requiredDays++;
-
-    const daySchedule = getScheduleForDow(dayDow);
-    if (daySchedule.isRest) { perfectDays++; continue; }
-
-    // Only look at history entries matching this exact date
-    const dayEntries = history.filter(e => e.date === dateStr);
-    const allDone = daySchedule.subjects.every(function(s) {
-      return dayEntries.some(e => e.subject === s);
-    });
-    if (allDone) perfectDays++;
-  }
-
-  if (requiredDays > 0 && perfectDays >= requiredDays && dow !== 0) {
-    // Perfect week! Award bonus
-    state.perfectWeekClaimed[kidId] = weekKey;
-    const kid = state.kids.find(k => k.id === kidId);
-    if (kid) {
-      kid.coins += PERFECT_WEEK_BONUS;
-      saveState();
-      setTimeout(function() {
-        launchConfetti(5000);
-        playSound('epic');
-        showToast('🏆 Perfect Week! +' + PERFECT_WEEK_BONUS + ' 🧠 Bonus Brain Bucks!');
-      }, 800);
-    }
-  }
-}
-
-function getScheduleForDow(dow) {
-  if (dow === 0) return { isRest: true, subjects: [] };
-  const isDayA = (dow % 2 === 1) || dow === 6; // Mon,Wed,Fri,Sat → spelling+math; Tue,Thu → reading+writing
-  return { isRest: false, subjects: isDayA ? ['spelling','math'] : ['reading','writing'] };
 }
 
 function renderStreakOnDashboard(kidId) {
@@ -4010,7 +4248,7 @@ const BADGE_DEFS = [
   { id: 'streak_3',        icon: '🔥', label: '3-Day Streak',       check: (kidId) => (state.dailyStreak[kidId]||{}).count >= 3 },
   { id: 'streak_7',        icon: '🌟', label: '7-Day Streak',       check: (kidId) => (state.dailyStreak[kidId]||{}).count >= 7 },
   { id: 'streak_30',       icon: '🏆', label: '30-Day Streak',      check: (kidId) => (state.dailyStreak[kidId]||{}).count >= 30 },
-  { id: 'level_up',        icon: '⬆️',  label: 'First Level Up',    check: (kidId) => Object.values(state.levels[kidId]||{}).some(l => l >= 1) },
+  { id: 'level_up', icon: '⬆️', label: 'First Level Up', check: (kidId) => Object.values(state.levels[kidId]||{}).some(l => l && typeof l === 'object' && (l.levelIdx > 0 || (l.grade && l.grade !== 3 && l.grade !== 'K'))) },
   { id: 'brainbucks_50',   icon: '🧠', label: '50 Brain Bucks',     check: (kidId) => (state.kids.find(k=>k.id===kidId)||{}).coins >= 50 },
   { id: 'brainbucks_200',  icon: '💰', label: '200 Brain Bucks',    check: (kidId) => (state.kids.find(k=>k.id===kidId)||{}).coins >= 200 },
   { id: 'all_subjects',    icon: '📚', label: 'All Done Today!',   check: (kidId) => { const p=state.progress[kidId]||{}; const t=getTodayKey(); const sched=getTodaySchedule(); return !sched.isRest && sched.subjects.every(s=>p[s]&&p[s].date===t); } },
@@ -4213,7 +4451,7 @@ function assignBonusChallenge() {
 }
 
 function deleteCompletedLesson(kidId, subjectId) {
-  if (!confirm('Delete ' + subjectId + ' progress for ' + state.kids.find(k=>k.id===kidId)?.name + '? This will also remove the Brain Bucks they earned.')) return;
+  if (!confirm('Delete ' + subjectId + ' progress for ' + state.kids.find(k=>k.id===kidId)?.name + '? This will also remove the coins they earned.')) return;
   const prog = state.progress[kidId] && state.progress[kidId][subjectId];
   if (prog) {
     // Deduct coins
@@ -4358,13 +4596,16 @@ function endStudyMode() {
 // ── WIRE INTO finishLesson: level-up celebration ──────────
 // (called from inside finishLesson after advancement logic)
 function triggerLevelUpIfNeeded(kidId, subjectId, prevIdx, newIdx, subjLevels) {
-  if (newIdx > prevIdx && newIdx < subjLevels.length) {
-    const nextLevel = subjLevels[newIdx];
-    setTimeout(function() {
-      showLevelUp(subjectId.charAt(0).toUpperCase() + subjectId.slice(1), nextLevel.name);
-    }, 800);
-    checkBadges(kidId);
-  }
+  // Legacy shim — calls new function
+  triggerLevelUpCelebration(kidId, subjectId);
+}
+
+function triggerLevelUpCelebration(kidId, subjectId) {
+  const lvlData = getCurrentLevelData(kidId, subjectId);
+  setTimeout(function() {
+    showLevelUp(subjectId.charAt(0).toUpperCase() + subjectId.slice(1), lvlData.name);
+  }, 800);
+  checkBadges(kidId);
 }
 
 // ── QUARTERLY BADGE RESET ────────────────────────────────
@@ -4467,22 +4708,6 @@ function grantSkipDay(kidId) {
   renderParentDashboard();
 }
 
-function overrideStreak() {
-  const kidId = document.getElementById('streak-override-kid').value;
-  const val = parseInt(document.getElementById('streak-override-val').value);
-  if (!kidId || isNaN(val) || val < 0) { showToast('⚠️ Pick a kid and enter a valid streak number.'); return; }
-  if (!state.dailyStreak) state.dailyStreak = {};
-  if (!state.dailyStreak[kidId]) state.dailyStreak[kidId] = { count: 0, lastDate: '' };
-  state.dailyStreak[kidId].count = val;
-  // Set lastDate to today so streak doesn't immediately reset
-  state.dailyStreak[kidId].lastDate = getTodayKey();
-  saveState();
-  const kid = state.kids.find(k => k.id === kidId);
-  document.getElementById('streak-override-val').value = '';
-  showToast('🔥 ' + (kid ? kid.name : kidId) + '\'s streak set to ' + val + ' days!');
-  renderParentDashboard();
-}
-
 // ── WEEKLY EMAIL ─────────────────────────────────────────
 const EMAILJS_SERVICE_ID  = 'YOUR_SERVICE_ID';
 const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';
@@ -4503,7 +4728,7 @@ function generateWeeklyReport() {
     subjects.forEach(function(s) {
       const p = prog[s];
       if (p) {
-        lines.push('  ' + ({spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'}[s]) + ' ' + s.charAt(0).toUpperCase()+s.slice(1) + ': ' + p.score + '% — Level ' + ((state.levels[k.id]||{})[s]||0+1));
+        lines.push('  ' + ({spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'}[s]) + ' ' + s.charAt(0).toUpperCase()+s.slice(1) + ': ' + p.score + '% — ' + (function(){ const gl = getCurrentGradeLevel(k.id,s); return (GRADE_LABELS[gl.grade]||'Grade '+gl.grade) + ' L'+(gl.levelIdx+1); })());
       }
     });
     const badges = (state.badges && state.badges[k.id]) || [];
@@ -4565,7 +4790,10 @@ function runMigrations() {
       {id:'r2',name:'Choose dinner',cost:60,emoji:'🍕'},
       {id:'r3',name:'$10 at Dollar Tree',cost:80,emoji:'💵'}
     ];
-    if (state.levels && !state.levels.tester) state.levels.tester = {spelling:0,math:0,reading:0,writing:0};
+    if (state.levels && !state.levels.tester) state.levels.tester = {
+      spelling:{grade:3,levelIdx:0}, math:{grade:3,levelIdx:0},
+      reading:{grade:3,levelIdx:0}, writing:{grade:3,levelIdx:0}
+    };
     if (state.streaks && !state.streaks.tester) state.streaks.tester = {spelling:[],math:[],reading:[],writing:[]};
     if (state.progress && !state.progress.tester) state.progress.tester = {};
     if (state.dailyStreak && !state.dailyStreak.tester) state.dailyStreak.tester = {count:0,lastDate:''};
@@ -4581,7 +4809,34 @@ function runMigrations() {
     changed = true;
   }
 
-  // ── ONE-TIME REWARD FIX (v3.1) superseded by v3.2 in pullState ──
+  // ── MIGRATE flat level indexes to new {grade, levelIdx} format ──
+  // Runs once per device, guarded by levelsMigrationV1 flag
+  if (!localStorage.getItem('levelsMigrationV1')) {
+    const subjects = ['spelling','math','reading','writing'];
+    // Default starting points if we can't determine from old index
+    const defaultGrade = {
+      lauren: {spelling:3, math:3, reading:3, writing:3},
+      andrew: {spelling:4, math:3, reading:3, writing:3},
+      tester:  {spelling:3, math:3, reading:3, writing:3}
+    };
+    if (state.levels) {
+      state.kids.forEach(function(k) {
+        if (!state.levels[k.id]) return;
+        subjects.forEach(function(s) {
+          const existing = state.levels[k.id][s];
+          // Already migrated — skip
+          if (existing && typeof existing === 'object' && existing.grade !== undefined) return;
+          // Old flat index — convert using default grade
+          const grade = (defaultGrade[k.id] && defaultGrade[k.id][s]) || 3;
+          state.levels[k.id][s] = {grade: grade, levelIdx: 0};
+        });
+      });
+    }
+    if (!state.levelsUpdatedAt) state.levelsUpdatedAt = {};
+    state.kids.forEach(function(k) { state.levelsUpdatedAt[k.id] = Date.now(); });
+    localStorage.setItem('levelsMigrationV1', '1');
+    changed = true;
+  }
 
   if (changed) localStorage.setItem('kidstuff_cache', JSON.stringify(state));
 }
@@ -4608,7 +4863,7 @@ initSync();
     <input type="hidden" id="edit-reward-id"/>
     <div class="form-row"><label>Name</label><input id="edit-r-name" type="text" placeholder="Reward name"/></div>
     <div class="form-grid">
-      <div class="form-row"><label>Brain Bucks Cost</label><input id="edit-r-cost" type="number" placeholder="50"/></div>
+      <div class="form-row"><label>Coin Cost</label><input id="edit-r-cost" type="number" placeholder="50"/></div>
       <div class="form-row"><label>Emoji</label><input id="edit-r-emoji" type="text" placeholder="🎁" maxlength="2"/></div>
     </div>
     <div style="display:flex;gap:10px;margin-top:8px">
