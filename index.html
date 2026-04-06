@@ -1426,8 +1426,8 @@ async function pushParentData() {
       perfectWeekClaimed: state.perfectWeekClaimed || {},
       levelsUpdatedAt: state.levelsUpdatedAt || {},
       incompleteWeekPenalized: state.incompleteWeekPenalized || {},
-      soundsOff: state.soundsOff || false,
-      autoAdvance: state.autoAdvance || false
+      soundsOff: state.soundsOff === true,
+      autoAdvance: state.autoAdvance === true
     };
     await fbSet('parent', parentPayload);
   } catch(e) {
@@ -1569,6 +1569,8 @@ function loadLocalFallback() {
       if (state.rewardsUpdatedAt === undefined) state.rewardsUpdatedAt = 0;
       if (!state.coinsUpdatedAt) state.coinsUpdatedAt = {lauren:0, andrew:0, tester:0};
       if (!state.incompleteWeekPenalized) state.incompleteWeekPenalized = {lauren:'', andrew:'', tester:''};
+      if (state.soundsOff === undefined) state.soundsOff = false;
+      if (state.autoAdvance === undefined) state.autoAdvance = false;
       state.kids.forEach(function(k) {
         if (!state.adaptiveQ[k.id]) state.adaptiveQ[k.id] = 10;
         if (!state.paceData[k.id]) state.paceData[k.id] = {};
@@ -2890,7 +2892,8 @@ function selectOption(btn, selected, correct) {
     }
   } else {
     showFeedback(true, '✅ Correct!');
-    recordAnswer(true); showNextBtn();
+    recordAnswer(true);
+    setTimeout(showNextBtn, state.autoAdvance ? 400 : 0);
   }
 }
 
