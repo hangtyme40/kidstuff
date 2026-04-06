@@ -3003,11 +3003,11 @@ function showNextBtn(flagged) {
   // Auto-advance on correct answer (not on wrong, not on last question, not in writing)
   if (state.autoAdvance && !flagged && !isLast && ls.subjectType !== 'writing') {
     const lastAnswer = ls.answers && ls.answers[ls.answers.length - 1];
-    if (lastAnswer === true) {
+    if (lastAnswer && lastAnswer.correct === true) {
       setTimeout(function() {
         if (lessonState && lessonState.currentQ === ls.currentQ) nextQuestion();
       }, 800);
-      return; // skip showing the button
+      return;
     }
   }
 
