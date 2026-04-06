@@ -229,7 +229,6 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .next-level-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#2ECC71,#00f2fe);transition:width 0.5s ease;}
 </style>
 
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 </head>
 <body>
 
@@ -298,7 +297,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     </div>
     <div id="no-content-msg" style="display:none"></div>
     <div class="subject-grid" id="subject-grid"></div>
-    <button onclick="startStudyMode()" id="study-mode-btn" style="display:none;width:100%;margin-bottom:18px;padding:14px;border-radius:14px;border:2px solid var(--primary);background:#EEF2FF;color:var(--primary);font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;cursor:pointer;">📖 Study Mode — Practice Missed Questions</button>
+
     <div id="vacation-banner" style="display:none;background:linear-gradient(90deg,#0EA5E9,#7C3AED);color:white;text-align:center;padding:10px 16px;font-weight:800;font-size:14px;border-radius:12px;margin-bottom:14px;">✈️ Vacation Mode — Enjoy your break! Streaks are protected.</div>
     <div id="bonus-challenge-btns"></div>
     <div class="card"><div class="card-title">🎁 Rewards Shop</div><div id="kid-rewards-list"></div></div>
@@ -516,7 +515,13 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
       <div class="card"><div class="card-title">🎁 Rewards by Child</div><div id="parent-rewards-list"></div></div>
     </div>
 
-    <div class="tab-panel" id="tab-progress"><div id="progress-overview"></div></div>
+    <div class="tab-panel" id="tab-progress">
+      <div class="card" id="weekly-summary-card">
+        <div class="card-title">📅 This Week</div>
+        <div id="weekly-summary-content"></div>
+      </div>
+      <div id="progress-overview"></div>
+    </div>
 
     <div class="tab-panel" id="tab-settings">
       <div class="card">
@@ -524,6 +529,18 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
           <div style="font-weight:800;margin-bottom:10px">🔊 Spelling Voice</div>
           <div id="voice-selector-wrap">Loading voices...</div>
+        </div>
+        <div style="height:14px"></div>
+        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
+          <div style="font-weight:800;margin-bottom:8px">🎵 Sound Effects</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Toggle sound effects for correct/wrong answers and celebrations.</div>
+          <button id="sounds-toggle-btn" class="btn-primary" onclick="toggleSounds()">Loading...</button>
+        </div>
+        <div style="height:14px"></div>
+        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
+          <div style="font-weight:800;margin-bottom:8px">⚡ Auto-Advance</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Automatically move to the next question after a correct answer.</div>
+          <button id="autoadvance-toggle-btn" class="btn-primary" onclick="toggleAutoAdvance()">Loading...</button>
         </div>
         <div style="height:18px"></div>
         <div class="form-grid">
@@ -1022,7 +1039,6 @@ const DEFAULT_STATE = {
       {id:'r3',name:'$10 at Dollar Tree',cost:80,emoji:'💵'}
     ]
   },
-  curriculum:{lauren:null,andrew:null,tester:null},
   progress:{lauren:{},andrew:{},tester:{}},
   levels:{
     lauren:{
@@ -1048,7 +1064,6 @@ const DEFAULT_STATE = {
   unlockedToday:{lauren:{},andrew:{},tester:{}},
   writingQueue:[],
   difficultyLevel:{lauren:2,andrew:2,tester:2},
-  usedTopics:{lauren:[],andrew:[],tester:[]},
   coinMax:{lauren:{spelling:2,math:2,reading:2,writing:2},andrew:{spelling:2,math:2,reading:2,writing:2},tester:{spelling:2,math:2,reading:2,writing:2}},
   redemptionQueue:[],
   dailyStreak:{lauren:{count:0,lastDate:''},andrew:{count:0,lastDate:''},tester:{count:0,lastDate:''}},
@@ -1066,7 +1081,11 @@ const DEFAULT_STATE = {
   adaptiveQ: {lauren:10, andrew:10, tester:10},
   perfectWeekClaimed: {lauren:'', andrew:'', tester:''},
   rewardsUpdatedAt: 0,
-  levelsUpdatedAt: {lauren:0, andrew:0, tester:0}
+  levelsUpdatedAt: {lauren:0, andrew:0, tester:0},
+  coinsUpdatedAt: {lauren:0, andrew:0, tester:0},
+  incompleteWeekPenalized: {lauren:'', andrew:'', tester:''},
+  soundsOff: false,
+  autoAdvance: false
 };
 
 let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
@@ -1241,7 +1260,7 @@ async function pullState() {
     // Merge parent settings into state (non-destructive)
     const parentFields = ['pin','kidPins','rewards','rewardsUpdatedAt','coinMax','lessonTimers','selectedVoice',
                           'difficultyLevel','bonusChallenges','badgeQuarter','vacationMode','paceData','adaptiveQ',
-                          'perfectWeekClaimed','levelsUpdatedAt'];
+                          'perfectWeekClaimed','levelsUpdatedAt','incompleteWeekPenalized','soundsOff','autoAdvance'];
     parentFields.forEach(function(f) {
       if (parentData[f] !== undefined) state[f] = parentData[f];
     });
@@ -1255,8 +1274,15 @@ async function pullState() {
       if (kidIdx === -1 && remote.info) {
         state.kids.push(remote.info);
       } else if (kidIdx !== -1 && remote.info) {
-        // Trust remote as source of truth
-        state.kids[kidIdx] = Object.assign({}, state.kids[kidIdx], remote.info);
+        // Use timestamp to determine which coins value wins
+        const remoteTs = remote.coinsUpdatedAt || 0;
+        const localTs = (state.coinsUpdatedAt && state.coinsUpdatedAt[kidId]) || 0;
+        const useRemoteCoins = remoteTs >= localTs;
+        state.kids[kidIdx] = Object.assign({}, state.kids[kidIdx], remote.info, {
+          coins: useRemoteCoins ? (remote.info.coins || 0) : (state.kids[kidIdx].coins || 0)
+        });
+        if (!state.coinsUpdatedAt) state.coinsUpdatedAt = {};
+        state.coinsUpdatedAt[kidId] = Math.max(remoteTs, localTs);
       }
       const kidFields = ['progress','streaks','levels','levelsUpdatedAt','badges','dailyStreak',
                          'brainBucksMilestones','skipDay','unlockedToday','lessonHistory','perfectWeekClaimed'];
@@ -1366,6 +1392,7 @@ async function pushKidData(kidId) {
       streaks: (state.streaks || {})[kidId] || {},
       levels: (state.levels || {})[kidId] || {},
       levelsUpdatedAt: (state.levelsUpdatedAt || {})[kidId] || 0,
+      coinsUpdatedAt: (state.coinsUpdatedAt || {})[kidId] || 0,
       badges: (state.badges || {})[kidId] || [],
       dailyStreak: (state.dailyStreak || {})[kidId] || {},
       brainBucksMilestones: (state.brainBucksMilestones || {})[kidId] || [],
@@ -1397,7 +1424,10 @@ async function pushParentData() {
       paceData: state.paceData || {},
       adaptiveQ: state.adaptiveQ || {},
       perfectWeekClaimed: state.perfectWeekClaimed || {},
-      levelsUpdatedAt: state.levelsUpdatedAt || {}
+      levelsUpdatedAt: state.levelsUpdatedAt || {},
+      incompleteWeekPenalized: state.incompleteWeekPenalized || {},
+      soundsOff: state.soundsOff || false,
+      autoAdvance: state.autoAdvance || false
     };
     await fbSet('parent', parentPayload);
   } catch(e) {
@@ -1435,6 +1465,11 @@ function pushState() {
       pushKidData(k.id).catch(e => console.warn('Kid push error:', e));
     });
   }
+}
+
+function stampCoins(kidId) {
+  if (!state.coinsUpdatedAt) state.coinsUpdatedAt = {};
+  state.coinsUpdatedAt[kidId] = Date.now();
 }
 
 function saveState() {
@@ -1532,11 +1567,15 @@ function loadLocalFallback() {
       if (!state.perfectWeekClaimed) state.perfectWeekClaimed = {lauren:'', andrew:'', tester:''};
       if (!state.levelsUpdatedAt) state.levelsUpdatedAt = {lauren:0, andrew:0, tester:0};
       if (state.rewardsUpdatedAt === undefined) state.rewardsUpdatedAt = 0;
+      if (!state.coinsUpdatedAt) state.coinsUpdatedAt = {lauren:0, andrew:0, tester:0};
+      if (!state.incompleteWeekPenalized) state.incompleteWeekPenalized = {lauren:'', andrew:'', tester:''};
       state.kids.forEach(function(k) {
         if (!state.adaptiveQ[k.id]) state.adaptiveQ[k.id] = 10;
         if (!state.paceData[k.id]) state.paceData[k.id] = {};
         if (state.perfectWeekClaimed[k.id] === undefined) state.perfectWeekClaimed[k.id] = '';
         if (!state.levelsUpdatedAt[k.id]) state.levelsUpdatedAt[k.id] = 0;
+        if (!state.coinsUpdatedAt[k.id]) state.coinsUpdatedAt[k.id] = 0;
+        if (state.incompleteWeekPenalized[k.id] === undefined) state.incompleteWeekPenalized[k.id] = '';
       });
     }
   } catch(e) { state = JSON.parse(JSON.stringify(DEFAULT_STATE)); }
@@ -1554,6 +1593,7 @@ function setSyncBar(msg, type) {
 function updateLastSyncedDisplay() {
   const ts = state.lastSynced;
   let label = '';
+  let isStale = false;
   if (ts) {
     const d = new Date(ts);
     const now = new Date();
@@ -1566,14 +1606,17 @@ function updateLastSyncedDisplay() {
       const ampm = d.getHours() >= 12 ? 'pm' : 'am';
       label = 'Synced at ' + h + ':' + m + ampm;
     }
+    isStale = diffMin > 30;
   }
-  // Update all sync timestamp elements
+  // Connection dot — green if recent sync, red if stale or never
+  const dot = ts && !isStale ? '🟢' : '🔴';
+  const staleWarning = isStale ? ' ⚠️ Stale' : '';
   document.querySelectorAll('.last-synced-ts').forEach(function(el) {
-    el.textContent = label;
+    el.textContent = dot + ' ' + label + staleWarning;
+    el.style.color = isStale ? '#EF4444' : '';
   });
-  // Also update landing page status
   const landingStatus = document.getElementById('sync-status-landing');
-  if (landingStatus && ts) landingStatus.textContent = '☁️ Firebase • ' + label;
+  if (landingStatus) landingStatus.textContent = ts ? (dot + ' Firebase • ' + label + staleWarning) : '🔴 Not synced';
 }
 
 // ── SCREENS ─────────────────────────────────────────────
@@ -1708,19 +1751,15 @@ function getTodayKey() { return new Date().toDateString(); }
 // Day B (Tue/Thu = odd dow): Reading + Writing
 // Sunday (dow=0): Rest day
 function getTodaySchedule() {
-  const dow = new Date().getDay(); // 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
-  if (dow === 0) return { isRest: true, subjects: [] };
-  // Odd days (Mon=1,Wed=3,Fri=5,Sat=6) → Day A
-  // Even days (Tue=2,Thu=4) → Day B
+  const dow = new Date().getDay();
+  const s = getScheduleForDow(dow);
+  if (s.isRest) return s;
   const isDayA = (dow % 2 === 1) || dow === 6;
-  return {
-    isRest: false,
+  return Object.assign({}, s, {
     isDayA,
-    subjects: isDayA ? ['spelling','math'] : ['reading','writing'],
     label: isDayA ? 'Spelling & Math today' : 'Reading & Writing today'
-  };
+  });
 }
-
 
 function getTimeGreeting() {
   const h = new Date().getHours();
@@ -1767,11 +1806,13 @@ function renderKidDashboard() {
   const schedule = getTodaySchedule();
   const greetingEl = document.getElementById('kid-dash-greeting');
   if (greetingEl) {
+    const streakCount = (state.dailyStreak && state.dailyStreak[currentKidId]) ? state.dailyStreak[currentKidId].count : 0;
+    const streakMsg = streakCount >= 3 ? ' 🔥 ' + streakCount + '-day streak!' : streakCount === 1 ? ' You started a streak!' : '';
     if (schedule.isRest) {
-      greetingEl.textContent = getTimeGreeting() + ', ' + kid.name + '! Today is your rest day 😴';
+      greetingEl.textContent = getTimeGreeting() + ', ' + kid.name + '! Enjoy your day off 😴';
     } else {
       const subjectNames = schedule.subjects.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' & ');
-      greetingEl.textContent = getTimeGreeting() + ', ' + kid.name + '! Ready for ' + subjectNames + '? 🌟';
+      greetingEl.textContent = getTimeGreeting() + ', ' + kid.name + '!' + streakMsg + ' Today: ' + subjectNames + ' 🌟';
     }
     greetingEl.style.display = 'block';
   }
@@ -1851,6 +1892,8 @@ function renderKidDashboard() {
     subjects.forEach(function(subjectId) {
       const p = progress[subjectId]; const d = p && p.date === todayKey; if(d) done++;
       const locked = d && !isUnlockedToday(currentKidId, subjectId);
+      // If writing redo is pending, lock all non-writing subjects until writing is done
+      const redoLocked = redoNotice && subjectId !== 'writing' && !(progress['writing'] && progress['writing'].date === todayKey);
       const art = subjectArt[subjectId];
       const col = subjectColors[subjectId];
       const gl = getCurrentGradeLevel(currentKidId, subjectId);
@@ -1884,10 +1927,19 @@ function renderKidDashboard() {
         + '<div style="font-size:11px;color:var(--primary);font-weight:700;margin-top:2px">' + gradeLabel + ' · Level ' + (curIdx+1) + '/' + gradeLevels.length + '</div>'
         + (locked
           ? '<div class="subj-score" style="margin-top:6px">✓ ' + p.score + '%</div>'
-          : '<div class="subj-status" style="font-size:11px;color:var(--muted);margin-top:4px">⏱ ' + mins + ' min</div>')
+          : redoLocked
+            ? '<div style="font-size:11px;color:#EF4444;font-weight:700;margin-top:4px">✍️ Finish Writing Redo first</div>'
+            : '<div class="subj-status" style="font-size:11px;color:var(--muted);margin-top:4px">⏱ ' + mins + ' min</div>')
         + streakHtml
-        + (locked ? '<div style="position:absolute;top:10px;right:10px;background:#2ECC71;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:14px;">✓</div>' : '');
-      div.onclick = (function(id){ return function(){ startLesson(id); }; })(subjectId);
+        + (locked ? '<div style="position:absolute;top:10px;right:10px;background:#2ECC71;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:14px;">✓</div>' : '')
+        + (redoLocked ? '<div style="position:absolute;top:10px;right:10px;background:#EF4444;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:14px;">🔒</div>' : '');
+      if (redoLocked) {
+        div.onclick = function() { showToast('✍️ Complete the Writing Redo first!'); };
+        div.style.opacity = '0.6';
+        div.style.cursor = 'not-allowed';
+      } else {
+        div.onclick = (function(id){ return function(){ startLesson(id); }; })(subjectId);
+      }
       grid.appendChild(div);
     });
 
@@ -1912,14 +1964,6 @@ function renderKidDashboard() {
         + ' (+' + b.coins + ' 🧠)'
         + '</button>';
     }).join('');
-  }
-  const studyBtn = document.getElementById('study-mode-btn');
-  if (studyBtn) {
-    const hasWrong = ['spelling','math','reading','writing'].some(function(s) {
-      const p = (state.progress[currentKidId]||{})[s];
-      return p && p.wrongAnswers && p.wrongAnswers.length > 0;
-    });
-    studyBtn.style.display = hasWrong ? 'block' : 'none';
   }
 
   const rewardsEl = document.getElementById('kid-rewards-list');
@@ -1950,7 +1994,7 @@ function renderKidHistory(kidId) {
   const list = document.getElementById('kid-history-list');
   if (!card || !list) return;
   const history = (state.lessonHistory && state.lessonHistory[kidId]) || [];
-  const recent = history.slice(0, 14); // last 14 entries
+  const recent = history.slice().sort((a,b) => b.date.localeCompare(a.date)).slice(0, 20);
   if (!recent.length) { card.style.display = 'none'; return; }
   card.style.display = 'block';
   const subjectIcons = {spelling:'🔤', math:'🧮', reading:'📖', writing:'✏️'};
@@ -1985,6 +2029,7 @@ function redeemReward(id) {
   const kid = state.kids.find(k => k.id === currentKidId);
   if (!r || !kid || kid.coins < r.cost) return;
   kid.coins -= r.cost;
+  stampCoins(currentKidId);
   if (!state.redemptionQueue) state.redemptionQueue = [];
   state.redemptionQueue.push({
     id: 'rq' + Date.now(),
@@ -2141,7 +2186,8 @@ Difficulty: ${diffName}. Student: ${kid.name}.${topicNote}${wrongContext}
 Mix of multiple choice and typed answer questions.
 Return ONLY valid JSON array, no markdown:
 [{"type":"mc","question":"REAL MATH QUESTION","options":["A","B","C","D"],"answer":"A"},{"type":"typed","question":"REAL MATH QUESTION","answer":"ANSWER"},...]
-Use exactly ${mcCount} mc and ${typedCount} typed questions. All content must be real math problems for "${levelName}". No placeholder text. Use actual numbers and symbols (use x for multiplication, / for division).`;
+Use exactly ${mcCount} mc and ${typedCount} typed questions. All content must be real math problems for "${levelName}". No placeholder text. Use actual numbers and symbols (use x for multiplication, / for division).
+CRITICAL: The "answer" field must always be the COMPUTED RESULT — never the expression. For example: 48/6 answer must be "8" not "6" or "48/6". 8x7 answer must be "56". Always verify your answers are mathematically correct before returning.`;
 
   } else if (type === 'reading') {
     prompt = `Generate a reading comprehension lesson for a student practicing "${levelName}" (${levelDesc}).
@@ -2501,7 +2547,9 @@ function renderMCQ(c, q) {
       `<button class="option-btn" onclick="selectOption(this,'${escQ(o)}','${escQ(resolvedAns)}')">${o}</button>`).join('')}
     </div>
     <div class="feedback-box" id="feedback"></div>
+    ${lessonState && lessonState.subjectType === 'math' ? mathScratchPadHTML() : ''}
   </div>`;
+  if (lessonState && lessonState.subjectType === 'math') initMathScratchPad();
 }
 
 function renderShortQ(c, q) {
@@ -2518,6 +2566,58 @@ function renderShortQ(c, q) {
   </div>`;
 }
 
+function mathScratchPadHTML() {
+  return `<div style="margin-top:14px;border-top:1px solid var(--border);padding-top:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <span style="font-size:12px;font-weight:800;color:var(--muted)">🖊 SCRATCH PAD</span>
+      <button onclick="clearMathScratch()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;">Clear</button>
+    </div>
+    <canvas id="math-scratch-canvas" width="600" height="180"
+      style="width:100%;height:180px;border:1.5px solid var(--border);border-radius:10px;background:#FAFBFF;touch-action:none;cursor:crosshair;display:block;"></canvas>
+  </div>`;
+}
+
+function initMathScratchPad() {
+  const canvas = document.getElementById('math-scratch-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.strokeStyle = '#1A1F36';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  let drawing = false;
+  let lastX = 0, lastY = 0;
+  function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const src = e.touches ? e.touches[0] : e;
+    return { x: (src.clientX - rect.left) * scaleX, y: (src.clientY - rect.top) * scaleY };
+  }
+  function start(e) { e.preventDefault(); drawing = true; const p = getPos(e); lastX = p.x; lastY = p.y; }
+  function move(e) {
+    e.preventDefault();
+    if (!drawing) return;
+    const p = getPos(e);
+    ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(p.x, p.y); ctx.stroke();
+    lastX = p.x; lastY = p.y;
+  }
+  function stop() { drawing = false; }
+  canvas.addEventListener('mousedown', start);
+  canvas.addEventListener('mousemove', move);
+  canvas.addEventListener('mouseup', stop);
+  canvas.addEventListener('mouseleave', stop);
+  canvas.addEventListener('touchstart', start, {passive:false});
+  canvas.addEventListener('touchmove', move, {passive:false});
+  canvas.addEventListener('touchend', stop);
+}
+
+function clearMathScratch() {
+  const canvas = document.getElementById('math-scratch-canvas');
+  if (!canvas) return;
+  canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+}
+
 function renderTypedQ(c, q) {
   const cleanQ = sanitizeUnicode(q.question);
   const cleanSub = q.sub ? sanitizeUnicode(q.sub) : null;
@@ -2530,8 +2630,10 @@ function renderTypedQ(c, q) {
     <input class="answer-input" id="typed-input" type="text" placeholder="Your answer..." autocomplete="off"/>
     <div class="feedback-box" id="feedback"></div>
     <button class="btn-primary" id="check-btn" onclick="checkTyped('${escQ(q.answer)}')">Check Answer</button>
+    ${lessonState && lessonState.subjectType === 'math' ? mathScratchPadHTML() : ''}
   </div>`;
   setTimeout(() => { const el=document.getElementById('typed-input'); if(el) el.focus(); }, 200);
+  if (lessonState && lessonState.subjectType === 'math') initMathScratchPad();
 }
 
 function renderWritingLesson(c) {
@@ -2743,12 +2845,14 @@ function submitWriting() {
   if (!hasDrawing) { showToast('✏️ Please write something first!'); return; }
 
   const imageDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+  const isRedo = !!(state.redoNotices || []).find(function(n){ return n.kidId === currentKidId && n.subject === 'writing'; });
   if (!state.writingQueue) state.writingQueue = [];
   state.writingQueue.push({
     id: 'w'+Date.now(), kidId: currentKidId,
     prompt: lessonState.writingPrompt,
     kidAnswer: imageDataUrl,
     kidAnswerType: 'drawing',
+    isRedo: isRedo,
     status: 'pending', date: new Date().toLocaleDateString()
   });
   saveState();
@@ -2896,6 +3000,17 @@ function showNextBtn(flagged) {
   const qc = document.querySelector('#lesson-content .question-card');
   if (!qc) return;
 
+  // Auto-advance on correct answer (not on wrong, not on last question, not in writing)
+  if (state.autoAdvance && !flagged && !isLast && ls.subjectType !== 'writing') {
+    const lastAnswer = ls.answers && ls.answers[ls.answers.length - 1];
+    if (lastAnswer === true) {
+      setTimeout(function() {
+        if (lessonState && lessonState.currentQ === ls.currentQ) nextQuestion();
+      }, 800);
+      return; // skip showing the button
+    }
+  }
+
   // Flag button — hide during drill round and study mode
   if (!flagged && !ls.isDrillRound && !ls.isStudyMode) {
     const flagBtn = document.createElement('button');
@@ -3023,14 +3138,13 @@ function nextQuestion() {
 
 function startDrillRound() {
   const ls = lessonState;
-  // Build drill questions from wrong answers
   const drillQs = ls.wrongAnswers.map(function(w) {
-    // Find the original question object
+    // Find original question — match by question text or spelling word
     const orig = ls._originalQuestions && ls._originalQuestions.find(function(q) {
-      return (q.question === w.question || q.word === w.question);
+      return (q.question && q.question === w.question) || (q.word && q.word === w.question);
     });
-    if (orig) return orig;
-    // Fallback: rebuild a typed question
+    if (orig) return orig; // preserves type, hint, options, word, spelling audio etc.
+    // Fallback only if original not found
     return { type:'typed', question: w.question, answer: w.correctAnswer };
   }).filter(Boolean);
 
@@ -3042,6 +3156,7 @@ function startDrillRound() {
   ls.currentQ = 0;
   ls.drillCorrect = 0;
   ls.drillTotal = drillQs.length;
+  stopLessonTimer();
   window.scrollTo(0,0);
   renderQuestion();
 }
@@ -3049,8 +3164,6 @@ function startDrillRound() {
 function finishLesson() {
   stopLessonTimer();
   const ls = lessonState;
-  // Study mode — no scoring, just return to dashboard
-  if (ls.isStudyMode) { endStudyMode(); return; }
   // Use original question set for scoring (not drill questions)
   const origQuestions = ls._originalQuestions || ls.questions;
   const origTotal = origQuestions.length;
@@ -3090,7 +3203,7 @@ function finishLesson() {
     });
   });
   const kid = state.kids.find(k=>k.id===currentKidId);
-  if (kid && !alreadyDone) kid.coins += coins;
+  if (kid && !alreadyDone) { kid.coins += coins; stampCoins(currentKidId); }
   state.difficultyLevel[currentKidId] = ls.diffLevel;
 
   // ── Kumon advancement logic ──────────────────────────
@@ -3421,6 +3534,7 @@ function renderParentDashboard() {
     renderWritingApprovals();
     renderParentRewards();
     renderProgressOverview();
+    renderWeeklySummary();
     renderFlaggedList();
     renderRedemptionQueue();
     updateRedemptionBadge();
@@ -3457,6 +3571,8 @@ function renderParentDashboard() {
     renderTimerInputs();
     renderApiKeyStatus();
     renderVacationBtn();
+    renderSoundsToggle();
+    renderAutoAdvanceToggle();
     updateBinIdDisplay();
   } catch(e) {
     console.error('renderParentDashboard error:', e);
@@ -3522,7 +3638,7 @@ function renderWritingApprovals() {
     const kid = state.kids.find(k=>k.id===w.kidId);
     return `<div class="approval-item">
       <div class="approval-info">
-        <div style="font-weight:700">${kid?kid.emoji+' '+kid.name:w.kidId} · ${w.date}</div>
+        <div style="font-weight:700">${kid?kid.emoji+' '+kid.name:w.kidId} · ${w.date}${w.isRedo ? ' <span style="background:#EF4444;color:white;font-size:11px;font-weight:800;padding:2px 8px;border-radius:10px;margin-left:6px">🔄 REDO</span>' : ''}</div>
         <div style="font-size:13px;color:var(--muted);margin-top:4px"><strong>Prompt:</strong> ${w.prompt}</div>
         ${w.kidAnswerType === 'drawing'
           ? `<img src="${w.kidAnswer}" style="width:100%;border-radius:8px;border:1.5px solid var(--border);margin-top:8px;display:block;" alt="Student handwriting"/>`
@@ -3600,7 +3716,7 @@ function resolveFlag(id, award) {
       const newCoins = Math.round(newPct * (max / 100));
       bonusCoins = Math.max(0, newCoins - p.coins);
     }
-    if (kid && bonusCoins > 0) kid.coins += bonusCoins;
+    if (kid && bonusCoins > 0) { kid.coins += bonusCoins; stampCoins(f.kidId); }
     showToast('✅ Accepted — ' + bonusCoins + ' Brain Buck' + (bonusCoins !== 1 ? 's' : '') + ' awarded to ' + (kid ? kid.name : 'kid') + '!');
   } else {
     showToast('❌ Marked incorrect — noted for review.');
@@ -3630,7 +3746,7 @@ function denyWriting(id) {
   // Deduct Brain Bucks earned from the writing lesson
   const writingProgress = state.progress[w.kidId] && state.progress[w.kidId]['writing'];
   if (kid && writingProgress && writingProgress.coins) {
-    kid.coins = Math.max(0, kid.coins - writingProgress.coins);
+    kid.coins = Math.max(0, kid.coins - writingProgress.coins); stampCoins(w.kidId);
   }
   // Clear progress so they can redo it today
   if (state.progress[w.kidId]) delete state.progress[w.kidId]['writing'];
@@ -3739,6 +3855,30 @@ function renderParentRewards() {
       }
     </div>`;
   }).join('<hr style="border:none;border-top:1px solid var(--border);margin:8px 0"/>');
+}
+
+function renderWeeklySummary() {
+  const el = document.getElementById('weekly-summary-content');
+  if (!el) return;
+  const weekStart = getWeekStart(new Date());
+  const weekStartStr = weekStart.toISOString().slice(0,10);
+  el.innerHTML = state.kids.filter(k => k.id !== 'tester').map(function(k) {
+    const history = (state.lessonHistory && state.lessonHistory[k.id]) || [];
+    const weekEntries = history.filter(e => e.date >= weekStartStr);
+    const totalMin = weekEntries.reduce((s,e) => s + (e.duration||0), 0);
+    const avgScore = weekEntries.length ? Math.round(weekEntries.reduce((s,e) => s+e.score,0)/weekEntries.length) : 0;
+    const brainBucks = weekEntries.reduce((s,e) => s + (e.coins||0), 0);
+    const subjects = ['spelling','math','reading','writing'];
+    const doneDays = new Set(weekEntries.map(e=>e.date)).size;
+    return '<div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)">'
+      + '<div style="font-family:\'Baloo 2\',cursive;font-size:16px;font-weight:700;margin-bottom:8px">' + k.emoji + ' ' + k.name + '</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">'
+      + '<div style="background:#EEF2FF;border-radius:10px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--primary)">' + doneDays + '</div><div style="font-size:10px;color:var(--muted);font-weight:700">DAYS</div></div>'
+      + '<div style="background:#F0FBF4;border-radius:10px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:#2ECC71">' + totalMin + 'm</div><div style="font-size:10px;color:var(--muted);font-weight:700">TIME</div></div>'
+      + '<div style="background:#FFFBEA;border-radius:10px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:#F59E0B">' + (weekEntries.length ? avgScore+'%' : '—') + '</div><div style="font-size:10px;color:var(--muted);font-weight:700">AVG</div></div>'
+      + '<div style="background:#FFF0F0;border-radius:10px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:#EF4444">🧠 ' + brainBucks + '</div><div style="font-size:10px;color:var(--muted);font-weight:700">EARNED</div></div>'
+      + '</div></div>';
+  }).join('') || '<div style="color:var(--muted);font-size:14px">No activity yet this week.</div>';
 }
 
 function renderProgressOverview() {
@@ -3917,7 +4057,7 @@ function adjustCoins() {
   const amt=parseInt(document.getElementById('coin-adjust').value)||0;
   const kid=state.kids.find(k=>k.id===kidId);
   if (!kid) return;
-  kid.coins=Math.max(0,kid.coins+amt);
+  kid.coins=Math.max(0,kid.coins+amt); stampCoins(kidId);
   saveState(); document.getElementById('coin-adjust').value='';
   showToast('✅ Coins updated!'); renderParentKidSummary();
 }
@@ -3940,7 +4080,7 @@ function resetProgress() {
       if (prog[subj].date === todayKey) {
         // Deduct coins earned today from this lesson
         const kid = state.kids.find(k=>k.id===id);
-        if (kid) kid.coins = Math.max(0, kid.coins - (prog[subj].coins||0));
+        if (kid) { kid.coins = Math.max(0, kid.coins - (prog[subj].coins||0)); stampCoins(kid.id); }
         delete prog[subj];
       }
     });
@@ -4073,6 +4213,7 @@ function launchConfetti(duration) {
 
 // ── FUN: SOUNDS ──────────────────────────────────────────
 function playSound(type) {
+  if (state.soundsOff) return; // respect sound toggle
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const osc = ctx.createOscillator();
@@ -4197,6 +4338,107 @@ function applyVacationStreakProtection() {
   localStorage.setItem('kidstuff_cache', JSON.stringify(state));
 }
 
+// ── WEEK REWARDS & PENALTIES ─────────────────────────────
+const PERFECT_WEEK_BONUS = 5;
+const INCOMPLETE_WEEK_PENALTY = 5;
+
+function getWeekStart(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+function getScheduleForDow(dow) {
+  if (dow === 0) return { isRest: true, subjects: [] };
+  const isDayA = (dow % 2 === 1) || dow === 6;
+  return { isRest: false, subjects: isDayA ? ['spelling','math'] : ['reading','writing'] };
+}
+
+function evaluateWeek(kidId) {
+  // Returns {complete, excused, required, perfect} for Mon-Sat of current week
+  const today = new Date();
+  const dow = today.getDay();
+  if (dow === 0) return null; // don't evaluate on Sunday
+  const weekStart = getWeekStart(today);
+  const history = (state.lessonHistory && state.lessonHistory[kidId]) || [];
+  let perfectDays = 0, requiredDays = 0;
+  for (let i = 0; i < 6; i++) {
+    const day = new Date(weekStart);
+    day.setDate(weekStart.getDate() + i);
+    if (day > today) break;
+    const dayDow = day.getDay();
+    if (dayDow === 0) continue;
+    if (isUSFederalHoliday(day) || state.vacationMode) { perfectDays++; requiredDays++; continue; }
+    requiredDays++;
+    const daySchedule = getScheduleForDow(dayDow);
+    if (daySchedule.isRest) { perfectDays++; continue; }
+    const dateStr = day.toISOString().slice(0,10);
+    const dayEntries = history.filter(e => e.date === dateStr);
+    const allDone = daySchedule.subjects.every(function(s) {
+      return dayEntries.some(e => e.subject === s);
+    });
+    if (allDone) perfectDays++;
+  }
+  return { perfectDays, requiredDays, perfect: requiredDays > 0 && perfectDays >= requiredDays };
+}
+
+function checkPerfectWeek(kidId) {
+  if (kidId === 'tester') return;
+  const today = new Date();
+  const dow = today.getDay();
+  if (!state.perfectWeekClaimed) state.perfectWeekClaimed = {};
+  if (!state.perfectWeekClaimed[kidId]) state.perfectWeekClaimed[kidId] = '';
+  const weekStart = getWeekStart(today);
+  const weekKey = weekStart.toISOString().slice(0,10);
+  if (state.perfectWeekClaimed[kidId] === weekKey) return;
+  const result = evaluateWeek(kidId);
+  if (!result || !result.perfect) return;
+  state.perfectWeekClaimed[kidId] = weekKey;
+  const kid = state.kids.find(k => k.id === kidId);
+  if (kid) {
+    kid.coins += PERFECT_WEEK_BONUS;
+    stampCoins(kidId);
+    saveState();
+    setTimeout(function() {
+      launchConfetti(5000);
+      playSound('epic');
+      showToast('🏆 Perfect Week! +' + PERFECT_WEEK_BONUS + ' 🧠 Bonus Brain Bucks!');
+    }, 800);
+  }
+}
+
+function checkIncompleteWeekPenalty(kidId) {
+  if (kidId === 'tester') return;
+  // Only run on Saturday (end of week) or Sunday (catch-up check)
+  const today = new Date();
+  const dow = today.getDay();
+  if (dow !== 6 && dow !== 0) return;
+  if (!state.incompleteWeekPenalized) state.incompleteWeekPenalized = {};
+  const weekStart = getWeekStart(dow === 0 ? new Date(today.getTime() - 86400000) : today);
+  const weekKey = weekStart.toISOString().slice(0,10);
+  if (state.incompleteWeekPenalized[kidId] === weekKey) return;
+  // Don't penalize if perfect week already claimed
+  if ((state.perfectWeekClaimed || {})[kidId] === weekKey) return;
+  // Check if it's Saturday and the week is incomplete
+  if (dow === 6) {
+    const result = evaluateWeek(kidId);
+    if (!result || result.perfect) return; // complete or nothing to penalize
+  }
+  state.incompleteWeekPenalized[kidId] = weekKey;
+  const kid = state.kids.find(k => k.id === kidId);
+  if (kid) {
+    kid.coins -= INCOMPLETE_WEEK_PENALTY; // allow negative
+    stampCoins(kidId);
+    saveState();
+    setTimeout(function() {
+      showToast('📉 Incomplete week — ' + INCOMPLETE_WEEK_PENALTY + ' 🧠 Brain Bucks deducted for ' + (kid.name || kidId) + '.');
+    }, 1200);
+  }
+}
+
 function checkDailyStreak(kidId) {
   if (!state.dailyStreak) state.dailyStreak = {};
   if (!state.dailyStreak[kidId]) state.dailyStreak[kidId] = { count: 0, lastDate: '' };
@@ -4225,6 +4467,17 @@ function checkDailyStreak(kidId) {
     ds.lastDate = today;
     saveState();
     checkBadges(kidId);
+    checkPerfectWeek(kidId);
+    checkIncompleteWeekPenalty(kidId);
+    // Streak milestone celebrations
+    const milestones = {7:'🔥 7-Day Streak! You\'re on fire!', 14:'⚡ 14 Days! Two weeks strong!', 30:'🏆 30-Day Streak! Incredible!', 60:'🌟 60 Days! You\'re a legend!', 100:'👑 100-Day Streak! Unbelievable!'};
+    if (milestones[ds.count]) {
+      setTimeout(function() {
+        launchConfetti(4000);
+        playSound('epic');
+        showToast(milestones[ds.count]);
+      }, 1000);
+    }
   }
 }
 
@@ -4344,35 +4597,6 @@ function renderMilestoneBar(kidId) {
 }
 
 // ── STUDY MODE ───────────────────────────────────────────
-function startStudyMode() {
-  const allWrong = [];
-  const subjects = ['spelling','math','reading','writing'];
-  subjects.forEach(function(s) {
-    const prog = (state.progress[currentKidId]||{})[s];
-    if (prog && prog.wrongAnswers && prog.wrongAnswers.length) {
-      prog.wrongAnswers.forEach(function(w) {
-        allWrong.push({ type:'typed', question: w.question, answer: w.correctAnswer, _hint: w.hint || '' });
-      });
-    }
-  });
-  if (!allWrong.length) { showToast('🎉 No missed questions — you aced everything!'); return; }
-
-  // Shuffle
-  allWrong.sort(() => Math.random() - 0.5);
-
-  lessonState = {
-    subjectId: 'study', subjectName: 'Study Mode', subjectIcon: '📖', subjectType: 'study',
-    questions: allWrong, _originalQuestions: allWrong.slice(),
-    currentQ: 0, answers: [], correct: 0, streak: 0, missStreak: 0, wrongAnswers: [],
-    diffLevel: 2, startTime: Date.now(), isDrillRound: false, timerSeconds: 0,
-    isStudyMode: true
-  };
-  showScreen('screen-lesson');
-  document.getElementById('lesson-title').textContent = '📖 Study Mode';
-  startLessonTimer();
-  renderQuestion();
-}
-
 function renderTimerInputs() {
   const container = document.getElementById('timer-inputs');
   if (!container) return;
@@ -4456,7 +4680,7 @@ function deleteCompletedLesson(kidId, subjectId) {
   if (prog) {
     // Deduct coins
     const kid = state.kids.find(k => k.id === kidId);
-    if (kid && prog.coins) kid.coins = Math.max(0, kid.coins - prog.coins);
+    if (kid && prog.coins) { kid.coins = Math.max(0, kid.coins - prog.coins); stampCoins(kid.id); }
     // Remove progress
     delete state.progress[kidId][subjectId];
     // Remove from streak (pop last entry)
@@ -4522,6 +4746,44 @@ function renderBonusChallengesList() {
       }).join('');
 }
 
+function renderSoundsToggle() {
+  const btn = document.getElementById('sounds-toggle-btn');
+  if (!btn) return;
+  if (state.soundsOff) {
+    btn.textContent = '🔇 Sounds OFF — tap to enable';
+    btn.style.background = '#9CA3AF';
+  } else {
+    btn.textContent = '🔊 Sounds ON — tap to mute';
+    btn.style.background = '#2ECC71';
+  }
+}
+
+function toggleSounds() {
+  state.soundsOff = !state.soundsOff;
+  saveState();
+  renderSoundsToggle();
+  showToast(state.soundsOff ? '🔇 Sounds muted.' : '🔊 Sounds on!');
+}
+
+function renderAutoAdvanceToggle() {
+  const btn = document.getElementById('autoadvance-toggle-btn');
+  if (!btn) return;
+  if (state.autoAdvance) {
+    btn.textContent = '⚡ Auto-Advance ON — tap to disable';
+    btn.style.background = '#2ECC71';
+  } else {
+    btn.textContent = '⚡ Auto-Advance OFF — tap to enable';
+    btn.style.background = '#9CA3AF';
+  }
+}
+
+function toggleAutoAdvance() {
+  state.autoAdvance = !state.autoAdvance;
+  saveState();
+  renderAutoAdvanceToggle();
+  showToast(state.autoAdvance ? '⚡ Auto-advance enabled.' : '⚡ Auto-advance disabled.');
+}
+
 function renderVacationBtn() {
   const btn = document.getElementById('vacation-toggle-btn');
   const card = document.getElementById('vacation-mode-card');
@@ -4563,7 +4825,7 @@ function completeBonusChallenge(id) {
   if (!bc) return;
   bc.status = 'completed';
   const kid = state.kids.find(k => k.id === bc.kidId);
-  if (kid) kid.coins += bc.coins;
+  if (kid) { kid.coins += bc.coins; stampCoins(kid.id); }
   saveState();
   showToast('⭐ Bonus challenge complete! +' + bc.coins + ' 🧠 Brain Bucks!');
   launchConfetti(2500);
@@ -4585,12 +4847,6 @@ function dismissQuarterNotice() {
     saveState();
   }
   renderKidDashboard();
-}
-
-function endStudyMode() {
-  stopLessonTimer();
-  showScreen('screen-kid');
-  showToast('📖 Study session done! Great work reviewing.');
 }
 
 // ── WIRE INTO finishLesson: level-up celebration ──────────
@@ -4708,76 +4964,6 @@ function grantSkipDay(kidId) {
   renderParentDashboard();
 }
 
-// ── WEEKLY EMAIL ─────────────────────────────────────────
-const EMAILJS_SERVICE_ID  = 'YOUR_SERVICE_ID';
-const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';
-const EMAILJS_PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';
-const REPORT_EMAIL        = 'YOUR_EMAIL@example.com';
-
-function generateWeeklyReport() {
-  const lines = [];
-  lines.push('Weekly KidStuff Summary — ' + new Date().toLocaleDateString());
-  lines.push('');
-  state.kids.forEach(function(k) {
-    lines.push('── ' + k.name + ' ──────────────');
-    lines.push('🧠 Brain Bucks: ' + k.coins);
-    const ds = (state.dailyStreak && state.dailyStreak[k.id]) || {};
-    lines.push('🔥 Streak: ' + (ds.count || 0) + ' day(s)');
-    const prog = state.progress[k.id] || {};
-    const subjects = ['spelling','math','reading','writing'];
-    subjects.forEach(function(s) {
-      const p = prog[s];
-      if (p) {
-        lines.push('  ' + ({spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'}[s]) + ' ' + s.charAt(0).toUpperCase()+s.slice(1) + ': ' + p.score + '% — ' + (function(){ const gl = getCurrentGradeLevel(k.id,s); return (GRADE_LABELS[gl.grade]||'Grade '+gl.grade) + ' L'+(gl.levelIdx+1); })());
-      }
-    });
-    const badges = (state.badges && state.badges[k.id]) || [];
-    if (badges.length) lines.push('🏅 Badges: ' + badges.map(b=>b.icon+' '+b.label).join(', '));
-    lines.push('');
-  });
-  return lines.join('\n');
-}
-
-async function sendWeeklyEmail() {
-  if (EMAILJS_SERVICE_ID === 'YOUR_SERVICE_ID') {
-    showToast('⚠️ EmailJS not configured yet — add credentials in Settings.');
-    return;
-  }
-  try {
-    if (typeof emailjs === 'undefined') throw new Error('EmailJS not loaded');
-    const report = generateWeeklyReport();
-    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-      to_name: 'Marc',
-      report_body: report
-    }, EMAILJS_PUBLIC_KEY);
-    showToast('📧 Weekly report sent!');
-  } catch(e) {
-    showToast('❌ Email failed: ' + e.message);
-  }
-}
-
-// ── INIT ────────────────────────────────────────────────
-// ── DEV MODE: wipe progress on every load ───────────────
-// Set DEV_MODE = false when going to production
-const DEV_MODE = false;
-function devWipe() {
-  if (!DEV_MODE) return;
-  // Wipe progress, coins, queues — keep PIN, rewards, levels, kids
-  state.kids.forEach(function(k) {
-    k.coins = 0;
-  });
-  state.progress = {};
-  state.streaks = {};
-  state.unlockedToday = {};
-  state.writingQueue = [];
-  state.redemptionQueue = [];
-  state.flaggedReview = [];
-  state.redoNotices = [];
-  state.difficultyLevel = {};
-  state.usedTopics = {};
-  localStorage.setItem('kidstuff_cache', JSON.stringify(state));
-}
-
 // ── ONE-TIME MIGRATIONS ──────────────────────────────────
 function runMigrations() {
   let changed = false;
@@ -4844,7 +5030,6 @@ function runMigrations() {
 // Load local cache immediately so UI is always responsive
 loadLocalFallback();
 runMigrations();
-devWipe();
 checkQuarterlyReset();
 // Auto-protect streaks on US federal holidays
 state.kids.forEach(function(k) { checkHolidayStreakProtection(k.id); });
