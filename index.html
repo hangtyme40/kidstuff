@@ -2657,8 +2657,9 @@ function renderWritingLesson(c) {
       <button onclick="clearCanvas()" style="margin-left:auto;background:rgba(255,255,255,0.9);border:1.5px solid var(--border);border-radius:8px;padding:5px 12px;font-family:Nunito,sans-serif;font-weight:700;font-size:12px;cursor:pointer;color:var(--muted);">🗑 Clear All</button>
     </div>
     <div style="position:relative;margin-bottom:14px;">
-      <canvas id="writing-canvas" width="700" height="380"
-        style="width:100%;height:380px;border:2px solid var(--border);border-radius:12px;background:#FAFBFF;touch-action:none;cursor:crosshair;display:block;"></canvas>
+      <canvas id="writing-canvas" width="700" height="660"
+        style="width:100%;height:660px;border:2px solid var(--border);border-radius:12px;background:#FAFBFF;touch-action:none;cursor:crosshair;display:block;"></canvas>
+      <button onclick="expandWritingCanvas()" id="expand-canvas-btn" style="width:100%;margin-top:8px;padding:10px;border-radius:10px;border:2px dashed var(--border);background:transparent;color:var(--muted);font-family:Nunito,sans-serif;font-weight:700;font-size:13px;cursor:pointer;">+ Add More Space</button>
     </div>
     <div class="feedback-box" id="feedback"></div>
     <button class="btn-primary" id="writing-submit-btn" onclick="submitWriting()">Submit for Review ✉️</button>
@@ -2824,6 +2825,29 @@ function setEraserSize(size) {
     const btn = document.getElementById('erase-' + s);
     if (btn) btn.style.borderColor = s === size ? '#EF4444' : 'var(--border)';
   });
+}
+
+function expandWritingCanvas() {
+  const canvas = document.getElementById('writing-canvas');
+  if (!canvas) return;
+  const addHeight = 330; // add ~half a page each tap
+  const oldH = canvas.height;
+  const newH = oldH + addHeight;
+  // Save existing drawing
+  const tmp = document.createElement('canvas');
+  tmp.width = canvas.width; tmp.height = oldH;
+  tmp.getContext('2d').drawImage(canvas, 0, 0);
+  // Resize
+  canvas.height = newH;
+  canvas.style.height = newH + 'px';
+  // Restore drawing then redraw lines
+  const ctx = canvas.getContext('2d');
+  const lineSpacing = 44;
+  ctx.strokeStyle = '#C7D2FE'; ctx.lineWidth = 1;
+  for (let ly = lineSpacing; ly < newH; ly += lineSpacing) {
+    ctx.beginPath(); ctx.moveTo(0, ly); ctx.lineTo(canvas.width, ly); ctx.stroke();
+  }
+  ctx.drawImage(tmp, 0, 0);
 }
 
 function clearCanvas() {
