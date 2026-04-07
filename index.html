@@ -1191,15 +1191,16 @@ function updateAdaptiveQuestionCount(kidId) {
   if (!state.adaptiveQ) state.adaptiveQ = {};
   if (!state.adaptiveQ[kidId]) state.adaptiveQ[kidId] = 10;
   const avg = getAvgDailyMinutes(kidId);
-  // Need at least 3 days of data before adjusting
+  if (avg <= 0) return; // no data yet
   const dayCount = state.paceData && state.paceData[kidId] ? Object.keys(state.paceData[kidId]).length : 0;
-  if (dayCount < 3) return;
+  const historyCount = (state.lessonHistory && state.lessonHistory[kidId]) ? state.lessonHistory[kidId].length : 0;
+  if (dayCount < 3 && historyCount < 3) return; // not enough data
   const diff = PACE_TARGET_MIN - avg; // positive = under target, negative = over
   let delta = 0;
   const absDiff = Math.abs(diff);
-  if (absDiff <= 5) delta = diff > 0 ? 1 : -1;        // close — nudge ±1
-  else if (absDiff <= 10) delta = diff > 0 ? 2 : -2;  // moderate — ±2
-  else delta = diff > 0 ? 4 : -4;                      // way off — aggressive ±4
+  if (absDiff <= 5) delta = diff > 0 ? 1 : -1;
+  else if (absDiff <= 10) delta = diff > 0 ? 2 : -2;
+  else delta = diff > 0 ? 4 : -4;
   state.adaptiveQ[kidId] = Math.max(5, Math.min(25, state.adaptiveQ[kidId] + delta));
 }
 
@@ -3588,7 +3589,9 @@ function renderParentKidSummary() {
     const qCount = getAdaptiveQuestionCount(k.id);
     const avgMin = Math.round(getAvgDailyMinutes(k.id));
     const dayCount = state.paceData && state.paceData[k.id] ? Object.keys(state.paceData[k.id]).length : 0;
-    const paceLabel = dayCount < 3
+    const historyCount = (state.lessonHistory && state.lessonHistory[k.id]) ? state.lessonHistory[k.id].length : 0;
+    const calibrated = dayCount >= 3 || historyCount >= 3;
+    const paceLabel = !calibrated
       ? '<div style="font-size:11px;color:var(--muted);margin-top:4px">⏱ Pace calibrating…</div>'
       : '<div style="font-size:11px;color:var(--muted);margin-top:4px">⏱ ~' + avgMin + ' min/day · ' + qCount + ' q/lesson</div>';
     return `<div class="kid-summary-card">
@@ -5024,6 +5027,37 @@ function runMigrations() {
     if (!state.levelsUpdatedAt) state.levelsUpdatedAt = {};
     state.kids.forEach(function(k) { state.levelsUpdatedAt[k.id] = Date.now(); });
     localStorage.setItem('levelsMigrationV1', '1');
+    changed = true;
+  }
+
+  // ── SEED paceData from lessonHistory if empty ──────────
+  // Runs once — ensures kids with existing history show calibrated pace immediately
+  if (!localStorage.getItem('paceDataSeedV1')) {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - PACE_WINDOW_DAYS);
+    const cutoffStr = cutoff.toISOString().slice(0,10);
+    if (!state.paceData) state.paceData = {};
+    state.kids.forEach(function(k) {
+      if (!state.paceData[k.id]) state.paceData[k.id] = {};
+      const history = (state.lessonHistory && state.lessonHistory[k.id]) || [];
+      // Only seed from last 7 days to match window
+      history.filter(e => e.date >= cutoffStr).forEach(function(e) {
+        state.paceData[k.id][e.date] = (state.paceData[k.id][e.date] || 0) + (e.duration || 0);
+      });
+    });
+    localStorage.setItem('paceDataSeedV1', '1');
+    // Also recalculate adaptiveQ immediately from seeded data
+    if (!state.adaptiveQ) state.adaptiveQ = {};
+    state.kids.forEach(function(k) {
+      const entries = Object.values(state.paceData[k.id] || {});
+      if (!entries.length) return;
+      const avg = entries.reduce(function(s,v){ return s+v; },0) / entries.length;
+      if (avg <= 0) return;
+      // Estimate questions needed: if avg is 8 min/day with 10q, scale to 30 min
+      const currentQ = state.adaptiveQ[k.id] || 10;
+      const targetQ = avg > 0 ? Math.round(currentQ * (PACE_TARGET_MIN / avg)) : currentQ;
+      state.adaptiveQ[k.id] = Math.max(5, Math.min(25, targetQ));
+    });
     changed = true;
   }
 
