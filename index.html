@@ -3953,7 +3953,7 @@ function renderProgressOverview() {
       // Recent history table
       const recentDiv = document.createElement('div');
       recentDiv.innerHTML = '<div style="font-weight:800;font-size:14px;margin-bottom:8px;color:var(--muted)">RECENT SESSIONS</div>';
-      const recent = history.slice(0, 30);
+      const recent = history.slice().sort((a,b) => b.date.localeCompare(a.date)).slice(0, 30);
       recent.forEach(function(e) {
         const scoreColor = e.score >= 90 ? '#2ECC71' : e.score >= 70 ? 'var(--primary)' : '#EF4444';
         const row = document.createElement('div');
