@@ -26,6 +26,11 @@
   --text:#1A1F36;--muted:#7A859E;--border:#E2E8F8;
   --shadow:0 4px 20px rgba(79,110,247,0.10);--radius:18px;
 }
+body.dark-mode {
+  --bg:#0F1117;--card:#1A1F2E;--primary:#6B8EFF;--primary-dark:#4F6EF7;
+  --text:#E8ECFF;--muted:#8892A4;--border:#2A3050;
+  --shadow:0 4px 20px rgba(0,0,0,0.4);
+}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
 .screen{display:none!important;}
@@ -83,7 +88,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .question-card{background:white;border-radius:var(--radius);padding:28px 24px;box-shadow:var(--shadow);margin-bottom:18px;}
 .question-text{font-size:20px;font-weight:800;color:var(--text);margin-bottom:20px;line-height:1.4;}
 .question-sub{font-size:14px;color:var(--muted);margin-bottom:16px;}
-.passage-box{background:#FAFBFF;border:2px solid var(--border);border-radius:14px;padding:20px;margin-bottom:20px;font-size:16px;line-height:1.8;max-height:220px;overflow-y:auto;}
+.passage-box{background:#FAFBFF;border:2px solid var(--border);border-radius:14px;padding:20px;margin-bottom:20px;font-size:16px;line-height:1.8;max-height:320px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
 .options-list{display:flex;flex-direction:column;gap:10px;}
 .option-btn{background:var(--bg);border:2px solid var(--border);border-radius:12px;padding:14px 18px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:600;color:var(--text);cursor:pointer;text-align:left;transition:all 0.2s;}
 .option-btn:hover{border-color:var(--primary);background:#EEF2FF;}
@@ -184,6 +189,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .streak-count{font-size:18px;font-weight:800;color:white;}
 .streak-label{font-size:12px;color:rgba(255,255,255,0.75);font-weight:600;}
 @keyframes flamePulse{0%{transform:scale(1)}100%{transform:scale(1.18)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
 
 .badges-section{margin-bottom:18px;}
 .badges-grid{display:flex;gap:10px;flex-wrap:wrap;padding:4px 0;}
@@ -301,6 +307,10 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <div id="vacation-banner" style="display:none;background:linear-gradient(90deg,#0EA5E9,#7C3AED);color:white;text-align:center;padding:10px 16px;font-weight:800;font-size:14px;border-radius:12px;margin-bottom:14px;">✈️ Vacation Mode — Enjoy your break! Streaks are protected.</div>
     <div id="bonus-challenge-btns"></div>
     <div class="card"><div class="card-title">🎁 Rewards Shop</div><div id="kid-rewards-list"></div></div>
+    <div class="card" id="kid-bb-history-card" style="display:none">
+      <div class="card-title">🧠 Brain Bucks History</div>
+      <div id="kid-bb-history-list"></div>
+    </div>
     <div class="card" id="kid-history-card" style="display:none">
       <div class="card-title">📅 My Recent Lessons</div>
       <div id="kid-history-list"></div>
@@ -416,6 +426,10 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   </div>
   <div class="content">
     <div class="parent-header"><h2>👋 Parent Dashboard</h2><p>Generate curriculum, review writing, manage rewards.</p></div>
+    <div id="writing-pending-alert" style="display:none;background:linear-gradient(135deg,#7C3AED,#4F6EF7);color:white;border-radius:14px;padding:14px 16px;margin-bottom:16px;cursor:pointer;box-shadow:0 4px 16px rgba(124,58,237,0.3);" onclick="switchTab('tab-writing',document.getElementById('tab-btn-writing'))">
+      <div style="font-weight:800;font-size:15px;margin-bottom:2px">✍️ Writing to Review</div>
+      <div id="writing-pending-alert-text" style="font-size:13px;opacity:0.9"></div>
+    </div>
     <div class="kid-summary-cards" id="parent-kid-summary"></div>
     <div class="tabs">
       <button class="tab-btn active" onclick="switchTab('tab-curriculum',this)">📚 Curriculum</button>
@@ -541,6 +555,12 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
           <div style="font-weight:800;margin-bottom:8px">⚡ Auto-Advance</div>
           <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Automatically move to the next question after a correct answer.</div>
           <button id="autoadvance-toggle-btn" class="btn-primary" onclick="toggleAutoAdvance()">Loading...</button>
+        </div>
+        <div style="height:14px"></div>
+        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
+          <div style="font-weight:800;margin-bottom:8px">🌙 Dark Mode</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Switch to a darker color scheme — easier on the eyes at night.</div>
+          <button id="darkmode-toggle-btn" class="btn-primary" onclick="toggleDarkMode()">Loading...</button>
         </div>
         <div style="height:18px"></div>
         <div class="form-grid">
@@ -1085,7 +1105,8 @@ const DEFAULT_STATE = {
   coinsUpdatedAt: {lauren:0, andrew:0, tester:0},
   incompleteWeekPenalized: {lauren:'', andrew:'', tester:''},
   soundsOff: false,
-  autoAdvance: false
+  autoAdvance: false,
+  liveLesson: {lauren: null, andrew: null, tester: null}
 };
 
 let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
@@ -1286,7 +1307,7 @@ async function pullState() {
         state.coinsUpdatedAt[kidId] = Math.max(remoteTs, localTs);
       }
       const kidFields = ['progress','streaks','levels','levelsUpdatedAt','badges','dailyStreak',
-                         'brainBucksMilestones','skipDay','unlockedToday','lessonHistory','perfectWeekClaimed'];
+                         'brainBucksMilestones','skipDay','unlockedToday','lessonHistory','perfectWeekClaimed','liveLesson'];
       kidFields.forEach(function(f) {
         if (remote[f] !== undefined) {
           if (!state[f]) state[f] = {};
@@ -1400,7 +1421,8 @@ async function pushKidData(kidId) {
       skipDay: (state.skipDay || {})[kidId] || 0,
       unlockedToday: (state.unlockedToday || {})[kidId] || {},
       lessonHistory: (state.lessonHistory || {})[kidId] || [],
-      perfectWeekClaimed: (state.perfectWeekClaimed || {})[kidId] || ''
+      perfectWeekClaimed: (state.perfectWeekClaimed || {})[kidId] || '',
+      liveLesson: (state.liveLesson || {})[kidId] || null
     };
     await fbSet('kids/' + kidId, kidPayload);
   } catch(e) {
@@ -1895,8 +1917,9 @@ function renderKidDashboard() {
     subjects.forEach(function(subjectId) {
       const p = progress[subjectId]; const d = p && p.date === todayKey; if(d) done++;
       const locked = d && !isUnlockedToday(currentKidId, subjectId);
-      // If writing redo is pending, lock all non-writing subjects until writing is done
-      const redoLocked = redoNotice && subjectId !== 'writing' && !(progress['writing'] && progress['writing'].date === todayKey);
+      // If writing redo is pending, lock all non-writing subjects until redo is done
+      // Writing subject card launches the redo directly, not a new lesson
+      const redoLocked = redoNotice && subjectId !== 'writing';
       const art = subjectArt[subjectId];
       const col = subjectColors[subjectId];
       const gl = getCurrentGradeLevel(currentKidId, subjectId);
@@ -1940,6 +1963,9 @@ function renderKidDashboard() {
         div.onclick = function() { showToast('✍️ Complete the Writing Redo first!'); };
         div.style.opacity = '0.6';
         div.style.cursor = 'not-allowed';
+      } else if (redoNotice && subjectId === 'writing') {
+        // Launch redo directly — don't generate new lesson
+        div.onclick = function() { startWritingRedo(); };
       } else {
         div.onclick = (function(id){ return function(){ startLesson(id); }; })(subjectId);
       }
@@ -1970,11 +1996,23 @@ function renderKidDashboard() {
   }
 
   const rewardsEl = document.getElementById('kid-rewards-list');
+  // Show pending redemptions first
+  const pendingRedemptions = (state.redemptionQueue||[]).filter(function(r){ return r.kidId === currentKidId && r.status === 'pending'; });
+  let pendingHtml = '';
+  if (pendingRedemptions.length) {
+    pendingHtml = pendingRedemptions.map(function(r) {
+      return '<div style="background:#FFF8E1;border:2px solid #F7C948;border-radius:12px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px">'
+        + '<div style="font-size:24px">⏳</div>'
+        + '<div><div style="font-weight:700;font-size:14px">' + (r.rewardName||'Reward') + '</div>'
+        + '<div style="font-size:12px;color:#B45309">Pending parent approval</div></div>'
+        + '</div>';
+    }).join('');
+  }
   const kidRewards2 = getRewardsForKid(currentKidId);
   if (!kidRewards2 || !kidRewards2.length) {
-    rewardsEl.innerHTML = '<div class="empty-state"><div class="empty-icon">🎁</div><p>No rewards yet.</p></div>';
+    rewardsEl.innerHTML = pendingHtml + '<div class="empty-state"><div class="empty-icon">🎁</div><p>No rewards yet.</p></div>';
   } else {
-    rewardsEl.innerHTML = '';
+    rewardsEl.innerHTML = pendingHtml;
     kidRewards2.forEach(function(r) {
       const item = document.createElement('div');
       item.className = 'reward-item';
@@ -1990,6 +2028,44 @@ function renderKidDashboard() {
     });
   }
   renderKidHistory(currentKidId);
+  renderBrainBucksHistory(currentKidId);
+}
+
+function renderBrainBucksHistory(kidId) {
+  const card = document.getElementById('kid-bb-history-card');
+  const list = document.getElementById('kid-bb-history-list');
+  if (!card || !list) return;
+  // Build history from lessonHistory (earnings) + redemptionQueue (spending)
+  const entries = [];
+  const history = (state.lessonHistory && state.lessonHistory[kidId]) || [];
+  history.forEach(function(e) {
+    if (e.coins > 0) entries.push({
+      date: e.date, type: 'earn',
+      desc: ({spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'}[e.subject]||'📚') + ' ' + e.subject.charAt(0).toUpperCase()+e.subject.slice(1) + ' lesson',
+      amount: +e.coins
+    });
+  });
+  (state.redemptionQueue||[]).filter(r => r.kidId === kidId).forEach(function(r) {
+    entries.push({
+      date: r.date || '', type: 'spend',
+      desc: '🎁 ' + (r.rewardName || 'Reward redeemed'),
+      amount: -(r.cost || 0)
+    });
+  });
+  if (!entries.length) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  entries.sort((a,b) => b.date.localeCompare(a.date));
+  const recent = entries.slice(0, 20);
+  list.innerHTML = recent.map(function(e) {
+    const color = e.type === 'earn' ? '#2ECC71' : '#EF4444';
+    const sign = e.type === 'earn' ? '+' : '';
+    const dateDisp = e.date ? new Date(e.date + 'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'}) : '';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px">'
+      + '<div style="flex:1"><div style="font-weight:600">' + e.desc + '</div>'
+      + '<div style="font-size:11px;color:var(--muted)">' + dateDisp + '</div></div>'
+      + '<div style="font-weight:800;color:' + color + '">' + sign + e.amount + ' 🧠</div>'
+      + '</div>';
+  }).join('');
 }
 
 function renderKidHistory(kidId) {
@@ -2100,6 +2176,11 @@ async function startLesson(subjectId) {
     showLockedModal({id:subjectId,name:levelData.name,icon}, prog);
     return;
   }
+
+  // Write live lesson indicator to Firebase and local state
+  if (!state.liveLesson) state.liveLesson = {};
+  state.liveLesson[currentKidId] = {subject: subjectId, icon: icon, startTime: Date.now()};
+  try { fbSet('kids/' + currentKidId + '/liveLesson', state.liveLesson[currentKidId]); } catch(e){}
 
   // Show loading overlay
   document.getElementById('generating-overlay').style.display='flex';
@@ -2342,11 +2423,34 @@ function renderSpellingQ(c, q) {
     <div class="question-text">🔊 Listen and spell the word</div>
     <div class="question-sub">Press the button to hear the word, then type it below.</div>
     <button class="speak-btn" onclick="speakWord('${w}')">🔊 Hear the Word</button>
-    <input class="answer-input" id="spell-input" type="text" placeholder="Type the word..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+    <input class="answer-input" id="spell-input" type="text"
+      placeholder="Type the word..."
+      autocomplete="new-password"
+      autocorrect="off"
+      autocapitalize="off"
+      autocomplete="off"
+      spellcheck="false"
+      inputmode="text"
+      data-form-type="other"
+      style="ime-mode:disabled;"
+    />
     <div class="feedback-box" id="feedback"></div>
     <button class="btn-primary" id="check-btn" onclick="checkSpelling('${w}')" style="margin-top:14px">Check Answer</button>
   </div>`;
-  setTimeout(() => { speakWord(w); const el = document.getElementById('spell-input'); if(el) el.focus(); }, 400);
+  setTimeout(() => {
+    speakWord(w);
+    const el = document.getElementById('spell-input');
+    if (el) {
+      el.focus();
+      // Suppress iOS QuickType / predictive text
+      el.setAttribute('autocomplete', 'off');
+      el.setAttribute('autocorrect', 'off');
+      el.setAttribute('spellcheck', 'false');
+      // Prevent paste (another cheat vector)
+      el.addEventListener('paste', function(e){ e.preventDefault(); });
+      el.addEventListener('drop', function(e){ e.preventDefault(); });
+    }
+  }, 400);
 }
 
 // ── VOICE SYSTEM ─────────────────────────────────────────
@@ -3192,6 +3296,10 @@ function startDrillRound() {
 function finishLesson() {
   stopLessonTimer();
   const ls = lessonState;
+  // Clear live lesson indicator
+  if (!state.liveLesson) state.liveLesson = {};
+  state.liveLesson[currentKidId] = null;
+  try { fbSet('kids/' + currentKidId + '/liveLesson', null); } catch(e){}
   // Use original question set for scoring (not drill questions)
   const origQuestions = ls._originalQuestions || ls.questions;
   const origTotal = origQuestions.length;
@@ -3601,6 +3709,7 @@ function renderParentDashboard() {
     renderVacationBtn();
     renderSoundsToggle();
     renderAutoAdvanceToggle();
+    renderDarkModeToggle();
     updateBinIdDisplay();
   } catch(e) {
     console.error('renderParentDashboard error:', e);
@@ -3609,6 +3718,22 @@ function renderParentDashboard() {
 }
 
 function renderParentKidSummary() {
+  // Writing pending alert
+  const pendingW = (state.writingQueue||[]).filter(function(w){ return w.status==='pending'; });
+  const alertEl = document.getElementById('writing-pending-alert');
+  const alertText = document.getElementById('writing-pending-alert-text');
+  if (alertEl) {
+    if (pendingW.length) {
+      alertEl.style.display = 'block';
+      const names = pendingW.map(function(w){
+        const k = state.kids.find(function(k){ return k.id===w.kidId; });
+        return k ? k.name : w.kidId;
+      });
+      alertText.textContent = names.join(', ') + ' submitted writing — tap to review';
+    } else {
+      alertEl.style.display = 'none';
+    }
+  }
   document.getElementById('parent-kid-summary').innerHTML = state.kids.map(k => {
     const qCount = getAdaptiveQuestionCount(k.id);
     const avgMin = Math.round(getAvgDailyMinutes(k.id));
@@ -3618,11 +3743,16 @@ function renderParentKidSummary() {
     const paceLabel = !calibrated
       ? '<div style="font-size:11px;color:var(--muted);margin-top:4px">⏱ Pace calibrating…</div>'
       : '<div style="font-size:11px;color:var(--muted);margin-top:4px">⏱ ~' + avgMin + ' min/day · ' + qCount + ' q/lesson</div>';
+    const live = state.liveLesson && state.liveLesson[k.id];
+    const liveLabel = live
+      ? '<div style="font-size:11px;color:#2ECC71;font-weight:800;margin-top:4px;animation:pulse 1.5s infinite">🟢 Working on ' + live.icon + ' ' + live.subject + ' now</div>'
+      : '';
     return `<div class="kid-summary-card">
       <div class="ks-emoji">${k.emoji}</div>
       <div class="ks-name">${k.name}</div>
       <div class="ks-coins">${k.coins}</div>
       <div style="font-size:12px;color:var(--muted)">🧠 Brain Bucks</div>
+      ${liveLabel}
       ${paceLabel}
     </div>`;
   }).join('');
@@ -3766,6 +3896,30 @@ function approveWriting(id) {
   renderWritingApprovals();
   renderParentKidSummary();
   updateTabBadges();
+}
+
+function startWritingRedo() {
+  // Find the denied writing submission to reuse its prompt
+  const redoItem = (state.writingQueue||[]).find(function(w){
+    return w.kidId === currentKidId && w.status === 'redo';
+  });
+  const prompt = redoItem ? redoItem.prompt : null;
+  const gl = getCurrentGradeLevel(currentKidId, 'writing');
+  const lvlData = getCurrentLevelData(currentKidId, 'writing');
+
+  lessonState = {
+    subjectId: 'writing', subjectName: lvlData.name, subjectIcon: '✏️', subjectType: 'writing',
+    questions: [{type:'writing', question:'Writing Redo'}],
+    _originalQuestions: [{type:'writing', question:'Writing Redo'}],
+    currentQ: 0, answers: [], correct: 0, streak: 0, missStreak: 0, wrongAnswers: [],
+    diffLevel: 2, startTime: Date.now(), isDrillRound: false, timerSeconds: 0,
+    writingPrompt: prompt || 'Please rewrite your response, making sure to follow your parent\'s feedback.',
+    isRedo: true
+  };
+  showScreen('screen-lesson');
+  document.getElementById('lesson-title').textContent = '✏️ Writing Redo';
+  startLessonTimer();
+  renderQuestion();
 }
 
 function denyWriting(id) {
@@ -4535,8 +4689,8 @@ const BADGE_DEFS = [
   { id: 'brainbucks_50',   icon: '🧠', label: '50 Brain Bucks',     check: (kidId) => (state.kids.find(k=>k.id===kidId)||{}).coins >= 50 },
   { id: 'brainbucks_200',  icon: '💰', label: '200 Brain Bucks',    check: (kidId) => (state.kids.find(k=>k.id===kidId)||{}).coins >= 200 },
   { id: 'all_subjects',    icon: '📚', label: 'All Done Today!',   check: (kidId) => { const p=state.progress[kidId]||{}; const t=getTodayKey(); const sched=getTodaySchedule(); return !sched.isRest && sched.subjects.every(s=>p[s]&&p[s].date===t); } },
-  { id: 'spelling_master', icon: '🔤', label: 'Spelling Master',    check: (kidId) => (state.levels[kidId]||{}).spelling >= 5 },
-  { id: 'math_master',     icon: '🧮', label: 'Math Master',        check: (kidId) => (state.levels[kidId]||{}).math >= 5 },
+  { id: 'spelling_master', icon: '🔤', label: 'Spelling Master', check: (kidId) => { const gl = getCurrentGradeLevel(kidId,'spelling'); return gl.grade > 3 || (gl.grade === 3 && gl.levelIdx >= 3); } },
+  { id: 'math_master',     icon: '🧮', label: 'Math Master',     check: (kidId) => { const gl = getCurrentGradeLevel(kidId,'math'); return gl.grade > 3 || (gl.grade === 3 && gl.levelIdx >= 2); } },
 ];
 
 function checkBadges(kidId) {
@@ -4814,6 +4968,35 @@ function toggleAutoAdvance() {
   showToast(state.autoAdvance ? '⚡ Auto-advance enabled.' : '⚡ Auto-advance disabled.');
 }
 
+function renderDarkModeToggle() {
+  const btn = document.getElementById('darkmode-toggle-btn');
+  if (!btn) return;
+  const isDark = document.body.classList.contains('dark-mode');
+  if (isDark) {
+    btn.textContent = '🌙 Dark Mode ON — tap for light';
+    btn.style.background = '#1A1F2E';
+    btn.style.border = '2px solid #6B8EFF';
+  } else {
+    btn.textContent = '☀️ Light Mode — tap for dark';
+    btn.style.background = '#4F6EF7';
+    btn.style.border = 'none';
+  }
+}
+
+function toggleDarkMode() {
+  document.body.classList.toggle('dark-mode');
+  const isDark = document.body.classList.contains('dark-mode');
+  localStorage.setItem('kidstuff_darkmode', isDark ? '1' : '0');
+  renderDarkModeToggle();
+  showToast(isDark ? '🌙 Dark mode on.' : '☀️ Light mode on.');
+}
+
+function applyDarkModePreference() {
+  if (localStorage.getItem('kidstuff_darkmode') === '1') {
+    document.body.classList.add('dark-mode');
+  }
+}
+
 function renderVacationBtn() {
   const btn = document.getElementById('vacation-toggle-btn');
   const card = document.getElementById('vacation-mode-card');
@@ -5089,6 +5272,7 @@ function runMigrations() {
 }
 
 // Load local cache immediately so UI is always responsive
+applyDarkModePreference();
 loadLocalFallback();
 runMigrations();
 checkQuarterlyReset();
