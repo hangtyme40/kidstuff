@@ -1940,15 +1940,21 @@ function renderKidDashboard() {
       reading:'linear-gradient(135deg,#4facfe,#00f2fe)',
       writing:'linear-gradient(135deg,#43e97b,#38f9d7)'
     };
-    const subjects = schedule.subjects;
+    const subjects = schedule.subjects.slice(); // copy so we don't mutate
+    // If writing redo is pending, always show writing card even on non-writing days
+    if (redoNotice && !subjects.includes('writing')) subjects.push('writing');
     const timerMins = state.lessonTimers || {spelling:15,math:15,reading:15,writing:15};
 
+    const regularSubjects = schedule.subjects;
     subjects.forEach(function(subjectId) {
-      const p = progress[subjectId]; const d = p && p.date === todayKey; if(d) done++;
-      const locked = d && !isUnlockedToday(currentKidId, subjectId);
+      const p = progress[subjectId]; const d = p && p.date === todayKey;
+      // Only count regular scheduled subjects toward "done" — redo is separate
+      if(d && regularSubjects.includes(subjectId)) done++;
+      const locked = d && !isUnlockedToday(currentKidId, subjectId) && !redoNotice;
       // If writing redo is pending, lock all non-writing subjects until redo is done
-      // Writing subject card launches the redo directly, not a new lesson
       const redoLocked = redoNotice && subjectId !== 'writing';
+      // Is this writing card injected only because of redo?
+      const isRedoOnly = redoNotice && subjectId === 'writing' && !regularSubjects.includes('writing');
       const art = subjectArt[subjectId];
       const col = subjectColors[subjectId];
       const gl = getCurrentGradeLevel(currentKidId, subjectId);
@@ -1978,16 +1984,19 @@ function renderKidDashboard() {
       })();
 
       div.innerHTML = '<div style="width:72px;height:72px;border-radius:50%;background:' + col + ';display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 10px;box-shadow:0 4px 16px rgba(0,0,0,0.15);">' + art + '</div>'
-        + '<div class="subj-name">' + lvlName + '</div>'
+        + '<div class="subj-name">' + (isRedoOnly ? '✍️ Writing Redo' : lvlName) + '</div>'
         + '<div style="font-size:11px;color:var(--primary);font-weight:700;margin-top:2px">' + gradeLabel + ' · Level ' + (curIdx+1) + '/' + gradeLevels.length + '</div>'
         + (locked
           ? '<div class="subj-score" style="margin-top:6px">✓ ' + p.score + '%</div>'
           : redoLocked
             ? '<div style="font-size:11px;color:#EF4444;font-weight:700;margin-top:4px">✍️ Finish Writing Redo first</div>'
-            : '<div class="subj-status" style="font-size:11px;color:var(--muted);margin-top:4px">⏱ ' + mins + ' min</div>')
+            : isRedoOnly
+              ? '<div style="font-size:11px;color:#EF4444;font-weight:700;margin-top:4px">🔄 Redo required</div>'
+              : '<div class="subj-status" style="font-size:11px;color:var(--muted);margin-top:4px">⏱ ' + mins + ' min</div>')
         + streakHtml
         + (locked ? '<div style="position:absolute;top:10px;right:10px;background:#2ECC71;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:14px;">✓</div>' : '')
-        + (redoLocked ? '<div style="position:absolute;top:10px;right:10px;background:#EF4444;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:14px;">🔒</div>' : '');
+        + (redoLocked ? '<div style="position:absolute;top:10px;right:10px;background:#EF4444;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:14px;">🔒</div>' : '')
+        + (isRedoOnly ? '<div style="position:absolute;top:10px;right:10px;background:#EF4444;color:white;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:800;">REDO</div>' : '');
       if (redoLocked) {
         div.onclick = function() { showToast('✍️ Complete the Writing Redo first!'); };
         div.style.opacity = '0.6';
@@ -2001,7 +2010,7 @@ function renderKidDashboard() {
       grid.appendChild(div);
     });
 
-    const total_subjects = subjects.length;
+    const total_subjects = regularSubjects.length;
     if (done === total_subjects) {
       prog_el.textContent = '🎉 All done for today!';
       prog_el.style.color = '#2ECC71';
