@@ -383,6 +383,15 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 
 <!-- LEVEL UP OVERLAY -->
 <div id="levelup-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,10,40,0.92);z-index:600;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;">
+<!-- Session Detail Modal -->
+<div id="session-detail-modal" style="display:none;position:fixed;inset:0;background:rgba(15,10,40,0.85);z-index:700;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+  <div style="max-width:520px;margin:20px auto;padding:0 16px 40px;">
+    <div class="card" style="position:relative;">
+      <button onclick="closeSessionDetail()" style="position:absolute;top:14px;right:14px;background:var(--border);border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+      <div id="session-detail-content"></div>
+    </div>
+  </div>
+</div>
   <div style="font-size:80px;margin-bottom:8px;animation:starPop 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards" id="levelup-icon">⭐</div>
   <div style="font-family:'Baloo 2',cursive;font-size:36px;font-weight:800;color:white;margin-bottom:8px" id="levelup-title">Level Up!</div>
   <div style="font-size:18px;color:rgba(255,255,255,0.8);margin-bottom:6px" id="levelup-subject"></div>
@@ -1151,6 +1160,21 @@ async function flushOfflineQueue() {
 function recordLessonHistory(kidId, subjectId, pct, coins, correct, total, elapsedMin, levelIdx, grade) {
   if (!state.lessonHistory) state.lessonHistory = {};
   if (!state.lessonHistory[kidId]) state.lessonHistory[kidId] = [];
+  // Build rich wrong answers — include full question text, passage snippet, full option text
+  const rawWrong = (lessonState && lessonState.wrongAnswers) || [];
+  const richWrong = rawWrong.slice(0, 10).map(function(w) {
+    // Find original question to get full passage/options context
+    const origQ = lessonState && lessonState._originalQuestions && lessonState._originalQuestions.find(function(q) {
+      return (q.question && q.question === w.question) || (q.word && q.word === w.question);
+    });
+    return {
+      question: w.question || '',
+      yourAnswer: w.yourAnswer || '',
+      correctAnswer: w.correctAnswer || '',
+      passage: (origQ && origQ.passage) ? origQ.passage.slice(0, 300) : '',
+      options: (origQ && origQ.options) ? origQ.options : []
+    };
+  });
   const entry = {
     date: new Date().toISOString().slice(0,10),
     dateDisplay: new Date().toLocaleDateString(),
@@ -1163,7 +1187,9 @@ function recordLessonHistory(kidId, subjectId, pct, coins, correct, total, elaps
     level: levelIdx + 1,
     grade: grade || 3,
     gradeLabel: grade ? (GRADE_LABELS[grade] || ('Grade ' + grade)) : 'Grade 3',
-    wrongAnswers: (lessonState && lessonState.wrongAnswers || []).slice(0, 10)
+    wrongAnswers: richWrong,
+    readingStory: (lessonState && lessonState.readingStory) ? lessonState.readingStory.slice(0, 2000) : null,
+    writingPrompt: (lessonState && lessonState.writingPrompt) ? lessonState.writingPrompt : null
   };
   state.lessonHistory[kidId].unshift(entry);
   // Trim to HISTORY_DAYS days
@@ -4076,6 +4102,89 @@ function renderWeeklySummary() {
   }).join('') || '<div style="color:var(--muted);font-size:14px">No activity yet this week.</div>';
 }
 
+function closeSessionDetail() {
+  document.getElementById('session-detail-modal').style.display = 'none';
+}
+
+function showSessionDetail(entry) {
+  const modal = document.getElementById('session-detail-modal');
+  const content = document.getElementById('session-detail-content');
+  if (!modal || !content) return;
+  const subjectIcons = {spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'};
+  const icon = subjectIcons[entry.subject] || '📚';
+  const scoreColor = entry.score >= 90 ? '#2ECC71' : entry.score >= 70 ? 'var(--primary)' : '#EF4444';
+
+  let html = '<div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)">'
+    + '<div style="font-size:28px;margin-bottom:6px">' + icon + '</div>'
+    + '<div style="font-family:\'Baloo 2\',cursive;font-size:20px;font-weight:800">'
+    + entry.subject.charAt(0).toUpperCase()+entry.subject.slice(1) + ' — ' + (entry.gradeLabel||'Grade '+entry.grade) + '</div>'
+    + '<div style="font-size:13px;color:var(--muted);margin-top:2px">' + entry.dateDisplay + ' · ' + (entry.duration||0) + ' min</div>'
+    + '</div>';
+
+  // Stats row
+  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">'
+    + '<div style="background:#EEF2FF;border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:800;color:' + scoreColor + '">' + entry.score + '%</div><div style="font-size:10px;color:var(--muted);font-weight:700">SCORE</div></div>'
+    + '<div style="background:#F0FBF4;border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:800;color:#2ECC71">' + entry.correct + '/' + entry.total + '</div><div style="font-size:10px;color:var(--muted);font-weight:700">CORRECT</div></div>'
+    + '<div style="background:#FFFBEA;border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:800;color:#F59E0B">🧠 ' + entry.coins + '</div><div style="font-size:10px;color:var(--muted);font-weight:700">EARNED</div></div>'
+    + '</div>';
+
+  // Reading story
+  if (entry.readingStory) {
+    html += '<div style="margin-bottom:16px">'
+      + '<div style="font-weight:800;font-size:13px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">📖 Reading Story</div>'
+      + '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:14px;line-height:1.7;max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch;">'
+      + entry.readingStory + '</div></div>';
+  }
+
+  // Writing prompt
+  if (entry.writingPrompt) {
+    html += '<div style="margin-bottom:16px">'
+      + '<div style="font-weight:800;font-size:13px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">✏️ Writing Prompt</div>'
+      + '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:14px;line-height:1.6;">'
+      + entry.writingPrompt + '</div></div>';
+  }
+
+  // Wrong answers
+  const wrongs = entry.wrongAnswers || [];
+  if (wrongs.length) {
+    html += '<div>'
+      + '<div style="font-weight:800;font-size:13px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">❌ Missed Questions (' + wrongs.length + ')</div>';
+    wrongs.forEach(function(w) {
+      html += '<div style="background:#FFF5F5;border:1px solid #FCA5A5;border-radius:10px;padding:12px;margin-bottom:10px;">';
+      // Show passage snippet if available
+      if (w.passage) {
+        html += '<div style="font-size:11px;color:var(--muted);font-style:italic;margin-bottom:6px;border-bottom:1px solid var(--border);padding-bottom:6px;">'
+          + w.passage.slice(0,150) + (w.passage.length>150?'…':'') + '</div>';
+      }
+      html += '<div style="font-weight:700;font-size:14px;margin-bottom:8px">' + w.question + '</div>';
+      // Show all options if available, highlighting correct/wrong
+      if (w.options && w.options.length) {
+        w.options.forEach(function(opt) {
+          const isCorrect = opt === w.correctAnswer;
+          const isWrong = opt === w.yourAnswer && !isCorrect;
+          const bg = isCorrect ? '#D1FAE5' : isWrong ? '#FEE2E2' : 'transparent';
+          const border = isCorrect ? '1.5px solid #2ECC71' : isWrong ? '1.5px solid #EF4444' : '1.5px solid var(--border)';
+          const prefix = isCorrect ? '✅ ' : isWrong ? '❌ ' : '　';
+          html += '<div style="background:' + bg + ';border:' + border + ';border-radius:8px;padding:7px 10px;margin-bottom:5px;font-size:13px;">'
+            + prefix + opt + '</div>';
+        });
+      } else {
+        // Typed answer — no options
+        html += '<div style="font-size:13px;color:#EF4444;margin-bottom:4px">❌ Their answer: <strong>' + w.yourAnswer + '</strong></div>'
+          + '<div style="font-size:13px;color:#2ECC71">✅ Correct: <strong>' + w.correctAnswer + '</strong></div>';
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+  } else if (entry.correct === entry.total) {
+    html += '<div style="text-align:center;padding:16px;color:#2ECC71;font-weight:800;font-size:15px">🎉 Perfect score — no mistakes!</div>';
+  }
+
+  content.innerHTML = html;
+  modal.style.display = 'block';
+  modal.scrollTop = 0;
+}
+
 function renderProgressOverview() {
   const container = document.getElementById('progress-overview');
   container.innerHTML = '';
@@ -4148,14 +4257,17 @@ function renderProgressOverview() {
       const recent = history.slice().sort((a,b) => b.date.localeCompare(a.date)).slice(0, 30);
       recent.forEach(function(e) {
         const scoreColor = e.score >= 90 ? '#2ECC71' : e.score >= 70 ? 'var(--primary)' : '#EF4444';
+        const hasDetail = (e.wrongAnswers && e.wrongAnswers.length > 0) || e.readingStory || e.writingPrompt;
         const row = document.createElement('div');
-        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;';
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;cursor:pointer;';
         row.innerHTML = '<span>' + subjectIcons[e.subject] + '</span>'
           + '<span style="flex:1;color:var(--muted)">' + e.dateDisplay + '</span>'
           + '<span style="font-weight:800;color:' + scoreColor + '">' + e.score + '%</span>'
           + '<span style="color:var(--muted);font-size:11px">' + e.correct + '/' + e.total + '</span>'
           + '<span style="background:#EEF2FF;color:var(--primary);border-radius:8px;padding:2px 7px;font-size:11px;font-weight:700">Lv ' + e.level + '</span>'
-          + '<span style="color:#F59E0B;font-size:11px;font-weight:700">🧠 ' + e.coins + '</span>';
+          + '<span style="color:#F59E0B;font-size:11px;font-weight:700">🧠 ' + e.coins + '</span>'
+          + '<span style="color:var(--muted);font-size:11px;margin-left:2px">›</span>';
+        row.onclick = (function(entry){ return function(){ showSessionDetail(entry); }; })(e);
         recentDiv.appendChild(row);
       });
       card.appendChild(recentDiv);
