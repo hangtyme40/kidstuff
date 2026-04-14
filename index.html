@@ -3861,6 +3861,7 @@ function renderParentDashboard() {
     if (msgKidSel) {
       msgKidSel.innerHTML = state.kids.filter(k=>k.id!=='tester').map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
     }
+    const excuseSel = document.getElementById('excuse-kid-select');
     if (excuseSel) {
       excuseSel.innerHTML = state.kids.filter(k=>k.id!=='tester').map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
       excuseSel.onchange = renderExcuseStatus;
