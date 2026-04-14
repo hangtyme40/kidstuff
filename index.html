@@ -630,7 +630,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
           <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Max Brain Bucks a kid can earn on first attempt (score% × max).</div>
           <div class="form-row"><label>Kid</label><select id="coinmax-kid-select" onchange="renderCoinMaxInputs()"></select></div>
           <div id="coinmax-inputs" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px"></div>
-          <button class="btn-primary" style="margin-top:12px" onclick="saveCoinMax()">Save Coin Limits</button>
+          <button class="btn-primary" style="margin-top:12px" onclick="saveCoinMax()">Save Brain Bucks Limits</button>
         </div>
       </div>
     </div>
@@ -4852,48 +4852,40 @@ function checkIncompleteWeekPenalty(kidId) {
   if (kidId === 'tester') return;
   const today = new Date();
   const dow = today.getDay();
-  // Fire on Saturday (end of week) OR Sun/Mon/Tue as catch-up for kids who didn't log in Saturday
-  const isSaturday = dow === 6;
-  const isCatchUp = dow === 0 || dow === 1 || dow === 2;
-  if (!isSaturday && !isCatchUp) return;
+  // Only fire on Saturday after 8pm (lessons should be done by then)
+  // OR Sunday as catch-up for kids who didn't log in Saturday
+  const isSaturday = dow === 6 && today.getHours() >= 20;
+  const isSunday = dow === 0;
+  if (!isSaturday && !isSunday) return;
 
   if (!state.incompleteWeekPenalized) state.incompleteWeekPenalized = {};
 
-  // For catch-up days, check the PREVIOUS week (Mon-Sat just passed)
+  // For Sunday, check the previous week (Mon-Sat just passed)
   let checkDate = today;
-  if (isCatchUp) {
-    // Go back to last Saturday
-    const daysBack = dow === 0 ? 1 : dow === 1 ? 2 : 3;
-    checkDate = new Date(today.getTime() - daysBack * 86400000);
+  if (isSunday) {
+    checkDate = new Date(today.getTime() - 86400000); // go back to Saturday
   }
   const weekStart = getWeekStart(checkDate);
   const weekKey = weekStart.toISOString().slice(0,10);
+
+  // Already processed this week — never deduct twice
   if (state.incompleteWeekPenalized[kidId] === weekKey) return;
 
   // Don't penalize if perfect week already claimed
   if ((state.perfectWeekClaimed || {})[kidId] === weekKey) {
-    state.incompleteWeekPenalized[kidId] = weekKey; // mark so we don't re-check
+    state.incompleteWeekPenalized[kidId] = weekKey;
+    saveState();
     return;
   }
 
-  // Evaluate whether the week was complete
-  // For Saturday: evaluate current week. For catch-up: evaluate last week.
-  const evalDate = isCatchUp ? checkDate : today;
+  // Evaluate the full week (Mon–Sat)
   const history = (state.lessonHistory && state.lessonHistory[kidId]) || [];
-  const weekStartStr = weekStart.toISOString().slice(0, 10);
-  // Find the end of the week (Saturday)
-  const weekEndDate = new Date(weekStart);
-  weekEndDate.setDate(weekStart.getDate() + 5); // Mon + 5 = Sat
-  const weekEndStr = weekEndDate.toISOString().slice(0, 10);
-
   let requiredDays = 0, completedDays = 0;
   for (let i = 0; i < 6; i++) { // Mon–Sat
     const day = new Date(weekStart);
     day.setDate(weekStart.getDate() + i);
-    if (day > evalDate) break;
     const dateStr = day.toISOString().slice(0, 10);
-    const isExcused = isUSFederalHoliday(day) || state.vacationMode
-      || isKidExcused(kidId, dateStr);
+    const isExcused = isUSFederalHoliday(day) || state.vacationMode || isKidExcused(kidId, dateStr);
     if (isExcused) { requiredDays++; completedDays++; continue; }
     requiredDays++;
     const sched = getScheduleForDow(day.getDay());
@@ -4905,13 +4897,12 @@ function checkIncompleteWeekPenalty(kidId) {
     if (allDone) completedDays++;
   }
 
-  const weekComplete = requiredDays > 0 && completedDays >= requiredDays;
-  if (weekComplete) {
-    state.incompleteWeekPenalized[kidId] = weekKey;
-    return;
-  }
-
+  // Mark as checked regardless of outcome — prevents re-firing
   state.incompleteWeekPenalized[kidId] = weekKey;
+
+  const weekComplete = requiredDays > 0 && completedDays >= requiredDays;
+  if (weekComplete) { saveState(); return; }
+
   const kid = state.kids.find(k => k.id === kidId);
   if (kid) {
     kid.coins -= INCOMPLETE_WEEK_PENALTY;
@@ -5001,7 +4992,6 @@ const BADGE_DEFS = [
   { id: 'level_up', icon: '⬆️', label: 'First Level Up', check: (kidId) => Object.values(state.levels[kidId]||{}).some(l => l && typeof l === 'object' && (l.levelIdx > 0 || (l.grade && l.grade !== 3 && l.grade !== 'K'))) },
   { id: 'brainbucks_50',   icon: '🧠', label: '50 Brain Bucks',     check: (kidId) => (state.kids.find(k=>k.id===kidId)||{}).coins >= 50 },
   { id: 'brainbucks_200',  icon: '💰', label: '200 Brain Bucks',    check: (kidId) => (state.kids.find(k=>k.id===kidId)||{}).coins >= 200 },
-  { id: 'all_subjects',    icon: '📚', label: 'All Done Today!',   check: (kidId) => { const p=state.progress[kidId]||{}; const t=getTodayKey(); const sched=getTodaySchedule(); return !sched.isRest && sched.subjects.every(s=>p[s]&&p[s].date===t); } },
   { id: 'spelling_master', icon: '🔤', label: 'Spelling Master', check: (kidId) => { const gl = getCurrentGradeLevel(kidId,'spelling'); return gl.grade > 3 || (gl.grade === 3 && gl.levelIdx >= 3); } },
   { id: 'math_master',     icon: '🧮', label: 'Math Master',     check: (kidId) => { const gl = getCurrentGradeLevel(kidId,'math'); return gl.grade > 3 || (gl.grade === 3 && gl.levelIdx >= 2); } },
 ];
