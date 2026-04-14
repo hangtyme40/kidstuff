@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="KidStuff">
   <meta name="theme-color" content="#4F6EF7">
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="KidStuff"/>
@@ -143,7 +143,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .kid-summary-card .ks-coins{font-size:22px;font-weight:800;color:var(--primary);margin-top:4px;}
 .form-row{margin-bottom:14px;}
 .form-row label{display:block;font-weight:700;font-size:13px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px;}
-.form-row input,.form-row select{width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:15px;color:var(--text);background:white;outline:none;transition:border-color 0.2s;}
+.form-row input,.form-row select{width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:16px;color:var(--text);background:white;outline:none;transition:border-color 0.2s;}
 .form-row input:focus,.form-row select:focus{border-color:var(--primary);}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .reward-item{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);}
@@ -278,7 +278,18 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 <div id="screen-kid" class="screen">
   <div class="app-header">
     <div><div class="logo">Kid<span>Stuff</span></div><div class="header-sub" id="kid-header-sub">Today's Lessons</div></div>
-    <div style="font-size:11px;color:rgba(255,255,255,0.6);font-weight:600;text-align:right;" class="last-synced-ts"></div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="font-size:11px;color:rgba(255,255,255,0.6);font-weight:600;text-align:right;" class="last-synced-ts"></div>
+      <button onclick="toggleKidSettings()" style="background:rgba(255,255,255,0.18);border:none;border-radius:10px;padding:7px 10px;font-size:18px;cursor:pointer;color:white;">⚙️</button>
+    </div>
+  </div>
+  <!-- Kid settings panel -->
+  <div id="kid-settings-panel" style="display:none;background:var(--card);border-bottom:2px solid var(--border);padding:14px 20px;">
+    <div style="font-weight:800;font-size:13px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Settings</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button id="kid-sounds-btn" onclick="kidToggleSounds()" style="padding:10px 16px;border-radius:12px;border:none;font-family:Nunito,sans-serif;font-weight:700;font-size:14px;cursor:pointer;flex:1;">🔊 Sounds</button>
+      <button id="kid-dark-btn" onclick="kidToggleDark()" style="padding:10px 16px;border-radius:12px;border:none;font-family:Nunito,sans-serif;font-weight:700;font-size:14px;cursor:pointer;flex:1;">🌙 Dark Mode</button>
+    </div>
   </div>
   <div class="content">
     <div class="kid-hero">
@@ -596,6 +607,14 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         </div>
         <div style="height:10px"></div>
         <button class="btn-danger" onclick="resetAll()" style="width:100%;padding:12px">⚠️ Reset All Data</button>
+        <div style="height:18px"></div>
+        <div class="card" style="background:#FFF0F9;box-shadow:none;border:2px solid #F9A8D4">
+          <div style="font-weight:800;margin-bottom:8px">🤒 Excuse a Kid Today</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Excuse one kid for today without affecting the other. Protects streak — lessons won't be required.</div>
+          <div class="form-row" style="margin-bottom:10px"><label>Kid</label><select id="excuse-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
+          <div id="excuse-status" style="font-size:13px;color:var(--muted);margin-bottom:10px;font-weight:600;"></div>
+          <button class="btn-primary" style="background:#EC4899" onclick="excuseKidToday()">🤒 Excuse Today</button>
+        </div>
         <div style="height:18px"></div>
         <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
           <div style="font-weight:800;margin-bottom:8px">🤖 AI Lesson Engine</div>
@@ -1114,7 +1133,8 @@ const DEFAULT_STATE = {
   incompleteWeekPenalized: {lauren:'', andrew:'', tester:''},
   soundsOff: false,
   autoAdvance: false,
-  liveLesson: {lauren: null, andrew: null, tester: null}
+  liveLesson: {lauren: null, andrew: null, tester: null},
+  excusedToday: {}
 };
 
 let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
@@ -1307,7 +1327,7 @@ async function pullState() {
     // Merge parent settings into state (non-destructive)
     const parentFields = ['pin','kidPins','rewards','rewardsUpdatedAt','coinMax','lessonTimers','selectedVoice',
                           'difficultyLevel','bonusChallenges','badgeQuarter','vacationMode','paceData','adaptiveQ',
-                          'perfectWeekClaimed','levelsUpdatedAt','incompleteWeekPenalized','soundsOff','autoAdvance'];
+                          'perfectWeekClaimed','levelsUpdatedAt','incompleteWeekPenalized','soundsOff','autoAdvance','excusedToday'];
     parentFields.forEach(function(f) {
       if (parentData[f] !== undefined) state[f] = parentData[f];
     });
@@ -1475,7 +1495,8 @@ async function pushParentData() {
       levelsUpdatedAt: state.levelsUpdatedAt || {},
       incompleteWeekPenalized: state.incompleteWeekPenalized || {},
       soundsOff: state.soundsOff === true,
-      autoAdvance: state.autoAdvance === true
+      autoAdvance: state.autoAdvance === true,
+      excusedToday: state.excusedToday || {}
     };
     await fbSet('parent', parentPayload);
   } catch(e) {
@@ -1619,6 +1640,7 @@ function loadLocalFallback() {
       if (!state.incompleteWeekPenalized) state.incompleteWeekPenalized = {lauren:'', andrew:'', tester:''};
       if (state.soundsOff === undefined) state.soundsOff = false;
       if (state.autoAdvance === undefined) state.autoAdvance = false;
+      if (!state.excusedToday) state.excusedToday = {};
       state.kids.forEach(function(k) {
         if (!state.adaptiveQ[k.id]) state.adaptiveQ[k.id] = 10;
         if (!state.paceData[k.id]) state.paceData[k.id] = {};
@@ -3495,8 +3517,10 @@ function finishLesson() {
   const flagRow = flagCount > 0 ? '<div class="breakdown-row"><span>🚩 Flagged</span><strong style="color:#B45309">' + flagCount + ' question' + (flagCount>1?'s':'') + ' for review</strong></div>' : '';
   const timeRow = '<div class="breakdown-row"><span>⏱ Time</span><strong>' + elapsedStr + '</strong></div>';
   const drillRow = ls.isDrillRound ? '<div class="breakdown-row"><span>🔄 Drill Round</span><strong>' + (ls.drillCorrect||0) + ' / ' + (ls.drillTotal||0) + ' corrected</strong></div>' : '';
+  const lvlData = getCurrentLevelData(currentKidId, ls.subjectId);
   document.getElementById('results-breakdown-list').innerHTML =
     '<div class="breakdown-row"><span>Subject</span><strong>' + ls.subjectIcon + ' ' + ls.subjectName + '</strong></div>'
+    + '<div class="breakdown-row"><span>Level</span><strong>' + (lvlData ? lvlData.name : '') + '</strong></div>'
     + '<div class="breakdown-row"><span>Correct</span><strong>' + origCorrect + ' / ' + total + '</strong></div>'
     + '<div class="breakdown-row"><span>Score</span><strong>' + pct + '%</strong></div>'
     + '<div class="breakdown-row"><span>Brain Bucks Earned</span><strong>' + (alreadyDone ? '0 (replay)' : '🧠 ' + coins) + '</strong></div>'
@@ -3745,6 +3769,12 @@ function renderParentDashboard() {
       skipSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
       skipSel.onchange = function() { updateSkipDayBalance(skipSel.value); };
       updateSkipDayBalance(skipSel.value);
+    }
+    const excuseSel = document.getElementById('excuse-kid-select');
+    if (excuseSel) {
+      excuseSel.innerHTML = state.kids.filter(k=>k.id!=='tester').map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
+      excuseSel.onchange = renderExcuseStatus;
+      renderExcuseStatus();
     }
     const coinmaxSel = document.getElementById('coinmax-kid-select');
     if (coinmaxSel) coinmaxSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.name}</option>`).join('');
@@ -4784,9 +4814,11 @@ function checkIncompleteWeekPenalty(kidId) {
     const day = new Date(weekStart);
     day.setDate(weekStart.getDate() + i);
     if (day > evalDate) break;
-    if (isUSFederalHoliday(day) || state.vacationMode) { requiredDays++; completedDays++; continue; }
-    requiredDays++;
     const dateStr = day.toISOString().slice(0, 10);
+    const isExcused = isUSFederalHoliday(day) || state.vacationMode
+      || (state.excusedToday && state.excusedToday[kidId] === dateStr);
+    if (isExcused) { requiredDays++; completedDays++; continue; }
+    requiredDays++;
     const sched = getScheduleForDow(day.getDay());
     if (sched.isRest) { completedDays++; continue; }
     const dayEntries = history.filter(e => e.date === dateStr);
@@ -4819,14 +4851,27 @@ function checkDailyStreak(kidId) {
   if (!state.dailyStreak[kidId]) state.dailyStreak[kidId] = { count: 0, lastDate: '' };
   const ds = state.dailyStreak[kidId];
   const today = getTodayKey();
-  if (ds.lastDate === today) return; // already checked today
+  if (ds.lastDate === today) return;
 
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
   const yesterdayKey = yesterday.toDateString();
 
   const schedule = getTodaySchedule();
-  if (schedule.isRest) return; // no streak on rest days
+  if (schedule.isRest) return;
+
+  // Per-kid excuse protection — treat as rest day
+  const todayISO = new Date().toISOString().slice(0,10);
+  const isExcusedToday = state.excusedToday && state.excusedToday[kidId] === todayISO;
+  if (isExcusedToday) {
+    // Protect streak — advance lastDate so streak isn't broken
+    if (ds.lastDate === yesterdayKey || ds.lastDate === today) {
+      ds.lastDate = today;
+      saveState();
+    }
+    return;
+  }
+
   const prog = state.progress[kidId] || {};
   const subjects = schedule.subjects;
   const allDoneToday = subjects.every(function(s) {
@@ -5076,6 +5121,24 @@ function deleteCompletedLesson(kidId, subjectId) {
   renderParentKidSummary();
 }
 
+function purgeOldWritingQueue() {
+  if (!state.writingQueue) return;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+  const cutoffStr = cutoff.toLocaleDateString();
+  // Keep pending/redo items regardless of age, purge old approved/denied
+  const before = state.writingQueue.length;
+  state.writingQueue = state.writingQueue.filter(function(w) {
+    if (w.status === 'pending' || w.status === 'redo') return true;
+    // Parse date — entries use toLocaleDateString() format
+    try {
+      const d = new Date(w.date);
+      return isNaN(d.getTime()) || d >= cutoff;
+    } catch(e) { return true; }
+  });
+  if (state.writingQueue.length !== before) saveState();
+}
+
 function purgeBonusChallenges() {
   if (!state.bonusChallenges) return;
   const cutoff = new Date();
@@ -5186,6 +5249,67 @@ function applyDarkModePreference() {
   if (localStorage.getItem('kidstuff_darkmode') === '1') {
     document.body.classList.add('dark-mode');
   }
+}
+
+function toggleKidSettings() {
+  const panel = document.getElementById('kid-settings-panel');
+  if (!panel) return;
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+  renderKidSettingsButtons();
+}
+
+function renderKidSettingsButtons() {
+  const soundsBtn = document.getElementById('kid-sounds-btn');
+  const darkBtn = document.getElementById('kid-dark-btn');
+  if (soundsBtn) {
+    soundsBtn.textContent = state.soundsOff ? '🔇 Sounds OFF' : '🔊 Sounds ON';
+    soundsBtn.style.background = state.soundsOff ? '#E5E7EB' : '#D1FAE5';
+    soundsBtn.style.color = state.soundsOff ? '#6B7280' : '#065F46';
+  }
+  if (darkBtn) {
+    const isDark = document.body.classList.contains('dark-mode');
+    darkBtn.textContent = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
+    darkBtn.style.background = isDark ? '#1E293B' : '#EEF2FF';
+    darkBtn.style.color = isDark ? '#93C5FD' : '#3451D1';
+  }
+}
+
+function kidToggleSounds() {
+  state.soundsOff = !state.soundsOff;
+  saveState();
+  renderKidSettingsButtons();
+  renderSoundsToggle(); // keep parent dashboard in sync
+  showToast(state.soundsOff ? '🔇 Sounds muted.' : '🔊 Sounds on!');
+}
+
+function kidToggleDark() {
+  toggleDarkMode();
+  renderKidSettingsButtons();
+}
+
+function excuseKidToday() {
+  const sel = document.getElementById('excuse-kid-select');
+  if (!sel || !sel.value) return;
+  const kidId = sel.value;
+  const today = new Date().toISOString().slice(0,10);
+  if (!state.excusedToday) state.excusedToday = {};
+  state.excusedToday[kidId] = today;
+  saveState();
+  const kid = state.kids.find(k=>k.id===kidId);
+  showToast('🤒 ' + (kid?kid.name:kidId) + ' excused for today — streak protected.');
+  renderExcuseStatus();
+}
+
+function renderExcuseStatus() {
+  const sel = document.getElementById('excuse-kid-select');
+  const statusEl = document.getElementById('excuse-status');
+  if (!sel || !statusEl) return;
+  const kidId = sel.value;
+  const today = new Date().toISOString().slice(0,10);
+  const excused = state.excusedToday && state.excusedToday[kidId] === today;
+  const kid = state.kids.find(k=>k.id===kidId);
+  statusEl.textContent = excused ? '✅ ' + (kid?kid.name:kidId) + ' is excused today.' : '';
+  statusEl.style.color = excused ? '#2ECC71' : 'var(--muted)';
 }
 
 function renderVacationBtn() {
@@ -5471,6 +5595,7 @@ checkQuarterlyReset();
 state.kids.forEach(function(k) { checkHolidayStreakProtection(k.id); });
 applyVacationStreakProtection();
 purgeBonusChallenges();
+purgeOldWritingQueue();
 updateLastSyncedDisplay();
 
 // Init on load
