@@ -1584,25 +1584,26 @@ function startRealtimeListener() {
     const url = FIREBASE_URL + '/.json?accept=text/event-stream&auth=' + token;
     _realtimeES = new EventSource(url);
     _realtimeES.addEventListener('put', function(e) {
-      // Ignore our own pushes (they arrive ~800ms after saveState debounce)
-      // Only pull if we're not currently pushing
       if (isSyncing) return;
       clearTimeout(_realtimeRetryTimer);
       _realtimeRetryTimer = setTimeout(function() {
         pullState().then(function() {
-          // Re-render whichever screen is active
           const parent = document.getElementById('screen-parent');
           const kid = document.getElementById('screen-kid');
           if (parent && parent.classList.contains('active')) renderParentDashboard();
           if (kid && kid.classList.contains('active')) renderKidDashboard();
         }).catch(e => console.warn('Realtime pull error:', e));
-      }, 1200); // small debounce so rapid changes don't flood pulls
+      }, 1200);
     });
     _realtimeES.addEventListener('patch', function() {
       if (isSyncing) return;
       clearTimeout(_realtimeRetryTimer);
       _realtimeRetryTimer = setTimeout(function() {
-        pullState().catch(e => console.warn('Realtime patch pull error:', e));
+        pullState().then(function() {
+          // On patch (e.g. live lesson update), refresh parent summary if open
+          const parent = document.getElementById('screen-parent');
+          if (parent && parent.classList.contains('active')) renderParentKidSummary();
+        }).catch(e => console.warn('Realtime patch pull error:', e));
       }, 1200);
     });
     _realtimeES.onerror = function() {
@@ -2902,7 +2903,6 @@ function renderWritingLesson(c) {
     <div class="kumon-q-num">Writing Activity</div>
     <div class="question-text">✍️ Write about this prompt:</div>
     <div class="writing-prompt">${lessonState.writingPrompt||'Write 3–5 sentences about your favorite season. Use describing words!'}</div>
-    <div class="question-sub" style="margin-bottom:12px">Use your finger or Apple Pencil to write your response on the lines below. Try to write at least 3–5 sentences!</div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
       <button id="tool-pen" onclick="setCanvasTool('pen')" style="padding:7px 14px;border-radius:8px;border:2px solid var(--primary);background:var(--primary);color:white;font-family:Nunito,sans-serif;font-weight:700;font-size:13px;cursor:pointer;">✏️ Pen</button>
       <button id="tool-eraser" onclick="setCanvasTool('eraser')" style="padding:7px 14px;border-radius:8px;border:2px solid var(--border);background:white;color:var(--text);font-family:Nunito,sans-serif;font-weight:700;font-size:13px;cursor:pointer;">🧹 Eraser</button>
@@ -4077,13 +4077,25 @@ function approveWriting(id) {
 }
 
 function startWritingRedo() {
-  // Find the denied writing submission to reuse its prompt
-  const redoItem = (state.writingQueue||[]).find(function(w){
-    return w.kidId === currentKidId && w.status === 'redo';
-  });
-  const prompt = redoItem ? redoItem.prompt : null;
-  const gl = getCurrentGradeLevel(currentKidId, 'writing');
   const lvlData = getCurrentLevelData(currentKidId, 'writing');
+
+  // Must always have the original prompt — search both redo and approved items
+  const redoItem = (state.writingQueue||[]).find(function(w){
+    return w.kidId === currentKidId && (w.status === 'redo' || w.status === 'pending');
+  });
+  const originalPrompt = redoItem ? redoItem.prompt : null;
+
+  // Build redo prompt — show original assignment with a redo header
+  const redoPrompt = originalPrompt
+    ? '🔄 Your parent asked you to try this again:\n\n' + originalPrompt
+    : null;
+
+  if (!redoPrompt) {
+    // No original prompt found — generate a fresh one instead
+    showToast('⏳ Generating your writing assignment...');
+    startLesson('writing');
+    return;
+  }
 
   lessonState = {
     subjectId: 'writing', subjectName: lvlData.name, subjectIcon: '✏️', subjectType: 'writing',
@@ -4091,7 +4103,7 @@ function startWritingRedo() {
     _originalQuestions: [{type:'writing', question:'Writing Redo'}],
     currentQ: 0, answers: [], correct: 0, streak: 0, missStreak: 0, wrongAnswers: [],
     diffLevel: 2, startTime: Date.now(), isDrillRound: false, timerSeconds: 0,
-    writingPrompt: prompt || 'Please rewrite your response, making sure to follow your parent\'s feedback.',
+    writingPrompt: redoPrompt,
     isRedo: true
   };
   showScreen('screen-lesson');
