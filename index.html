@@ -289,7 +289,9 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
       <button id="kid-sounds-btn" onclick="kidToggleSounds()" style="padding:10px 16px;border-radius:12px;border:none;font-family:Nunito,sans-serif;font-weight:700;font-size:14px;cursor:pointer;flex:1;">🔊 Sounds</button>
       <button id="kid-dark-btn" onclick="kidToggleDark()" style="padding:10px 16px;border-radius:12px;border:none;font-family:Nunito,sans-serif;font-weight:700;font-size:14px;cursor:pointer;flex:1;">🌙 Dark Mode</button>
+      <button id="kid-skipday-btn" onclick="kidUseSkipDay()" style="padding:10px 16px;border-radius:12px;border:none;font-family:Nunito,sans-serif;font-weight:700;font-size:14px;cursor:pointer;flex:1;background:#FFF8E1;color:#B45309;">🛡️ Skip Day</button>
     </div>
+    <div id="kid-skipday-balance" style="font-size:12px;color:var(--muted);margin-top:8px;font-weight:600;"></div>
   </div>
   <div class="content">
     <div class="kid-hero">
@@ -607,8 +609,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
             <div id="skipday-balance" style="display:flex;align-items:flex-end;padding-bottom:14px;font-weight:800;font-size:14px;color:var(--primary)"></div>
           </div>
           <div style="display:flex;gap:8px">
-            <button class="btn-primary" style="background:#2ECC71;flex:1" onclick="grantSkipDay(document.getElementById('skipday-kid-select').value)">➕ Grant</button>
-            <button class="btn-primary" style="background:#F7C948;color:#1A1F36;flex:1" onclick="useSkipDay(document.getElementById('skipday-kid-select').value)">🛡️ Use</button>
+            <button class="btn-primary" style="background:#2ECC71;width:100%" onclick="grantSkipDay(document.getElementById('skipday-kid-select').value)">➕ Grant Skip Day</button>
           </div>
         </div>
         <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
@@ -630,15 +631,6 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
           <div class="form-row"><label>Kid</label><select id="coinmax-kid-select" onchange="renderCoinMaxInputs()"></select></div>
           <div id="coinmax-inputs" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px"></div>
           <button class="btn-primary" style="margin-top:12px" onclick="saveCoinMax()">Save Coin Limits</button>
-        </div>
-        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
-          <div style="font-weight:800;margin-bottom:8px">🔑 Kid PIN Reset</div>
-          <div id="kid-pin-reset-list"></div>
-        </div>
-        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
-          <div style="font-weight:800;margin-bottom:8px">🤖 AI Lesson Engine</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Lessons generated via secure Cloudflare Worker proxy. API key lives in the Worker — never in this app.</div>
-          <div id="worker-status" style="font-size:12px;padding:8px;background:white;border-radius:8px;border:1px solid var(--border);font-family:monospace;word-break:break-all;"></div>
         </div>
       </div>
     </div>
@@ -1250,7 +1242,26 @@ function updatePaceData(kidId, elapsedMin) {
 function getAvgDailyMinutes(kidId) {
   if (!state.paceData || !state.paceData[kidId]) return 0;
   const entries = Object.values(state.paceData[kidId]);
-  if (!entries.length) return 0;
+  // If paceData is empty but we have lessonHistory, seed it on the fly
+  if (!entries.length) {
+    const history = (state.lessonHistory && state.lessonHistory[kidId]) || [];
+    if (!history.length) return 0;
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - PACE_WINDOW_DAYS);
+    const cutoffStr = cutoff.toISOString().slice(0,10);
+    const recent = history.filter(e => e.date >= cutoffStr && e.duration > 0);
+    if (!recent.length) {
+      // Fall back to all-time average if nothing in window
+      const allDurations = history.filter(e => e.duration > 0);
+      if (!allDurations.length) return 0;
+      const totalMin = allDurations.reduce((s,e) => s + (e.duration||0), 0);
+      return totalMin / allDurations.length;
+    }
+    const byDay = {};
+    recent.forEach(function(e) { byDay[e.date] = (byDay[e.date]||0) + (e.duration||0); });
+    const dayVals = Object.values(byDay);
+    return dayVals.reduce((s,v) => s+v, 0) / dayVals.length;
+  }
   return entries.reduce(function(s, v) { return s + v; }, 0) / entries.length;
 }
 
@@ -1920,6 +1931,7 @@ function renderKidDashboard() {
       tomorrowEl.textContent = 'Tomorrow: ' + subjectNames;
     }
   }
+  const vacBanner = document.getElementById('vacation-banner');
   if (vacBanner) vacBanner.style.display = state.vacationMode ? 'block' : 'none';
   renderParentMessageBanner(currentKidId);
 
@@ -5322,9 +5334,18 @@ function toggleKidSettings() {
   renderKidSettingsButtons();
 }
 
+function kidUseSkipDay() {
+  const bal = (state.skipDay && state.skipDay[currentKidId]) || 0;
+  if (bal <= 0) { showToast('⚠️ No skip days available. Ask a parent!'); return; }
+  useSkipDay(currentKidId);
+  renderKidSettingsButtons();
+}
+
 function renderKidSettingsButtons() {
   const soundsBtn = document.getElementById('kid-sounds-btn');
   const darkBtn = document.getElementById('kid-dark-btn');
+  const skipBtn = document.getElementById('kid-skipday-btn');
+  const skipBal = document.getElementById('kid-skipday-balance');
   if (soundsBtn) {
     soundsBtn.textContent = state.soundsOff ? '🔇 Sounds OFF' : '🔊 Sounds ON';
     soundsBtn.style.background = state.soundsOff ? '#E5E7EB' : '#D1FAE5';
@@ -5335,6 +5356,16 @@ function renderKidSettingsButtons() {
     darkBtn.textContent = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
     darkBtn.style.background = isDark ? '#1E293B' : '#EEF2FF';
     darkBtn.style.color = isDark ? '#93C5FD' : '#3451D1';
+  }
+  if (skipBtn) {
+    const bal = (state.skipDay && state.skipDay[currentKidId]) || 0;
+    skipBtn.style.opacity = bal > 0 ? '1' : '0.5';
+    skipBtn.style.cursor = bal > 0 ? 'pointer' : 'not-allowed';
+  }
+  if (skipBal) {
+    const bal = (state.skipDay && state.skipDay[currentKidId]) || 0;
+    skipBal.textContent = bal > 0 ? '🛡️ ' + bal + ' skip day' + (bal !== 1 ? 's' : '') + ' available' : 'No skip days available';
+    skipBal.style.color = bal > 0 ? '#B45309' : 'var(--muted)';
   }
 }
 
@@ -5597,14 +5628,16 @@ function useSkipDay(kidId) {
   if (state.skipDay[kidId] <= 0) { showToast('⚠️ No skip days available for this kid.'); return; }
   if (!state.dailyStreak) state.dailyStreak = {};
   if (!state.dailyStreak[kidId]) state.dailyStreak[kidId] = { count: 0, lastDate: '' };
-  // Set lastDate to today so streak doesn't break tomorrow
   const today = getTodayKey();
   state.dailyStreak[kidId].lastDate = today;
   state.skipDay[kidId]--;
   saveState();
   const kid = state.kids.find(k => k.id === kidId);
   showToast('✅ Skip day used for ' + (kid ? kid.name : kidId) + ' — streak protected!');
-  renderParentDashboard();
+  // Only re-render parent dashboard if we're on that screen
+  if (document.getElementById('screen-parent') && document.getElementById('screen-parent').classList.contains('active')) {
+    renderParentDashboard();
+  }
 }
 
 function grantSkipDay(kidId) {
