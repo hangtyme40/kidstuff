@@ -1646,19 +1646,24 @@ function renderKidDashboard() {
       writing:'linear-gradient(135deg,#43e97b,#38f9d7)'
     };
     const subjects = schedule.subjects;
+    const regularSubjects = schedule.subjects;
     const timerMins = state.lessonTimers || {spelling:15,math:15,reading:15,writing:15};
 
     subjects.forEach(function(subjectId) {
-      const p = progress[subjectId]; const d = p && p.date === todayKey; if(d) done++;
-      const locked = d && !isUnlockedToday(currentKidId, subjectId);
+      const p = progress[subjectId]; const d = p && p.date === todayKey;
+      if(d && !redoNotice) done++;
+      const locked = d && !isUnlockedToday(currentKidId, subjectId) && !redoNotice;
+      const redoLocked = redoNotice && subjectId !== 'writing';
+      const isRedoOnly = redoNotice && subjectId === 'writing' && !regularSubjects.includes('writing');
       const art = subjectArt[subjectId];
       const col = subjectColors[subjectId];
-      const levelData = getCurrentLevelData(currentKidId, subjectId);
+      const gl = getCurrentGradeLevel(currentKidId, subjectId);
+      const gradeLevels = getGradeLevels(gl.grade, subjectId);
+      const curIdx = gl.levelIdx || 0;
+      const gradeLabel = GRADE_LABELS[gl.grade] || ('Grade ' + gl.grade);
+      const lvl = gradeLevels[curIdx];
+      const lvlName = lvl ? lvl.name : subjectId;
       const streakScores = getStreakScores(currentKidId, subjectId);
-      const subjLevels = getSubjectProgression(currentKidId, subjectId);
-      const curIdx = getCurrentLevelIndex(currentKidId, subjectId);
-      const levelNum = curIdx + 1;
-      const totalLevels = subjLevels.length;
       const mins = timerMins[subjectId] || 15;
 
       const div = document.createElement('div');
@@ -1679,14 +1684,28 @@ function renderKidDashboard() {
       })();
 
       div.innerHTML = '<div style="width:72px;height:72px;border-radius:50%;background:' + col + ';display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 10px;box-shadow:0 4px 16px rgba(0,0,0,0.15);">' + art + '</div>'
-        + '<div class="subj-name">' + (levelData ? levelData.name : subjectId) + '</div>'
-        + '<div style="font-size:11px;color:var(--primary);font-weight:700;margin-top:2px">Level ' + levelNum + ' of ' + totalLevels + '</div>'
+        + '<div class="subj-name">' + (isRedoOnly ? '✍️ Writing Redo' : lvlName) + '</div>'
+        + '<div style="font-size:11px;color:var(--primary);font-weight:700;margin-top:2px">' + gradeLabel + ' · Level ' + (curIdx+1) + '/' + gradeLevels.length + '</div>'
         + (locked
           ? '<div class="subj-score" style="margin-top:6px">✓ ' + p.score + '%</div>'
-          : '<div class="subj-status" style="font-size:11px;color:var(--muted);margin-top:4px">⏱ ' + mins + ' min</div>')
+          : redoLocked
+            ? '<div style="font-size:11px;color:#EF4444;font-weight:700;margin-top:4px">✍️ Finish Writing Redo first</div>'
+            : isRedoOnly
+              ? '<div style="font-size:11px;color:#EF4444;font-weight:700;margin-top:4px">🔄 Redo required</div>'
+              : '<div class="subj-status" style="font-size:11px;color:var(--muted);margin-top:4px">⏱ ' + mins + ' min</div>')
         + streakHtml
-        + (locked ? '<div style="position:absolute;top:10px;right:10px;background:#2ECC71;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:14px;">✓</div>' : '');
-      div.onclick = (function(id){ return function(){ startLesson(id); }; })(subjectId);
+        + (locked ? '<div style="position:absolute;top:10px;right:10px;background:#2ECC71;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:14px;">✓</div>' : '')
+        + (redoLocked ? '<div style="position:absolute;top:10px;right:10px;background:#EF4444;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:14px;">🔒</div>' : '')
+        + (isRedoOnly ? '<div style="position:absolute;top:10px;right:10px;background:#EF4444;color:white;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:800;">REDO</div>' : '');
+      if (redoLocked) {
+        div.onclick = function() { showToast('✍️ Complete the Writing Redo first!'); };
+        div.style.opacity = '0.6';
+        div.style.cursor = 'not-allowed';
+      } else if (redoNotice && subjectId === 'writing') {
+        div.onclick = function() { startWritingRedo(); };
+      } else {
+        div.onclick = (function(id){ return function(){ startLesson(id); }; })(subjectId);
+      }
       grid.appendChild(div);
     });
 
@@ -3856,6 +3875,9 @@ function switchTab(tabId, btn) {
     if (!panel) { showToast('❌ Tab not found: ' + tabId); return; }
     panel.classList.add('active');
     if (btn) btn.classList.add('active');
+    // Re-render tab content on switch so data is always fresh
+    if (tabId === 'tab-overview') { renderProgressOverview(); renderWeeklySummary(); }
+    if (tabId === 'tab-review') { renderWritingApprovals(); renderRedemptionQueue(); renderFlaggedList(); }
   } catch(e) {
     showToast('❌ Tab error: ' + e.message);
     console.error('switchTab error:', e);
@@ -4597,23 +4619,8 @@ function getQuarterKey() {
 }
 
 function checkQuarterlyReset() {
-  const q = getQuarterKey();
-  if (!state.badgeQuarter) { state.badgeQuarter = q; saveState(); return; }
-  if (state.badgeQuarter === q) return;
-  // New quarter — reset badges for all kids
-  state.kids.forEach(function(k) {
-    if (state.badges && state.badges[k.id]) {
-      state.badges[k.id] = [];
-    }
-  });
-  state.badgeQuarter = q;
-  saveState();
-  // Queue a notice for each kid
-  if (!state.redoNotices) state.redoNotices = [];
-  state.kids.forEach(function(k) {
-    state.redoNotices = state.redoNotices.filter(function(n){ return !(n.kidId === k.id && n.subject === 'quarterReset'); });
-    state.redoNotices.push({ kidId: k.id, subject: 'quarterReset', message: '🏅 New quarter — your badges have reset! Go earn them back!', date: new Date().toLocaleDateString() });
-  });
+  // Quarterly badge reset disabled — badges are permanent achievements
+  if (!state.badgeQuarter) { state.badgeQuarter = getQuarterKey(); saveState(); }
 }
 
 // ── HINTS SYSTEM ─────────────────────────────────────────
@@ -5009,6 +5016,10 @@ function purgeOldWritingQueue() {
 
 applyDarkModePreference();
 loadLocalFallback();
+// Clear any stale quarterly reset notices
+if (state.redoNotices) {
+  state.redoNotices = state.redoNotices.filter(function(n){ return n.subject !== 'quarterReset'; });
+}
 runMigrations();
 checkQuarterlyReset();
 // Auto-protect streaks on US federal holidays
