@@ -35,7 +35,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 #screen-landing{background:linear-gradient(135deg,#4F6EF7 0%,#7C3AED 100%);}
 #screen-kid-select{background:linear-gradient(135deg,#4F6EF7 0%,#7C3AED 100%);}
 #screen-pin{background:linear-gradient(135deg,#1A1F36,#2D3561);}
-.app-header{background:var(--primary);color:white;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(79,110,247,0.3);}
+.app-header{background:var(--primary);color:white;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(79,110,247,0.3);position:sticky;top:0;z-index:100;}
 .app-header.dark{background:linear-gradient(135deg,#1A1F36,#2D3561);}
 .logo{font-family:'Baloo 2',cursive;font-size:26px;font-weight:800;}
 .logo span{color:var(--yellow);}
@@ -273,7 +273,19 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 <div id="screen-kid" class="screen">
   <div class="app-header">
     <div><div class="logo">Kid<span>Stuff</span></div><div class="header-sub" id="kid-header-sub">Today's Lessons</div></div>
-    <div style="font-size:11px;color:rgba(255,255,255,0.6);font-weight:600;text-align:right;" class="last-synced-ts"></div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="font-size:11px;color:rgba(255,255,255,0.6);font-weight:600;text-align:right;" class="last-synced-ts"></div>
+      <button onclick="toggleKidSettings()" style="background:rgba(255,255,255,0.18);border:none;border-radius:10px;padding:7px 10px;font-size:18px;cursor:pointer;color:white;">⚙️</button>
+    </div>
+  </div>
+  <div id="kid-settings-panel" style="display:none;background:var(--card);border-bottom:2px solid var(--border);padding:14px 20px;">
+    <div style="font-weight:800;font-size:13px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Settings</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button id="kid-sounds-btn" onclick="kidToggleSounds()" style="padding:10px 16px;border-radius:12px;border:none;font-family:Nunito,sans-serif;font-weight:700;font-size:14px;cursor:pointer;flex:1;">🔊 Sounds</button>
+      <button id="kid-dark-btn" onclick="kidToggleDark()" style="padding:10px 16px;border-radius:12px;border:none;font-family:Nunito,sans-serif;font-weight:700;font-size:14px;cursor:pointer;flex:1;">🌙 Dark Mode</button>
+      <button id="kid-skipday-btn" onclick="kidUseSkipDay()" style="padding:10px 16px;border-radius:12px;border:none;font-family:Nunito,sans-serif;font-weight:700;font-size:14px;cursor:pointer;flex:1;background:#FFF8E1;color:#B45309;">🛡️ Skip Day</button>
+    </div>
+    <div id="kid-skipday-balance" style="font-size:12px;color:var(--muted);margin-top:8px;font-weight:600;"></div>
   </div>
   <div class="content">
     <div class="kid-hero">
@@ -283,6 +295,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         <div class="kid-hero-name" id="kid-dash-name">Name</div>
         <div class="kid-hero-coins" id="kid-dash-coins">🧠 0 Brain Bucks</div>
         <div class="kid-hero-progress" id="kid-dash-progress">0 of 4 done today</div>
+        <div id="kid-dash-tomorrow" style="font-size:11px;color:rgba(255,255,255,0.65);margin-top:3px;font-weight:600;"></div>
         <div class="streak-hero" id="kid-dash-streak" style="display:none">
           <span class="streak-fire">🔥</span>
           <span class="streak-count" id="streak-count-display">0</span>
@@ -299,9 +312,22 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <div id="no-content-msg" style="display:none"></div>
     <div class="subject-grid" id="subject-grid"></div>
     <button onclick="startStudyMode()" id="study-mode-btn" style="display:none;width:100%;margin-bottom:18px;padding:14px;border-radius:14px;border:2px solid var(--primary);background:#EEF2FF;color:var(--primary);font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;cursor:pointer;">📖 Study Mode — Practice Missed Questions</button>
+    <div id="parent-message-banner" style="display:none;background:linear-gradient(135deg,#F59E0B,#F7C948);color:#1A1F36;border-radius:12px;padding:12px 16px;margin-bottom:14px;cursor:pointer;" onclick="dismissParentMessage()">
+      <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;opacity:0.7;margin-bottom:4px">Message from Parent 💬</div>
+      <div id="parent-message-text" style="font-weight:700;font-size:14px;"></div>
+      <div style="font-size:11px;opacity:0.6;margin-top:4px">Tap to dismiss</div>
+    </div>
     <div id="vacation-banner" style="display:none;background:linear-gradient(90deg,#0EA5E9,#7C3AED);color:white;text-align:center;padding:10px 16px;font-weight:800;font-size:14px;border-radius:12px;margin-bottom:14px;">✈️ Vacation Mode — Enjoy your break! Streaks are protected.</div>
     <div id="bonus-challenge-btns"></div>
     <div class="card"><div class="card-title">🎁 Rewards Shop</div><div id="kid-rewards-list"></div></div>
+    <div class="card" id="kid-progress-summary-card" style="display:none">
+      <div class="card-title">📈 My Progress</div>
+      <div id="kid-progress-summary-content"></div>
+    </div>
+    <div class="card" id="kid-bb-history-card" style="display:none">
+      <div class="card-title">🧠 Brain Bucks History</div>
+      <div id="kid-bb-history-list"></div>
+    </div>
     <div class="card" id="kid-history-card" style="display:none">
       <div class="card-title">📅 My Recent Lessons</div>
       <div id="kid-history-list"></div>
@@ -416,158 +442,179 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     </div>
   </div>
   <div class="content">
-    <div class="parent-header"><h2>👋 Parent Dashboard</h2><p>Generate curriculum, review writing, manage rewards.</p></div>
+    <div class="parent-header"><h2>👋 Parent Dashboard</h2></div>
     <div class="kid-summary-cards" id="parent-kid-summary"></div>
     <div class="tabs">
-      <button class="tab-btn active" onclick="switchTab('tab-curriculum',this)">📚 Curriculum</button>
-      <button class="tab-btn" id="tab-btn-writing" onclick="switchTab('tab-writing',this)">✍️ Writing</button>
-      <button class="tab-btn" id="tab-btn-redemptions" onclick="switchTab('tab-redemptions',this)">🎁 Rewards</button>
-      <button class="tab-btn" onclick="switchTab('tab-rewards',this)">⚙️ Manage Rewards</button>
-      <button class="tab-btn" onclick="switchTab('tab-progress',this)">📊 Progress</button>
-      <button class="tab-btn" id="tab-btn-flagged" onclick="switchTab('tab-flagged',this)">🚩 Flagged</button>
-      <button class="tab-btn" onclick="switchTab('tab-settings',this)">⚙️ Settings</button>
+      <button class="tab-btn active" id="tab-btn-overview" onclick="switchTab('tab-overview',this)">📊 Overview</button>
+      <button class="tab-btn" id="tab-btn-review" onclick="switchTab('tab-review',this)">✍️ Review</button>
+      <button class="tab-btn" id="tab-btn-manage" onclick="switchTab('tab-manage',this)">📚 Manage</button>
+      <button class="tab-btn" id="tab-btn-settings" onclick="switchTab('tab-settings',this)">⚙️ Settings</button>
     </div>
 
-    <div class="tab-panel active" id="tab-curriculum">
+    <!-- OVERVIEW TAB -->
+    <div class="tab-panel active" id="tab-overview">
+      <div class="card" id="weekly-summary-card">
+        <div class="card-title">📅 This Week</div>
+        <div id="weekly-summary-content"></div>
+      </div>
+      <div id="progress-overview"></div>
+    </div>
+
+    <!-- REVIEW TAB -->
+    <div class="tab-panel" id="tab-review">
+      <div class="card">
+        <div class="card-title">✍️ Writing to Review</div>
+        <div id="writing-approvals-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🎁 Reward Redemptions</div>
+        <div id="redemptions-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🚩 Flagged Questions</div>
+        <div id="flagged-list"></div>
+      </div>
+    </div>
+
+    <!-- MANAGE TAB -->
+    <div class="tab-panel" id="tab-manage">
+      <div class="card" style="background:#FFFBEA;box-shadow:none;border:2px solid #F7C948">
+        <div style="font-weight:800;margin-bottom:8px">💬 Send Message to Kid</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">A banner will appear on their dashboard when they next log in. Tap to dismiss.</div>
+        <div class="form-row" style="margin-bottom:10px"><label>Kid</label><select id="msg-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
+        <div class="form-row" style="margin-bottom:10px"><label>Message</label><input type="text" id="msg-text-input" placeholder="Nice work today! 🎉" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"/></div>
+        <button class="btn-primary" style="background:#F59E0B;color:#1A1F36" onclick="sendParentMessage()">💬 Send Message</button>
+      </div>
       <div class="card">
         <div class="card-title">📊 Level Overview</div>
         <div id="curriculum-overview"></div>
       </div>
-      <div class="card" style="background:#F0FBF4;box-shadow:none;border:2px solid #86EFAC">
-        <div style="font-weight:800;margin-bottom:8px">🔓 Unlock Lessons</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Allow a kid to redo a completed lesson today.</div>
-        <div class="form-grid">
-          <div class="form-row"><label>Kid</label><select id="unlock-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"></select></div>
-          <div class="form-row"><label>Subject</label><select id="unlock-subject-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;">
-            <option value="spelling">🔤 Spelling</option>
-            <option value="math">🧮 Math</option>
-            <option value="reading">📖 Reading</option>
-            <option value="writing">✏️ Writing</option>
-            <option value="all">All Subjects</option>
-          </select></div>
-        </div>
-        <button class="btn-primary" onclick="parentUnlockLesson()" style="background:#2ECC71;margin-top:0">🔓 Unlock for Today</button>
-      </div>
       <div class="card" style="background:#FFF5F5;box-shadow:none;border:2px solid #FCA5A5">
         <div style="font-weight:800;margin-bottom:8px">🎚️ Adjust Level</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Manually move a kid up or down a level if the content is too easy or too hard.</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Select a kid and subject, then choose a grade and level.</div>
         <div class="form-grid">
-          <div class="form-row"><label>Kid</label><select id="level-adj-kid" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"></select></div>
-          <div class="form-row"><label>Subject</label><select id="level-adj-subject" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;">
-            <option value="spelling">🔤 Spelling</option>
-            <option value="math">🧮 Math</option>
-            <option value="reading">📖 Reading</option>
-            <option value="writing">✏️ Writing</option>
+          <div class="form-row"><label>Kid</label><select id="level-adj-kid" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
+          <div class="form-row"><label>Subject</label><select id="level-adj-subject" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;">
+            <option value="spelling">🔤 Spelling</option><option value="math">🧮 Math</option>
+            <option value="reading">📖 Reading</option><option value="writing">✏️ Writing</option>
           </select></div>
         </div>
+        <div class="form-grid" style="margin-bottom:10px">
+          <div class="form-row"><label>Grade</label><select id="level-adj-grade" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
+          <div class="form-row"><label>Level within Grade</label><select id="level-adj-level" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
+        </div>
+        <button class="btn-primary" style="background:#7C3AED;margin-bottom:10px" onclick="applyLevelSelection()">✅ Set This Level</button>
         <div style="display:flex;gap:8px">
           <button class="btn-primary" style="flex:1;background:#4F6EF7" onclick="adjustLevel(-1)">⬇️ Level Down</button>
           <button class="btn-primary" style="flex:1;background:#2ECC71" onclick="adjustLevel(1)">⬆️ Level Up</button>
         </div>
         <div id="level-adj-preview" style="font-size:13px;color:var(--muted);margin-top:10px;text-align:center;font-weight:700"></div>
       </div>
+      <div class="card" style="background:#F0FBF4;box-shadow:none;border:2px solid #86EFAC">
+        <div style="font-weight:800;margin-bottom:8px">🔓 Unlock Lessons</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Allow a kid to redo a completed lesson today.</div>
+        <div class="form-grid">
+          <div class="form-row"><label>Kid</label><select id="unlock-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
+          <div class="form-row"><label>Subject</label><select id="unlock-subject-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;">
+            <option value="spelling">🔤 Spelling</option><option value="math">🧮 Math</option>
+            <option value="reading">📖 Reading</option><option value="writing">✏️ Writing</option>
+            <option value="all">All Subjects</option>
+          </select></div>
+        </div>
+        <button class="btn-primary" onclick="parentUnlockLesson()" style="background:#2ECC71">🔓 Unlock for Today</button>
+      </div>
       <div class="card" style="background:#FFFBEA;box-shadow:none;border:2px solid #F7C948">
         <div style="font-weight:800;margin-bottom:8px">⭐ Assign Bonus Challenge</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Give a kid extra practice on a specific topic. They'll see it on their dashboard.</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Give a kid extra practice on a specific topic.</div>
         <div class="form-grid">
-          <div class="form-row"><label>Kid</label><select id="bonus-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"></select></div>
-          <div class="form-row"><label>Subject</label><select id="bonus-subject-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;">
-            <option value="spelling">🔤 Spelling</option>
-            <option value="math">🧮 Math</option>
-            <option value="reading">📖 Reading</option>
-            <option value="writing">✏️ Writing</option>
+          <div class="form-row"><label>Kid</label><select id="bonus-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
+          <div class="form-row"><label>Subject</label><select id="bonus-subject-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;">
+            <option value="spelling">🔤 Spelling</option><option value="math">🧮 Math</option>
+            <option value="reading">📖 Reading</option><option value="writing">✏️ Writing</option>
           </select></div>
         </div>
         <div class="form-row"><label>Focus Topic (optional)</label><input id="bonus-topic" type="text" placeholder="e.g. fractions with unlike denominators"/></div>
-        <div class="form-row"><label>Bonus Brain Bucks</label><input id="bonus-coins" type="number" placeholder="10" value="10" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"/></div>
+        <div class="form-row"><label>Bonus Brain Bucks</label><input id="bonus-coins" type="number" placeholder="10" value="10" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"/></div>
         <button class="btn-primary" style="background:#F59E0B;color:#1A1F36" onclick="assignBonusChallenge()">⭐ Assign Challenge</button>
         <div id="bonus-challenges-list" style="margin-top:14px"></div>
       </div>
-    </div><!-- end tab-curriculum -->
-
-    <div class="tab-panel" id="tab-writing">
-      <div class="card"><div class="card-title">✍️ Writing to Review</div><div id="writing-approvals-list"></div></div>
-    </div>
-
-    <div class="tab-panel" id="tab-redemptions">
-      <div class="card"><div class="card-title">🎁 Reward Redemptions</div><div id="redemptions-list"></div></div>
-    </div>
-
-    <div class="tab-panel" id="tab-flagged">
-      <div class="card"><div class="card-title">🚩 Flagged Questions</div><div id="flagged-list"></div></div>
-    </div>
-
-    <div class="tab-panel" id="tab-rewards">
       <div class="card">
-        <div class="card-title">➕ Add Reward</div>
-        <div class="form-row"><label>For</label><select id="r-kid" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"></select></div>
-        <div class="form-row"><label>Name</label><input id="r-name" type="text" placeholder="e.g. 30 min extra screen time"/></div>
-        <div class="form-grid">
+        <div class="card-title">🎁 Manage Rewards</div>
+        <div id="parent-rewards-list"></div>
+        <div style="height:14px"></div>
+        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
+          <div style="font-weight:800;margin-bottom:8px">Add Reward</div>
+          <div class="form-grid">
+            <div class="form-row"><label>For</label><select id="r-kid" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;">
+              <option value="lauren">👧🏾 Lauren</option><option value="andrew">🧒🏾 Andrew</option><option value="both">Both</option>
+            </select></div>
+            <div class="form-row"><label>Emoji</label><input id="r-emoji" type="text" placeholder="📺" maxlength="2"/></div>
+          </div>
+          <div class="form-row"><label>Name</label><input id="r-name" type="text" placeholder="e.g. 30 min extra screen time"/></div>
           <div class="form-row"><label>Coin Cost</label><input id="r-cost" type="number" placeholder="50"/></div>
-          <div class="form-row"><label>Emoji</label><input id="r-emoji" type="text" placeholder="📺" maxlength="2"/></div>
+          <button class="btn-primary" style="background:#2ECC71" onclick="addReward()">➕ Add Reward</button>
         </div>
-        <button class="btn-primary" onclick="addReward()">Add Reward</button>
       </div>
-      <div class="card"><div class="card-title">🎁 Rewards by Child</div><div id="parent-rewards-list"></div></div>
     </div>
 
-    <div class="tab-panel" id="tab-progress"><div id="progress-overview"></div></div>
-
+    <!-- SETTINGS TAB -->
     <div class="tab-panel" id="tab-settings">
       <div class="card">
         <div class="card-title">⚙️ Settings</div>
-        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
+        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
           <div style="font-weight:800;margin-bottom:10px">🔊 Spelling Voice</div>
           <div id="voice-selector-wrap">Loading voices...</div>
         </div>
-        <div style="height:18px"></div>
-        <div class="form-grid">
-          <div class="form-row"><label>Adjust Brain Bucks For</label><select id="coin-kid-select"></select></div>
-          <div class="form-row"><label>Amount</label><input id="coin-adjust" type="number" placeholder="+10 or -5"/></div>
+        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
+          <div style="font-weight:800;margin-bottom:8px">⚡ Auto-Advance</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Automatically move to the next question after a correct answer.</div>
+          <button id="autoadvance-toggle-btn" class="btn-primary" onclick="toggleAutoAdvance()">Loading...</button>
         </div>
-        <button class="btn-primary" onclick="adjustCoins()">Adjust Brain Bucks</button>
-        <div style="height:18px"></div>
-        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
+        <div class="card" style="background:#EEF9FF;box-shadow:none;border:2px solid #7DD3FC;margin-bottom:14px" id="vacation-mode-card">
+          <div style="font-weight:800;margin-bottom:8px">✈️ Vacation Mode</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Protects all streaks daily. Turn off when you return home.</div>
+          <button id="vacation-toggle-btn" class="btn-primary" onclick="toggleVacationMode()" style="background:#0EA5E9">Loading...</button>
+        </div>
+        <div class="card" style="background:#FFF0F9;box-shadow:none;border:2px solid #F9A8D4;margin-bottom:14px">
+          <div style="font-weight:800;margin-bottom:8px">🤒 Excuse a Kid</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Excuse a kid for any day — protects streak and won't count as incomplete week. Works retroactively.</div>
+          <div class="form-row" style="margin-bottom:10px"><label>Kid</label><select id="excuse-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
+          <div class="form-row" style="margin-bottom:10px"><label>Date</label><input type="date" id="excuse-date-input" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"/></div>
+          <div id="excuse-status" style="font-size:13px;color:var(--muted);margin-bottom:10px;font-weight:600;"></div>
+          <button class="btn-primary" style="background:#EC4899" onclick="excuseKidDay()">🤒 Excuse This Day</button>
+        </div>
+        <div class="card" style="background:#F0FBF4;box-shadow:none;border:2px solid #86EFAC;margin-bottom:14px">
+          <div style="font-weight:800;margin-bottom:8px">🛡️ Skip Days</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Grant a skip day to protect a streak for a future missed day.</div>
+          <div class="form-grid">
+            <div class="form-row"><label>Kid</label><select id="skipday-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
+            <div id="skipday-balance" style="display:flex;align-items:flex-end;padding-bottom:14px;font-weight:800;font-size:14px;color:var(--primary)"></div>
+          </div>
+          <button class="btn-primary" style="background:#2ECC71;width:100%" onclick="grantSkipDay(document.getElementById('skipday-kid-select').value)">➕ Grant Skip Day</button>
+        </div>
+        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
+          <div style="font-weight:800;margin-bottom:8px">🧠 Adjust Brain Bucks</div>
+          <div class="form-grid">
+            <div class="form-row"><label>Kid</label><select id="coin-kid-select"></select></div>
+            <div class="form-row"><label>Amount</label><input id="coin-adjust" type="number" placeholder="+10 or -5"/></div>
+          </div>
+          <button class="btn-primary" onclick="adjustCoins()">Adjust Brain Bucks</button>
+        </div>
+        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
           <div style="font-weight:800;margin-bottom:10px">⏱ Lesson Time Limits</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Set how many minutes each lesson type allows before time expires.</div>
           <div id="timer-inputs" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px"></div>
           <button class="btn-primary" onclick="saveTimerSettings()">Save Time Limits</button>
         </div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Set the max Brain Bucks a kid can earn on their first attempt at each subject (score% × max).</div>
+        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
+          <div style="font-weight:800;margin-bottom:8px">🧠 Brain Bucks Max per Lesson</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Max Brain Bucks a kid can earn on first attempt (score% × max).</div>
           <div class="form-row"><label>Kid</label><select id="coinmax-kid-select" onchange="renderCoinMaxInputs()"></select></div>
           <div id="coinmax-inputs" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px"></div>
-          <button class="btn-primary" style="margin-top:12px" onclick="saveCoinMax()">Save Coin Limits</button>
+          <button class="btn-primary" style="margin-top:12px" onclick="saveCoinMax()">Save Brain Bucks Limits</button>
         </div>
-        <div style="height:18px"></div>
-        <div class="card" style="background:#EEF9FF;box-shadow:none;border:2px solid #7DD3FC" id="vacation-mode-card">
-          <div style="font-weight:800;margin-bottom:8px">✈️ Vacation Mode</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:14px">While on, streaks are protected daily — no lessons required. Turn off when you return home.</div>
-          <button id="vacation-toggle-btn" class="btn-primary" onclick="toggleVacationMode()" style="background:#0EA5E9">Loading...</button>
-        </div>
-        <div style="height:10px"></div>
-        <button class="btn-danger" onclick="resetAll()" style="width:100%;padding:12px">⚠️ Reset All Data</button>
-        <div style="height:18px"></div>
-        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
-          <div style="font-weight:800;margin-bottom:8px">🤖 AI Lesson Engine</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Lessons are generated via a secure Cloudflare Worker proxy. The API key is stored in the Worker environment — never in this app.</div>
-          <div id="worker-status" style="font-size:12px;padding:8px;background:white;border-radius:8px;border:1px solid var(--border);font-family:monospace;word-break:break-all;"></div>
-        </div>
-        <div style="height:18px"></div>
-        <div class="card" style="background:#F0FBF4;box-shadow:none;border:2px solid #86EFAC">
-          <div style="font-weight:800;margin-bottom:8px">🛡️ Streak Protection</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Grant a skip day so a missed day doesn't break a kid's streak (sick day, vacation, etc.).</div>
-          <div class="form-grid">
-            <div class="form-row"><label>Kid</label><select id="skipday-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"></select></div>
-            <div id="skipday-balance" style="display:flex;align-items:flex-end;padding-bottom:14px;font-weight:800;font-size:14px;color:var(--primary)"></div>
-          </div>
-          <div style="display:flex;gap:8px">
-            <button class="btn-primary" style="background:#2ECC71;flex:1" onclick="grantSkipDay(document.getElementById('skipday-kid-select').value)">➕ Grant Skip Day</button>
-            <button class="btn-primary" style="background:#F7C948;color:#1A1F36;flex:1" onclick="useSkipDay(document.getElementById('skipday-kid-select').value)">🛡️ Use Skip Day</button>
-          </div>
-        </div>
-        <div style="height:18px"></div>
       </div>
     </div>
+
   </div>
 </div>
 
@@ -792,7 +839,18 @@ const DEFAULT_STATE = {
   lastSynced: null,
   vacationMode: false,
   paceData: {lauren:{}, andrew:{}, tester:{}},
-  adaptiveQ: {lauren:10, andrew:10, tester:10}
+  adaptiveQ: {lauren:10, andrew:10, tester:10},
+  perfectWeekClaimed: {lauren:'', andrew:'', tester:''},
+  rewardsUpdatedAt: 0,
+  levelsUpdatedAt: {lauren:0, andrew:0, tester:0},
+  coinsUpdatedAt: {lauren:0, andrew:0, tester:0},
+  incompleteWeekPenalized: {lauren:'', andrew:'', tester:''},
+  soundsOff: false,
+  autoAdvance: false,
+  liveLesson: {lauren:null, andrew:null, tester:null},
+  excusedToday: {},
+  excusedDays: {},
+  parentMessages: {}
 };
 
 let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
@@ -963,8 +1021,10 @@ async function pullState() {
     const sharedData = await fbGet('shared') || {};
 
     // Merge parent settings into state (non-destructive)
-    const parentFields = ['pin','kidPins','rewards','coinMax','lessonTimers','selectedVoice',
-                          'difficultyLevel','bonusChallenges','badgeQuarter','vacationMode','paceData','adaptiveQ'];
+    const parentFields = ['pin','kidPins','rewards','rewardsUpdatedAt','coinMax','lessonTimers','selectedVoice',
+                          'difficultyLevel','bonusChallenges','badgeQuarter','vacationMode','paceData','adaptiveQ',
+                          'perfectWeekClaimed','levelsUpdatedAt','incompleteWeekPenalized','soundsOff','autoAdvance',
+                          'excusedToday','excusedDays','parentMessages'];
     parentFields.forEach(function(f) {
       if (parentData[f] !== undefined) state[f] = parentData[f];
     });
@@ -1071,6 +1131,7 @@ async function pushParentData() {
       pin: state.pin,
       kidPins: state.kidPins,
       rewards: state.rewards,
+      rewardsUpdatedAt: state.rewardsUpdatedAt || 0,
       coinMax: state.coinMax,
       lessonTimers: state.lessonTimers,
       selectedVoice: state.selectedVoice,
@@ -1078,7 +1139,15 @@ async function pushParentData() {
       badgeQuarter: state.badgeQuarter,
       vacationMode: state.vacationMode || false,
       paceData: state.paceData || {},
-      adaptiveQ: state.adaptiveQ || {}
+      adaptiveQ: state.adaptiveQ || {},
+      perfectWeekClaimed: state.perfectWeekClaimed || {},
+      levelsUpdatedAt: state.levelsUpdatedAt || {},
+      incompleteWeekPenalized: state.incompleteWeekPenalized || {},
+      soundsOff: state.soundsOff === true,
+      autoAdvance: state.autoAdvance === true,
+      excusedToday: state.excusedToday || {},
+      excusedDays: state.excusedDays || {},
+      parentMessages: state.parentMessages || {}
     };
     await fbSet('parent', parentPayload);
   } catch(e) {
@@ -1158,7 +1227,10 @@ function startRealtimeListener() {
       if (isSyncing) return;
       clearTimeout(_realtimeRetryTimer);
       _realtimeRetryTimer = setTimeout(function() {
-        pullState().catch(e => console.warn('Realtime patch pull error:', e));
+        pullState().then(function() {
+          const parent = document.getElementById('screen-parent');
+          if (parent && parent.classList.contains('active')) renderParentKidSummary();
+        }).catch(e => console.warn('Realtime patch pull error:', e));
       }, 1200);
     });
     _realtimeES.onerror = function() {
@@ -1210,10 +1282,25 @@ function loadLocalFallback() {
       if (!state.adaptiveQ) state.adaptiveQ = {lauren:10, andrew:10, tester:10};
       if (!state.paceData) state.paceData = {lauren:{}, andrew:{}, tester:{}};
       if (state.vacationMode === undefined) state.vacationMode = false;
-      // Per-kid adaptiveQ guard for existing kids
+      if (!state.perfectWeekClaimed) state.perfectWeekClaimed = {lauren:'', andrew:'', tester:''};
+      if (!state.levelsUpdatedAt) state.levelsUpdatedAt = {lauren:0, andrew:0, tester:0};
+      if (state.rewardsUpdatedAt === undefined) state.rewardsUpdatedAt = 0;
+      if (!state.coinsUpdatedAt) state.coinsUpdatedAt = {lauren:0, andrew:0, tester:0};
+      if (!state.incompleteWeekPenalized) state.incompleteWeekPenalized = {lauren:'', andrew:'', tester:''};
+      if (state.soundsOff === undefined) state.soundsOff = false;
+      if (state.autoAdvance === undefined) state.autoAdvance = false;
+      if (!state.liveLesson) state.liveLesson = {lauren:null, andrew:null, tester:null};
+      if (!state.excusedToday) state.excusedToday = {};
+      if (!state.excusedDays) state.excusedDays = {};
+      if (!state.parentMessages) state.parentMessages = {};
+      // Per-kid guards
       state.kids.forEach(function(k) {
         if (!state.adaptiveQ[k.id]) state.adaptiveQ[k.id] = 10;
         if (!state.paceData[k.id]) state.paceData[k.id] = {};
+        if (state.perfectWeekClaimed[k.id] === undefined) state.perfectWeekClaimed[k.id] = '';
+        if (!state.levelsUpdatedAt[k.id]) state.levelsUpdatedAt[k.id] = 0;
+        if (!state.coinsUpdatedAt[k.id]) state.coinsUpdatedAt[k.id] = 0;
+        if (state.incompleteWeekPenalized[k.id] === undefined) state.incompleteWeekPenalized[k.id] = '';
       });
     }
   } catch(e) { state = JSON.parse(JSON.stringify(DEFAULT_STATE)); }
@@ -1316,6 +1403,7 @@ function pinKey(d) {
           const cb = document.getElementById('remember-me-checkbox');
           if (cb && cb.checked) localStorage.setItem('kidstuff_rememberedKid', currentKidId);
           else localStorage.removeItem('kidstuff_rememberedKid');
+          checkIncompleteWeekPenalty(currentKidId);
           showScreen('screen-kid');
         } else {
           document.getElementById('pin-error').textContent = 'Incorrect PIN.';
@@ -1458,8 +1546,20 @@ function renderKidDashboard() {
   renderBadges(currentKidId);
 
   // Vacation mode banner
+  const tomorrowEl = document.getElementById('kid-dash-tomorrow');
+  if (tomorrowEl) {
+    const tmrDow = (new Date().getDay() + 1) % 7;
+    const tmrSched = getScheduleForDow(tmrDow);
+    if (tmrSched.isRest) {
+      tomorrowEl.textContent = 'Tomorrow: Rest day 😴';
+    } else {
+      const subjectNames = tmrSched.subjects.map(s => s.charAt(0).toUpperCase()+s.slice(1)).join(' & ');
+      tomorrowEl.textContent = 'Tomorrow: ' + subjectNames;
+    }
+  }
   const vacBanner = document.getElementById('vacation-banner');
   if (vacBanner) vacBanner.style.display = state.vacationMode ? 'block' : 'none';
+  renderParentMessageBanner(currentKidId);
 
   // Show redo notice or quarterly badge reset notice
   const redoNotice = (state.redoNotices||[]).find(function(n){ return n.kidId === currentKidId && n.subject === 'writing'; });
@@ -1619,6 +1719,8 @@ function renderKidDashboard() {
     });
   }
   renderKidHistory(currentKidId);
+  renderBrainBucksHistory(currentKidId);
+  renderKidProgressSummary(currentKidId);
 }
 
 function renderKidHistory(kidId) {
@@ -1661,7 +1763,7 @@ function redeemReward(id) {
   const kid = state.kids.find(k => k.id === currentKidId);
   if (!r || !kid || kid.coins < r.cost) return;
   kid.coins -= r.cost;
-  if (!state.redemptionQueue) state.redemptionQueue = [];
+  stampCoins(currentKidId);
   state.redemptionQueue.push({
     id: 'rq' + Date.now(),
     kidId: currentKidId,
@@ -1761,7 +1863,16 @@ async function startLesson(subjectId) {
   } catch(e) {
     document.getElementById('generating-overlay').style.display='none';
     console.error('Lesson load error:', e);
-    showToast('❌ ' + (e.message || String(e)));
+    console.error('Lesson load error:', e);
+    if (state.liveLesson) state.liveLesson[currentKidId] = null;
+    try { fbSet('kids/' + currentKidId + '/liveLesson', null); } catch(_){}
+    const isOffline = !navigator.onLine;
+    const msg = isOffline
+      ? "Looks like you're offline. Connect to the internet and try again! 🌐"
+      : "Couldn't load the lesson right now — the AI might be taking a quick nap. Try again in a moment! 😴";
+    if (confirm('⚠️ ' + msg + '\n\nTap OK to try again, or Cancel to go back.')) {
+      startLesson(subjectId);
+    }
   }
 }
 
@@ -1843,12 +1954,21 @@ Rules:
 - The hint field is optional but helpful (e.g. "Look at the second sentence" or "Think about what Maya said")`;
 
   } else if (type === 'writing') {
-    prompt = `Generate a writing prompt for a student practicing "${levelName}" (${levelDesc}).
-Difficulty: ${diffName}. Student: ${kid.name}.
-The prompt must be a CLEAR INSTRUCTION telling the student what to write — NOT a story starter or opening sentence.
-Good examples: "Write 3-5 sentences about your favorite animal. Include what it looks like, where it lives, and why you like it."
-Bad examples: "After discovering a mysterious box..." (this is a story starter, not an instruction)
-Return ONLY valid JSON object, no markdown:
+    const recentWritingPrompts = (state.lessonHistory[kidId] || [])
+      .filter(e => e.subject === 'writing' && e.writingPrompt)
+      .slice(0, 3)
+      .map(e => e.writingPrompt);
+    const avoidNote = recentWritingPrompts.length
+      ? '\nAvoid these recent prompts: ' + recentWritingPrompts.map(p => '"' + p.slice(0,50) + '"').join(', ')
+      : '';
+    prompt = `Generate a writing prompt for ${kid.name}, a student practicing "${levelName}" (${levelDesc}).
+Grade level context: ${GRADE_LABELS[getCurrentGradeLevel(kidId,'writing').grade] || 'Grade 3'}.
+Difficulty: ${diffName}.${avoidNote}
+The prompt must be a CLEAR INSTRUCTION — NOT a story starter or opening sentence.
+Good: "Write 3-5 sentences about your favorite animal. Include what it looks like, where it lives, and why you like it."
+Bad: "After discovering a mysterious box..." (story starter, not an instruction)
+Personalize it slightly for ${kid.name} — make it feel like it was written just for them.
+Return ONLY valid JSON, no markdown:
 {"prompt":"WRITING INSTRUCTION HERE"}
 Make it fun, creative, age-appropriate, and specific about what and how much to write.`;
   }
@@ -2215,7 +2335,6 @@ function renderWritingLesson(c) {
     <div class="kumon-q-num">Writing Activity</div>
     <div class="question-text">✍️ Write about this prompt:</div>
     <div class="writing-prompt">${lessonState.writingPrompt||'Write 3–5 sentences about your favorite season. Use describing words!'}</div>
-    <div class="question-sub" style="margin-bottom:12px">Use your finger or Apple Pencil to write your response on the lines below. Try to write at least 3–5 sentences!</div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
       <button id="tool-pen" onclick="setCanvasTool('pen')" style="padding:7px 14px;border-radius:8px;border:2px solid var(--primary);background:var(--primary);color:white;font-family:Nunito,sans-serif;font-weight:700;font-size:13px;cursor:pointer;">✏️ Pen</button>
       <button id="tool-eraser" onclick="setCanvasTool('eraser')" style="padding:7px 14px;border-radius:8px;border:2px solid var(--border);background:white;color:var(--text);font-family:Nunito,sans-serif;font-weight:700;font-size:13px;cursor:pointer;">🧹 Eraser</button>
@@ -2766,7 +2885,7 @@ function finishLesson() {
     });
   });
   const kid = state.kids.find(k=>k.id===currentKidId);
-  if (kid && !alreadyDone) kid.coins += coins;
+  if (kid && !alreadyDone) { kid.coins += coins; stampCoins(currentKidId); }
   state.difficultyLevel[currentKidId] = ls.diffLevel;
 
   // ── Kumon advancement logic ──────────────────────────
@@ -3039,12 +3158,28 @@ function renderParentDashboard() {
       skipSel.onchange = function() { updateSkipDayBalance(skipSel.value); };
       updateSkipDayBalance(skipSel.value);
     }
+    const msgKidSel = document.getElementById('msg-kid-select');
+    if (msgKidSel) {
+      msgKidSel.innerHTML = state.kids.filter(k=>k.id!=='tester').map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
+    }
+    const excuseSel = document.getElementById('excuse-kid-select');
+    if (excuseSel) {
+      excuseSel.innerHTML = state.kids.filter(k=>k.id!=='tester').map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
+      excuseSel.onchange = renderExcuseStatus;
+      const excuseDateInp = document.getElementById('excuse-date-input');
+      if (excuseDateInp) {
+        if (!excuseDateInp.value) excuseDateInp.value = new Date().toISOString().slice(0,10);
+        excuseDateInp.onchange = renderExcuseStatus;
+      }
+      renderExcuseStatus();
+    }
     const coinmaxSel = document.getElementById('coinmax-kid-select');
     if (coinmaxSel) coinmaxSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.name}</option>`).join('');
     renderCoinMaxInputs();
     renderTimerInputs();
     renderApiKeyStatus();
     renderVacationBtn();
+    renderAutoAdvanceToggle();
     updateBinIdDisplay();
   } catch(e) {
     console.error('renderParentDashboard error:', e);
@@ -3207,6 +3342,35 @@ function approveWriting(id) {
   updateTabBadges();
 }
 
+function startWritingRedo() {
+  const lvlData = getCurrentLevelData(currentKidId, 'writing');
+  const redoItem = (state.writingQueue||[]).find(function(w){
+    return w.kidId === currentKidId && (w.status === 'redo' || w.status === 'pending');
+  });
+  const originalPrompt = redoItem ? redoItem.prompt : null;
+  const redoPrompt = originalPrompt
+    ? '🔄 Your parent asked you to try this again:\n\n' + originalPrompt
+    : null;
+  if (!redoPrompt) {
+    showToast('⏳ Generating your writing assignment...');
+    startLesson('writing');
+    return;
+  }
+  lessonState = {
+    subjectId: 'writing', subjectName: lvlData.name, subjectIcon: '✏️', subjectType: 'writing',
+    questions: [{type:'writing', question:'Writing Redo'}],
+    _originalQuestions: [{type:'writing', question:'Writing Redo'}],
+    currentQ: 0, answers: [], correct: 0, streak: 0, missStreak: 0, wrongAnswers: [],
+    diffLevel: 2, startTime: Date.now(), isDrillRound: false, timerSeconds: 0,
+    writingPrompt: redoPrompt,
+    isRedo: true
+  };
+  showScreen('screen-lesson');
+  document.getElementById('lesson-title').textContent = '✏️ Writing Redo';
+  startLessonTimer();
+  renderQuestion();
+}
+
 function denyWriting(id) {
   const w = (state.writingQueue||[]).find(x=>x.id===id);
   if (!w) return;
@@ -3273,32 +3437,22 @@ function acknowledgeRedemption(id) {
 }
 
 function updateTabBadges() {
-  const configs = [
-    { id: 'tab-btn-writing',     count: (state.writingQueue||[]).filter(w => w.status === 'pending').length },
-    { id: 'tab-btn-redemptions', count: (state.redemptionQueue||[]).filter(r => r.status === 'pending').length },
-    { id: 'tab-btn-flagged',     count: (state.flaggedReview||[]).filter(f => f.status === 'pending').length },
-  ];
-  configs.forEach(function(cfg) {
-    const btn = document.getElementById(cfg.id);
-    if (!btn) return;
+  const reviewCount = (state.writingQueue||[]).filter(w => w.status === 'pending').length
+    + (state.redemptionQueue||[]).filter(r => r.status === 'pending').length
+    + (state.flaggedReview||[]).filter(f => f.status === 'pending').length;
+  const btn = document.getElementById('tab-btn-review');
+  if (btn) {
     const existing = btn.querySelector('.tab-dot');
-    if (cfg.count > 0) {
-      if (!existing) {
-        const dot = document.createElement('span');
-        dot.className = 'tab-dot';
-        btn.appendChild(dot);
-      }
+    if (reviewCount > 0) {
+      if (!existing) { const dot = document.createElement('span'); dot.className = 'tab-dot'; btn.appendChild(dot); }
     } else {
       if (existing) existing.remove();
     }
-  });
+  }
 }
 
 function updateRedemptionBadge() {
-  const btn = document.getElementById('tab-btn-redemptions');
-  if (!btn) return;
-  const count = (state.redemptionQueue||[]).filter(function(r){ return r.status === 'pending'; }).length;
-  btn.textContent = count > 0 ? '🎁 Rewards (' + count + ')' : '🎁 Rewards';
+  updateTabBadges();
 }
 
 function renderParentRewards() {
@@ -3810,6 +3964,13 @@ function checkDailyStreak(kidId) {
     ds.lastDate = today;
     saveState();
     checkBadges(kidId);
+    checkPerfectWeek(kidId);
+    checkIncompleteWeekPenalty(kidId);
+    // Streak milestone celebrations
+    const milestones = {7:'🔥 7-Day Streak! You\'re on fire!', 14:'⚡ 14 Days! Two weeks strong!', 30:'🏆 30-Day Streak! Incredible!', 60:'🌟 60 Days! You\'re a legend!', 100:'👑 100-Day Streak! Unbelievable!'};
+    if (milestones[ds.count]) {
+      setTimeout(function() { launchConfetti(4000); playSound('epic'); showToast(milestones[ds.count]); }, 1000);
+    }
   }
 }
 
@@ -3836,8 +3997,7 @@ const BADGE_DEFS = [
   { id: 'level_up',        icon: '⬆️',  label: 'First Level Up',    check: (kidId) => Object.values(state.levels[kidId]||{}).some(l => l >= 1) },
   { id: 'brainbucks_50',   icon: '🧠', label: '50 Brain Bucks',     check: (kidId) => (state.kids.find(k=>k.id===kidId)||{}).coins >= 50 },
   { id: 'brainbucks_200',  icon: '💰', label: '200 Brain Bucks',    check: (kidId) => (state.kids.find(k=>k.id===kidId)||{}).coins >= 200 },
-  { id: 'all_subjects',    icon: '📚', label: 'All Done Today!',   check: (kidId) => { const p=state.progress[kidId]||{}; const t=getTodayKey(); const sched=getTodaySchedule(); return !sched.isRest && sched.subjects.every(s=>p[s]&&p[s].date===t); } },
-  { id: 'spelling_master', icon: '🔤', label: 'Spelling Master',    check: (kidId) => (state.levels[kidId]||{}).spelling >= 5 },
+    { id: 'spelling_master', icon: '🔤', label: 'Spelling Master',    check: (kidId) => (state.levels[kidId]||{}).spelling >= 5 },
   { id: 'math_master',     icon: '🧮', label: 'Math Master',        check: (kidId) => (state.levels[kidId]||{}).math >= 5 },
 ];
 
@@ -4107,6 +4267,122 @@ function renderBonusChallengesList() {
       }).join('');
 }
 
+function sendParentMessage() {
+  const sel = document.getElementById('msg-kid-select');
+  const inp = document.getElementById('msg-text-input');
+  if (!sel || !inp || !inp.value.trim()) { showToast('⚠️ Enter a message first.'); return; }
+  const kidId = sel.value;
+  if (!state.parentMessages) state.parentMessages = {};
+  state.parentMessages[kidId] = { text: inp.value.trim(), date: new Date().toLocaleDateString() };
+  saveState();
+  inp.value = '';
+  const kid = state.kids.find(k=>k.id===kidId);
+  showToast('💬 Message sent to ' + (kid?kid.name:kidId) + '!');
+}
+
+function dismissParentMessage() {
+  if (!state.parentMessages) return;
+  if (state.parentMessages[currentKidId]) {
+    delete state.parentMessages[currentKidId];
+    saveState();
+  }
+  const banner = document.getElementById('parent-message-banner');
+  if (banner) banner.style.display = 'none';
+}
+
+function renderParentMessageBanner(kidId) {
+  const banner = document.getElementById('parent-message-banner');
+  const text = document.getElementById('parent-message-text');
+  if (!banner || !text) return;
+  const msg = state.parentMessages && state.parentMessages[kidId];
+  if (msg && msg.text) {
+    text.textContent = msg.text;
+    banner.style.display = 'block';
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+function kidUseSkipDay() {
+  const bal = (state.skipDay && state.skipDay[currentKidId]) || 0;
+  if (bal <= 0) { showToast('⚠️ No skip days available. Ask a parent!'); return; }
+  useSkipDay(currentKidId);
+  renderKidSettingsButtons();
+}
+
+function excuseKidDay() {
+  const sel = document.getElementById('excuse-kid-select');
+  const dateInput = document.getElementById('excuse-date-input');
+  if (!sel || !sel.value) return;
+  const kidId = sel.value;
+  const dateVal = dateInput && dateInput.value ? dateInput.value : new Date().toISOString().slice(0,10);
+  if (!state.excusedDays) state.excusedDays = {};
+  if (!state.excusedDays[kidId]) state.excusedDays[kidId] = [];
+  if (!state.excusedDays[kidId].includes(dateVal)) {
+    state.excusedDays[kidId].push(dateVal);
+    state.excusedDays[kidId] = state.excusedDays[kidId].sort().slice(-30);
+  }
+  const today = new Date().toISOString().slice(0,10);
+  if (dateVal === today) {
+    if (!state.excusedToday) state.excusedToday = {};
+    state.excusedToday[kidId] = today;
+  }
+  saveState();
+  const kid = state.kids.find(k=>k.id===kidId);
+  const displayDate = new Date(dateVal + 'T12:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});
+  showToast('🤒 ' + (kid?kid.name:kidId) + ' excused for ' + displayDate + ' — streak protected.');
+  renderExcuseStatus();
+}
+
+function excuseKidToday() { excuseKidDay(); }
+
+function isKidExcused(kidId, dateStr) {
+  if (state.excusedToday && state.excusedToday[kidId] === dateStr) return true;
+  if (state.excusedDays && state.excusedDays[kidId] && state.excusedDays[kidId].includes(dateStr)) return true;
+  return false;
+}
+
+function renderExcuseStatus() {
+  const sel = document.getElementById('excuse-kid-select');
+  const statusEl = document.getElementById('excuse-status');
+  const dateInput = document.getElementById('excuse-date-input');
+  if (!sel || !statusEl) return;
+  const kidId = sel.value;
+  const dateVal = dateInput && dateInput.value ? dateInput.value : new Date().toISOString().slice(0,10);
+  const excused = isKidExcused(kidId, dateVal);
+  const kid = state.kids.find(k=>k.id===kidId);
+  const displayDate = new Date(dateVal + 'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'});
+  statusEl.textContent = excused ? '✅ ' + (kid?kid.name:kidId) + ' is already excused for ' + displayDate + '.' : '';
+  statusEl.style.color = excused ? '#2ECC71' : 'var(--muted)';
+}
+
+function renderKidProgressSummary(kidId) {
+  const card = document.getElementById('kid-progress-summary-card');
+  const content = document.getElementById('kid-progress-summary-content');
+  if (!card || !content) return;
+  const history = (state.lessonHistory && state.lessonHistory[kidId]) || [];
+  if (!history.length) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  const subjects = ['spelling','math','reading','writing'];
+  const icons = {spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'};
+  const rows = subjects.map(function(s) {
+    const entries = history.filter(e => e.subject === s);
+    if (!entries.length) return '';
+    const avg = Math.round(entries.reduce((a,e)=>a+e.score,0)/entries.length);
+    const best = Math.max(...entries.map(e=>e.score));
+    const gl = getCurrentGradeLevel(kidId, s);
+    const gradeLabel = GRADE_LABELS[gl.grade] || ('Grade ' + gl.grade);
+    const color = avg >= 90 ? '#2ECC71' : avg >= 70 ? 'var(--primary)' : '#EF4444';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">'
+      + '<span style="font-size:20px">' + icons[s] + '</span>'
+      + '<div style="flex:1"><div style="font-weight:700;font-size:14px">' + s.charAt(0).toUpperCase()+s.slice(1) + '</div>'
+      + '<div style="font-size:11px;color:var(--muted)">' + gradeLabel + ' · ' + entries.length + ' lesson' + (entries.length!==1?'s':'') + '</div></div>'
+      + '<div style="text-align:right"><div style="font-weight:800;font-size:15px;color:' + color + '">' + avg + '%</div>'
+      + '<div style="font-size:11px;color:var(--muted)">Best: ' + best + '%</div></div></div>';
+  }).join('');
+  content.innerHTML = rows || '<div style="color:var(--muted);font-size:14px">No sessions yet.</div>';
+}
+
 function renderVacationBtn() {
   const btn = document.getElementById('vacation-toggle-btn');
   const card = document.getElementById('vacation-mode-card');
@@ -4277,7 +4553,168 @@ function useSkipDay(kidId) {
   saveState();
   const kid = state.kids.find(k => k.id === kidId);
   showToast('✅ Skip day used for ' + (kid ? kid.name : kidId) + ' — streak protected!');
-  renderParentDashboard();
+  if (document.getElementById('screen-parent') && document.getElementById('screen-parent').classList.contains('active')) {
+    renderParentDashboard();
+  }
+}
+
+function toggleKidSettings() {
+  const panel = document.getElementById('kid-settings-panel');
+  if (!panel) return;
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+  renderKidSettingsButtons();
+}
+
+function renderKidSettingsButtons() {
+  const soundsBtn = document.getElementById('kid-sounds-btn');
+  const darkBtn = document.getElementById('kid-dark-btn');
+  const skipBtn = document.getElementById('kid-skipday-btn');
+  const skipBal = document.getElementById('kid-skipday-balance');
+  if (soundsBtn) {
+    soundsBtn.textContent = state.soundsOff ? '🔇 Sounds OFF' : '🔊 Sounds ON';
+    soundsBtn.style.background = state.soundsOff ? '#E5E7EB' : '#D1FAE5';
+    soundsBtn.style.color = state.soundsOff ? '#6B7280' : '#065F46';
+  }
+  if (darkBtn) {
+    const isDark = document.body.classList.contains('dark-mode');
+    darkBtn.textContent = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
+    darkBtn.style.background = isDark ? '#1E293B' : '#EEF2FF';
+    darkBtn.style.color = isDark ? '#93C5FD' : '#3451D1';
+  }
+  if (skipBtn) {
+    const bal = (state.skipDay && state.skipDay[currentKidId]) || 0;
+    skipBtn.style.opacity = bal > 0 ? '1' : '0.5';
+    skipBtn.style.cursor = bal > 0 ? 'pointer' : 'not-allowed';
+  }
+  if (skipBal) {
+    const bal = (state.skipDay && state.skipDay[currentKidId]) || 0;
+    skipBal.textContent = bal > 0 ? '🛡️ ' + bal + ' skip day' + (bal !== 1 ? 's' : '') + ' available' : 'No skip days available';
+    skipBal.style.color = bal > 0 ? '#B45309' : 'var(--muted)';
+  }
+}
+
+function kidToggleSounds() {
+  state.soundsOff = !state.soundsOff;
+  saveState();
+  renderKidSettingsButtons();
+  showToast(state.soundsOff ? '🔇 Sounds muted.' : '🔊 Sounds on!');
+}
+
+function kidToggleDark() {
+  toggleDarkMode();
+  renderKidSettingsButtons();
+}
+
+function renderBrainBucksHistory(kidId) {
+  const card = document.getElementById('kid-bb-history-card');
+  const list = document.getElementById('kid-bb-history-list');
+  if (!card || !list) return;
+  const entries = [];
+  const history = (state.lessonHistory && state.lessonHistory[kidId]) || [];
+  history.forEach(function(e) {
+    if (e.coins > 0) entries.push({
+      date: e.date, type: 'earn',
+      desc: ({spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'}[e.subject]||'📚') + ' ' + e.subject.charAt(0).toUpperCase()+e.subject.slice(1) + ' lesson',
+      amount: +e.coins
+    });
+  });
+  (state.redemptionQueue||[]).filter(r => r.kidId === kidId).forEach(function(r) {
+    entries.push({ date: r.date||'', type: 'spend', desc: '🎁 ' + (r.rewardName||'Reward redeemed'), amount: -(r.cost||0) });
+  });
+  if (!entries.length) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  entries.sort((a,b) => b.date.localeCompare(a.date));
+  list.innerHTML = entries.slice(0,20).map(function(e) {
+    const color = e.type === 'earn' ? '#2ECC71' : '#EF4444';
+    const sign = e.type === 'earn' ? '+' : '';
+    const dateDisp = e.date ? new Date(e.date+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'}) : '';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px">'
+      + '<div style="flex:1"><div style="font-weight:600">' + e.desc + '</div>'
+      + '<div style="font-size:11px;color:var(--muted)">' + dateDisp + '</div></div>'
+      + '<div style="font-weight:800;color:' + color + '">' + sign + e.amount + ' 🧠</div></div>';
+  }).join('');
+}
+
+const PERFECT_WEEK_BONUS = 5;
+const INCOMPLETE_WEEK_PENALTY = 5;
+
+function getWeekStart(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+function checkPerfectWeek(kidId) {
+  if (kidId === 'tester') return;
+  const today = new Date();
+  if (!state.perfectWeekClaimed) state.perfectWeekClaimed = {};
+  if (!state.perfectWeekClaimed[kidId]) state.perfectWeekClaimed[kidId] = '';
+  const weekStart = getWeekStart(today);
+  const weekKey = weekStart.toISOString().slice(0,10);
+  if (state.perfectWeekClaimed[kidId] === weekKey) return;
+  const history = (state.lessonHistory && state.lessonHistory[kidId]) || [];
+  let perfectDays = 0, requiredDays = 0;
+  for (let i = 0; i < 6; i++) {
+    const day = new Date(weekStart);
+    day.setDate(weekStart.getDate() + i);
+    if (day > today) break;
+    if (isUSFederalHoliday(day) || state.vacationMode) { perfectDays++; requiredDays++; continue; }
+    requiredDays++;
+    const sched = getScheduleForDow(day.getDay());
+    if (sched.isRest) { perfectDays++; continue; }
+    const dateStr = day.toISOString().slice(0,10);
+    const dayEntries = history.filter(e => e.date === dateStr);
+    if (sched.subjects.every(function(s){ return dayEntries.some(e=>e.subject===s); })) perfectDays++;
+  }
+  if (requiredDays > 0 && perfectDays >= requiredDays) {
+    state.perfectWeekClaimed[kidId] = weekKey;
+    const kid = state.kids.find(k=>k.id===kidId);
+    if (kid) { kid.coins += PERFECT_WEEK_BONUS; stampCoins(kidId); saveState(); }
+    setTimeout(function() { launchConfetti(5000); playSound('epic'); showToast('🏆 Perfect Week! +' + PERFECT_WEEK_BONUS + ' 🧠 Bonus Brain Bucks!'); }, 800);
+  }
+}
+
+function checkIncompleteWeekPenalty(kidId) {
+  if (kidId === 'tester') return;
+  const today = new Date();
+  const dow = today.getDay();
+  const isSaturday = dow === 6 && today.getHours() >= 20;
+  const isSunday = dow === 0;
+  if (!isSaturday && !isSunday) return;
+  if (!state.incompleteWeekPenalized) state.incompleteWeekPenalized = {};
+  let checkDate = today;
+  if (isSunday) checkDate = new Date(today.getTime() - 86400000);
+  const weekStart = getWeekStart(checkDate);
+  const weekKey = weekStart.toISOString().slice(0,10);
+  if (state.incompleteWeekPenalized[kidId] === weekKey) return;
+  if ((state.perfectWeekClaimed||{})[kidId] === weekKey) {
+    state.incompleteWeekPenalized[kidId] = weekKey; saveState(); return;
+  }
+  const history = (state.lessonHistory && state.lessonHistory[kidId]) || [];
+  let requiredDays = 0, completedDays = 0;
+  for (let i = 0; i < 6; i++) {
+    const day = new Date(weekStart);
+    day.setDate(weekStart.getDate() + i);
+    const dateStr = day.toISOString().slice(0,10);
+    const excused = isUSFederalHoliday(day) || state.vacationMode || isKidExcused(kidId, dateStr);
+    if (excused) { requiredDays++; completedDays++; continue; }
+    requiredDays++;
+    const sched = getScheduleForDow(day.getDay());
+    if (sched.isRest) { completedDays++; continue; }
+    const dayEntries = history.filter(e => e.date === dateStr);
+    if (sched.subjects.every(function(s){ return dayEntries.some(e=>e.subject===s); })) completedDays++;
+  }
+  state.incompleteWeekPenalized[kidId] = weekKey;
+  if (requiredDays > 0 && completedDays >= requiredDays) { saveState(); return; }
+  const kid = state.kids.find(k=>k.id===kidId);
+  if (kid) {
+    kid.coins -= INCOMPLETE_WEEK_PENALTY;
+    stampCoins(kidId); saveState();
+    setTimeout(function() { showToast('📉 Incomplete week — ' + INCOMPLETE_WEEK_PENALTY + ' 🧠 Brain Bucks deducted for ' + (kid.name||kidId) + '.'); }, 1200);
+  }
 }
 
 function grantSkipDay(kidId) {
@@ -4392,14 +4829,69 @@ function runMigrations() {
 }
 
 // Load local cache immediately so UI is always responsive
+
+function stampCoins(kidId) {
+  if (!state.coinsUpdatedAt) state.coinsUpdatedAt = {};
+  state.coinsUpdatedAt[kidId] = Date.now();
+}
+
+function renderAutoAdvanceToggle() {
+  const btn = document.getElementById('autoadvance-toggle-btn');
+  if (!btn) return;
+  if (state.autoAdvance) {
+    btn.textContent = '⚡ Auto-Advance ON — tap to disable';
+    btn.style.background = '#2ECC71';
+  } else {
+    btn.textContent = '⚡ Auto-Advance OFF — tap to enable';
+    btn.style.background = '#9CA3AF';
+  }
+}
+
+function toggleAutoAdvance() {
+  state.autoAdvance = !state.autoAdvance;
+  saveState();
+  renderAutoAdvanceToggle();
+  showToast(state.autoAdvance ? '⚡ Auto-advance enabled.' : '⚡ Auto-advance disabled.');
+}
+
+function applyDarkModePreference() {
+  if (localStorage.getItem('kidstuff_darkmode') === '1') {
+    document.body.classList.add('dark-mode');
+  }
+}
+
+function toggleDarkMode() {
+  document.body.classList.toggle('dark-mode');
+  const isDark = document.body.classList.contains('dark-mode');
+  localStorage.setItem('kidstuff_darkmode', isDark ? '1' : '0');
+  showToast(isDark ? '🌙 Dark mode on.' : '☀️ Light mode on.');
+}
+
+function triggerLevelUpCelebration(kidId, subjectId) {
+  const lvlData = getCurrentLevelData(kidId, subjectId);
+  setTimeout(function() { showLevelUp(subjectId.charAt(0).toUpperCase()+subjectId.slice(1), lvlData.name); }, 800);
+  checkBadges(kidId);
+}
+
+function purgeOldWritingQueue() {
+  if (!state.writingQueue) return;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+  state.writingQueue = state.writingQueue.filter(function(w) {
+    if (w.status === 'pending' || w.status === 'redo') return true;
+    try { const d = new Date(w.date); return isNaN(d.getTime()) || d >= cutoff; } catch(e) { return true; }
+  });
+}
+
+applyDarkModePreference();
 loadLocalFallback();
 runMigrations();
-devWipe();
 checkQuarterlyReset();
 // Auto-protect streaks on US federal holidays
 state.kids.forEach(function(k) { checkHolidayStreakProtection(k.id); });
 applyVacationStreakProtection();
 purgeBonusChallenges();
+purgeOldWritingQueue();
 updateLastSyncedDisplay();
 
 // Init on load
