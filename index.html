@@ -185,11 +185,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .streak-label{font-size:12px;color:rgba(255,255,255,0.75);font-weight:600;}
 @keyframes flamePulse{0%{transform:scale(1)}100%{transform:scale(1.18)}}
 
-.badges-section{margin-bottom:18px;}
-.badges-grid{display:flex;gap:10px;flex-wrap:wrap;padding:4px 0;}
-.badge-chip{display:flex;align-items:center;gap:6px;background:white;border:2px solid var(--border);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,0.06);}
-.badge-chip.new{border-color:var(--yellow);background:#FFFBEA;animation:popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;}
-.badge-chip .badge-icon{font-size:18px;}
+
 
 .levelup-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#4F6EF7,#7C3AED);z-index:600;display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;text-align:center;padding:32px;}
 .levelup-star{font-size:80px;animation:starPop 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards;}
@@ -302,12 +298,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         </div>
       </div>
     </div>
-    <div class="badges-section" id="kid-badges-section" style="display:none">
-      <div class="card" style="padding:14px 16px">
-        <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:700;margin-bottom:10px">🏅 My Badges</div>
-        <div class="badges-grid" id="kid-badges-grid"></div>
-      </div>
-    </div>
+
     <div id="no-content-msg" style="display:none"></div>
     <div class="subject-grid" id="subject-grid"></div>
 
@@ -857,8 +848,6 @@ const DEFAULT_STATE = {
   coinMax:{lauren:{spelling:2,math:2,reading:2,writing:2},andrew:{spelling:2,math:2,reading:2,writing:2},tester:{spelling:2,math:2,reading:2,writing:2}},
   redemptionQueue:[],
   dailyStreak:{lauren:{count:0,lastDate:''},andrew:{count:0,lastDate:''},tester:{count:0,lastDate:''}},
-  badges:{lauren:[],andrew:[],tester:[]},
-  badgeQuarter: '',
   skipDay:{lauren:0,andrew:0,tester:0},
   selectedVoice: null,
   lessonTimers:{spelling:15,math:15,reading:15,writing:15},
@@ -1064,7 +1053,7 @@ async function pullState() {
 
     // Merge parent settings into state (non-destructive)
     const parentFields = ['pin','kidPins','rewards','rewardsUpdatedAt','coinMax','lessonTimers','selectedVoice',
-                          'difficultyLevel','bonusChallenges','badgeQuarter','vacationMode','paceData','adaptiveQ',
+                          'difficultyLevel','bonusChallenges','vacationMode','paceData','adaptiveQ',
                           'perfectWeekClaimed','levelsUpdatedAt','incompleteWeekPenalized','soundsOff','autoAdvance',
                           'excusedToday','excusedDays','parentMessages'];
     parentFields.forEach(function(f) {
@@ -1087,7 +1076,7 @@ async function pullState() {
         });
       }
       // Per-kid data fields
-      const kidFields = ['progress','streaks','levels','badges','dailyStreak',
+      const kidFields = ['progress','streaks','levels','dailyStreak',
                          'brainBucksMilestones','skipDay','unlockedToday','lessonHistory'];
       kidFields.forEach(function(f) {
         if (remote[f] !== undefined) {
@@ -1153,7 +1142,6 @@ async function pushKidData(kidId) {
       progress: (state.progress || {})[kidId] || {},
       streaks: (state.streaks || {})[kidId] || {},
       levels: (state.levels || {})[kidId] || {},
-      badges: (state.badges || {})[kidId] || [],
       dailyStreak: (state.dailyStreak || {})[kidId] || {},
       brainBucksMilestones: (state.brainBucksMilestones || {})[kidId] || [],
       skipDay: (state.skipDay || {})[kidId] || 0,
@@ -1178,7 +1166,6 @@ async function pushParentData() {
       lessonTimers: state.lessonTimers,
       selectedVoice: state.selectedVoice,
       difficultyLevel: state.difficultyLevel,
-      badgeQuarter: state.badgeQuarter,
       vacationMode: state.vacationMode || false,
       paceData: state.paceData || {},
       adaptiveQ: state.adaptiveQ || {},
@@ -1316,7 +1303,6 @@ function loadLocalFallback() {
       if (!state.streaks) state.streaks = JSON.parse(JSON.stringify(DEFAULT_STATE.streaks));
       if (!state.unlockedToday) state.unlockedToday = {};
       if (!state.dailyStreak) state.dailyStreak = JSON.parse(JSON.stringify(DEFAULT_STATE.dailyStreak));
-      if (!state.badges) state.badges = {lauren:[],andrew:[],tester:[]};
       if (!state.skipDay) state.skipDay = {lauren:0,andrew:0,tester:0};
       if (!state.kidPins) state.kidPins = {lauren:'0540',andrew:'3005',tester:'2730'};
       if (!state.lessonHistory) state.lessonHistory = {lauren:[],andrew:[],tester:[]};
@@ -1595,7 +1581,6 @@ function renderKidDashboard() {
 
   checkBrainBucksMilestones(currentKidId);
   renderStreakOnDashboard(currentKidId);
-  renderBadges(currentKidId);
 
   // Vacation mode banner
   const tomorrowEl = document.getElementById('kid-dash-tomorrow');
@@ -1613,9 +1598,8 @@ function renderKidDashboard() {
   if (vacBanner) vacBanner.style.display = state.vacationMode ? 'block' : 'none';
   renderParentMessageBanner(currentKidId);
 
-  // Show redo notice or quarterly badge reset notice
+  // Show redo notice if writing needs to be redone
   const redoNotice = (state.redoNotices||[]).find(function(n){ return n.kidId === currentKidId && n.subject === 'writing'; });
-  const quarterNotice = (state.redoNotices||[]).find(function(n){ return n.kidId === currentKidId && n.subject === 'quarterReset'; });
   const noContentEl = document.getElementById('no-content-msg');
   if (redoNotice) {
     noContentEl.style.display = 'block';
@@ -1624,21 +1608,9 @@ function renderKidDashboard() {
       + '<div style="font-family:\'Baloo 2\',cursive;font-size:18px;font-weight:800;margin-bottom:6px;color:#B45309">Writing Redo</div>'
       + '<div style="color:#92400E;font-size:14px">' + redoNotice.message + '</div>'
       + '</div>';
-  } else if (quarterNotice) {
-    noContentEl.style.display = 'block';
-    noContentEl.innerHTML = '<div class="card" style="text-align:center;padding:24px 20px;background:#EEF2FF;border:2px solid var(--primary);">'
-      + '<div style="font-size:36px;margin-bottom:8px">🏅</div>'
-      + '<div style="font-family:\'Baloo 2\',cursive;font-size:18px;font-weight:800;margin-bottom:6px;color:var(--primary)">New Quarter!</div>'
-      + '<div style="color:var(--primary);font-size:14px">' + quarterNotice.message + '</div>'
-      + '<button onclick="dismissQuarterNotice()" style="margin-top:12px;padding:8px 20px;border-radius:10px;border:none;background:var(--primary);color:white;font-family:Nunito,sans-serif;font-weight:700;font-size:14px;cursor:pointer;">Let\'s Go! 🚀</button>'
-      + '</div>';
   } else {
     noContentEl.style.display = 'none';
-    noContentEl.innerHTML = '<div class="card" style="text-align:center;padding:40px 20px">'
-      + '<div style="font-size:48px;margin-bottom:12px">📚</div>'
-      + '<div style="font-family:\'Baloo 2\',cursive;font-size:20px;margin-bottom:8px">No lessons yet!</div>'
-      + '<div style="color:var(--muted)">Ask a parent to generate this week\'s curriculum.</div>'
-      + '</div>';
+    noContentEl.innerHTML = '';
   }
   const progress = state.progress[currentKidId] || {};
   const grid = document.getElementById('subject-grid');
@@ -3023,9 +2995,8 @@ function finishLesson() {
     recordLessonHistory(currentKidId, ls.subjectId, pct, coins, origCorrect, total, elapsedMin, curIdx);
     updateAdaptiveQuestionCount(currentKidId);
   }
-  // Check daily streak and badges
+  // Check daily streak
   checkDailyStreak(currentKidId);
-  checkBadges(currentKidId);
   // Check if all subjects are done today — trigger celebration
   const schedule = getTodaySchedule();
   const allDoneNow = !alreadyDone && schedule.subjects.every(function(s) {
@@ -4227,7 +4198,6 @@ function checkDailyStreak(kidId) {
     }
     ds.lastDate = today;
     saveState();
-    checkBadges(kidId);
     checkPerfectWeek(kidId);
     checkIncompleteWeekPenalty(kidId);
     // Streak milestone celebrations
@@ -4252,68 +4222,6 @@ function renderStreakOnDashboard(kidId) {
   if (countEl) countEl.textContent = ds.count;
 }
 
-// ── BADGES ───────────────────────────────────────────────
-const BADGE_DEFS = [
-  { id: 'first_perfect',   icon: '💯', label: 'Perfect Score!',     check: (kidId) => Object.values(state.progress[kidId]||{}).some(p => p.score === 100) },
-  { id: 'streak_3',        icon: '🔥', label: '3-Day Streak',       check: (kidId) => (state.dailyStreak[kidId]||{}).count >= 3 },
-  { id: 'streak_7',        icon: '🌟', label: '7-Day Streak',       check: (kidId) => (state.dailyStreak[kidId]||{}).count >= 7 },
-  { id: 'streak_30',       icon: '🏆', label: '30-Day Streak',      check: (kidId) => (state.dailyStreak[kidId]||{}).count >= 30 },
-  { id: 'level_up',        icon: '⬆️',  label: 'First Level Up',    check: (kidId) => Object.values(state.levels[kidId]||{}).some(l => l >= 1) },
-  { id: 'brainbucks_50',   icon: '🧠', label: '50 Brain Bucks',     check: (kidId) => (state.kids.find(k=>k.id===kidId)||{}).coins >= 50 },
-  { id: 'brainbucks_200',  icon: '💰', label: '200 Brain Bucks',    check: (kidId) => (state.kids.find(k=>k.id===kidId)||{}).coins >= 200 },
-    { id: 'spelling_master', icon: '🔤', label: 'Spelling Master',    check: (kidId) => (state.levels[kidId]||{}).spelling >= 5 },
-  { id: 'math_master',     icon: '🧮', label: 'Math Master',        check: (kidId) => (state.levels[kidId]||{}).math >= 5 },
-];
-
-function checkBadges(kidId) {
-  if (!state.badges) state.badges = {};
-  if (!state.badges[kidId]) state.badges[kidId] = [];
-  const existing = new Set(state.badges[kidId].map(b => b.id));
-  const newOnes = [];
-  BADGE_DEFS.forEach(function(def) {
-    if (!existing.has(def.id)) {
-      try {
-        if (def.check(kidId)) {
-          state.badges[kidId].push({ id: def.id, icon: def.icon, label: def.label, date: getTodayKey(), isNew: true });
-          newOnes.push(def);
-        }
-      } catch(e) {}
-    }
-  });
-  if (newOnes.length) {
-    saveState();
-    setTimeout(function() {
-      newOnes.forEach(function(b) {
-        showToast(b.icon + ' Badge unlocked: ' + b.label + '!');
-      });
-      renderBadges(kidId);
-    }, 800);
-  }
-}
-
-// Badge IDs that have been retired and should never display
-const RETIRED_BADGE_IDS = ['all_done','all_done_today','today_complete','daily_done','daily_complete','done_today'];
-
-function renderBadges(kidId) {
-  const section = document.getElementById('kid-badges-section');
-  const grid = document.getElementById('kid-badges-grid');
-  if (!section || !grid) return;
-  const allBadges = (state.badges && state.badges[kidId]) || [];
-  const badges = allBadges.filter(function(b) { return !RETIRED_BADGE_IDS.includes(b.id); });
-  if (!badges.length) { section.style.display = 'none'; return; }
-  section.style.display = 'block';
-  grid.innerHTML = badges.map(function(b) {
-    const isNew = b.isNew;
-    if (isNew) {
-      // Clear new flag after render
-      setTimeout(function() { b.isNew = false; }, 2000);
-    }
-    return '<div class="badge-chip' + (isNew ? ' new' : '') + '">'
-      + '<span class="badge-icon">' + b.icon + '</span>'
-      + '<span>' + b.label + '</span>'
-      + '</div>';
-  }).join('');
-}
 
 // ── LEVEL-UP CELEBRATION ─────────────────────────────────
 function showLevelUp(subjectName, newLevelName) {
@@ -4679,13 +4587,6 @@ function updateSkipDayBalance(kidId) {
   el.style.color = bal > 0 ? 'var(--green)' : 'var(--muted)';
 }
 
-function dismissQuarterNotice() {
-  if (state.redoNotices) {
-    state.redoNotices = state.redoNotices.filter(function(n){ return !(n.kidId === currentKidId && n.subject === 'quarterReset'); });
-    saveState();
-  }
-  renderKidDashboard();
-}
 
 
 // ── WIRE INTO finishLesson: level-up celebration ──────────
@@ -4696,20 +4597,9 @@ function triggerLevelUpIfNeeded(kidId, subjectId, prevIdx, newIdx, subjLevels) {
     setTimeout(function() {
       showLevelUp(subjectId.charAt(0).toUpperCase() + subjectId.slice(1), nextLevel.name);
     }, 800);
-    checkBadges(kidId);
   }
 }
 
-// ── QUARTERLY BADGE RESET ────────────────────────────────
-function getQuarterKey() {
-  const d = new Date();
-  return d.getFullYear() + '-Q' + (Math.floor(d.getMonth() / 3) + 1);
-}
-
-function checkQuarterlyReset() {
-  // Quarterly badge reset disabled — badges are permanent achievements
-  if (!state.badgeQuarter) { state.badgeQuarter = getQuarterKey(); saveState(); }
-}
 
 // ── HINTS SYSTEM ─────────────────────────────────────────
 // Called instead of immediately showing the answer on wrong responses
@@ -4969,8 +4859,6 @@ function generateWeeklyReport() {
         lines.push('  ' + ({spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'}[s]) + ' ' + s.charAt(0).toUpperCase()+s.slice(1) + ': ' + p.score + '% — Level ' + ((state.levels[k.id]||{})[s]||0+1));
       }
     });
-    const badges = (state.badges && state.badges[k.id]) || [];
-    if (badges.length) lines.push('🏅 Badges: ' + badges.map(b=>b.icon+' '+b.label).join(', '));
     lines.push('');
   });
   return lines.join('\n');
@@ -5032,7 +4920,6 @@ function runMigrations() {
     if (state.streaks && !state.streaks.tester) state.streaks.tester = {spelling:[],math:[],reading:[],writing:[]};
     if (state.progress && !state.progress.tester) state.progress.tester = {};
     if (state.dailyStreak && !state.dailyStreak.tester) state.dailyStreak.tester = {count:0,lastDate:''};
-    if (state.badges && !state.badges.tester) state.badges.tester = [];
     if (state.kidPins && !state.kidPins.tester) state.kidPins.tester = '2730';
     if (state.coinMax && !state.coinMax.tester) state.coinMax.tester = {spelling:2,math:2,reading:2,writing:2};
     if (state.skipDay && !state.skipDay.tester) state.skipDay.tester = 0;
@@ -5089,7 +4976,6 @@ function toggleDarkMode() {
 function triggerLevelUpCelebration(kidId, subjectId) {
   const lvlData = getCurrentLevelData(kidId, subjectId);
   setTimeout(function() { showLevelUp(subjectId.charAt(0).toUpperCase()+subjectId.slice(1), lvlData.name); }, 800);
-  checkBadges(kidId);
 }
 
 function purgeOldWritingQueue() {
@@ -5104,12 +4990,7 @@ function purgeOldWritingQueue() {
 
 applyDarkModePreference();
 loadLocalFallback();
-// Clear any stale quarterly reset notices
-if (state.redoNotices) {
-  state.redoNotices = state.redoNotices.filter(function(n){ return n.subject !== 'quarterReset'; });
-}
 runMigrations();
-checkQuarterlyReset();
 // Auto-protect streaks on US federal holidays
 state.kids.forEach(function(k) { checkHolidayStreakProtection(k.id); });
 applyVacationStreakProtection();
