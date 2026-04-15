@@ -1115,6 +1115,7 @@ async function pullState() {
 
     localStorage.setItem('kidstuff_cache', JSON.stringify(state));
     runMigrations();
+    purgeOrphanedRedoNotices();
     setSyncBar('✅ Synced', '');
     setTimeout(() => setSyncBar('', 'hide'), 2000);
     document.getElementById('sync-status-landing').textContent = '☁️ Firebase sync active';
@@ -4968,6 +4969,22 @@ function purgeOldWritingQueue() {
   });
 }
 
+// Remove any redoNotice that has no matching writingQueue item with status 'redo' or 'pending'.
+// This prevents stale Firebase entries from blocking kids indefinitely.
+function purgeOrphanedRedoNotices() {
+  if (!state.redoNotices || !state.redoNotices.length) return;
+  const before = state.redoNotices.length;
+  state.redoNotices = state.redoNotices.filter(function(n) {
+    if (n.subject !== 'writing') return true; // keep non-writing notices as-is
+    return (state.writingQueue || []).some(function(w) {
+      return w.kidId === n.kidId && (w.status === 'redo' || w.status === 'pending');
+    });
+  });
+  if (state.redoNotices.length !== before) {
+    saveState(); // push cleaned state back to Firebase so it doesn't come back
+  }
+}
+
 applyDarkModePreference();
 loadLocalFallback();
 runMigrations();
@@ -4976,6 +4993,7 @@ state.kids.forEach(function(k) { checkHolidayStreakProtection(k.id); });
 applyVacationStreakProtection();
 purgeBonusChallenges();
 purgeOldWritingQueue();
+purgeOrphanedRedoNotices();
 updateLastSyncedDisplay();
 
 // Init on load
