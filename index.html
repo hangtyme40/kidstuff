@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="KidStuff">
   <meta name="theme-color" content="#4F6EF7">
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="KidStuff"/>
@@ -26,11 +26,6 @@
   --text:#1A1F36;--muted:#7A859E;--border:#E2E8F8;
   --shadow:0 4px 20px rgba(79,110,247,0.10);--radius:18px;
 }
-body.dark-mode {
-  --bg:#0F1117;--card:#1A1F2E;--primary:#6B8EFF;--primary-dark:#4F6EF7;
-  --text:#E8ECFF;--muted:#8892A4;--border:#2A3050;
-  --shadow:0 4px 20px rgba(0,0,0,0.4);
-}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
 .screen{display:none!important;}
@@ -40,7 +35,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 #screen-landing{background:linear-gradient(135deg,#4F6EF7 0%,#7C3AED 100%);}
 #screen-kid-select{background:linear-gradient(135deg,#4F6EF7 0%,#7C3AED 100%);}
 #screen-pin{background:linear-gradient(135deg,#1A1F36,#2D3561);}
-.app-header{background:var(--primary);color:white;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(79,110,247,0.3);position:sticky;top:0;z-index:100;}
+.app-header{background:var(--primary);color:white;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(79,110,247,0.3);}
 .app-header.dark{background:linear-gradient(135deg,#1A1F36,#2D3561);}
 .logo{font-family:'Baloo 2',cursive;font-size:26px;font-weight:800;}
 .logo span{color:var(--yellow);}
@@ -88,7 +83,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .question-card{background:white;border-radius:var(--radius);padding:28px 24px;box-shadow:var(--shadow);margin-bottom:18px;}
 .question-text{font-size:20px;font-weight:800;color:var(--text);margin-bottom:20px;line-height:1.4;}
 .question-sub{font-size:14px;color:var(--muted);margin-bottom:16px;}
-.passage-box{background:#FAFBFF;border:2px solid var(--border);border-radius:14px;padding:20px;margin-bottom:20px;font-size:16px;line-height:1.8;max-height:320px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.passage-box{background:#FAFBFF;border:2px solid var(--border);border-radius:14px;padding:20px;margin-bottom:20px;font-size:16px;line-height:1.8;max-height:220px;overflow-y:auto;}
 .options-list{display:flex;flex-direction:column;gap:10px;}
 .option-btn{background:var(--bg);border:2px solid var(--border);border-radius:12px;padding:14px 18px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:600;color:var(--text);cursor:pointer;text-align:left;transition:all 0.2s;}
 .option-btn:hover{border-color:var(--primary);background:#EEF2FF;}
@@ -143,7 +138,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .kid-summary-card .ks-coins{font-size:22px;font-weight:800;color:var(--primary);margin-top:4px;}
 .form-row{margin-bottom:14px;}
 .form-row label{display:block;font-weight:700;font-size:13px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px;}
-.form-row input,.form-row select{width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:16px;color:var(--text);background:white;outline:none;transition:border-color 0.2s;}
+.form-row input,.form-row select{width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:'Nunito',sans-serif;font-size:15px;color:var(--text);background:white;outline:none;transition:border-color 0.2s;}
 .form-row input:focus,.form-row select:focus{border-color:var(--primary);}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .reward-item{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);}
@@ -189,7 +184,6 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .streak-count{font-size:18px;font-weight:800;color:white;}
 .streak-label{font-size:12px;color:rgba(255,255,255,0.75);font-weight:600;}
 @keyframes flamePulse{0%{transform:scale(1)}100%{transform:scale(1.18)}}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
 
 .badges-section{margin-bottom:18px;}
 .badges-grid{display:flex;gap:10px;flex-wrap:wrap;padding:4px 0;}
@@ -235,6 +229,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .next-level-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#2ECC71,#00f2fe);transition:width 0.5s ease;}
 </style>
 
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 </head>
 <body>
 
@@ -278,20 +273,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 <div id="screen-kid" class="screen">
   <div class="app-header">
     <div><div class="logo">Kid<span>Stuff</span></div><div class="header-sub" id="kid-header-sub">Today's Lessons</div></div>
-    <div style="display:flex;align-items:center;gap:10px;">
-      <div style="font-size:11px;color:rgba(255,255,255,0.6);font-weight:600;text-align:right;" class="last-synced-ts"></div>
-      <button onclick="toggleKidSettings()" style="background:rgba(255,255,255,0.18);border:none;border-radius:10px;padding:7px 10px;font-size:18px;cursor:pointer;color:white;">⚙️</button>
-    </div>
-  </div>
-  <!-- Kid settings panel -->
-  <div id="kid-settings-panel" style="display:none;background:var(--card);border-bottom:2px solid var(--border);padding:14px 20px;">
-    <div style="font-weight:800;font-size:13px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Settings</div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;">
-      <button id="kid-sounds-btn" onclick="kidToggleSounds()" style="padding:10px 16px;border-radius:12px;border:none;font-family:Nunito,sans-serif;font-weight:700;font-size:14px;cursor:pointer;flex:1;">🔊 Sounds</button>
-      <button id="kid-dark-btn" onclick="kidToggleDark()" style="padding:10px 16px;border-radius:12px;border:none;font-family:Nunito,sans-serif;font-weight:700;font-size:14px;cursor:pointer;flex:1;">🌙 Dark Mode</button>
-      <button id="kid-skipday-btn" onclick="kidUseSkipDay()" style="padding:10px 16px;border-radius:12px;border:none;font-family:Nunito,sans-serif;font-weight:700;font-size:14px;cursor:pointer;flex:1;background:#FFF8E1;color:#B45309;">🛡️ Skip Day</button>
-    </div>
-    <div id="kid-skipday-balance" style="font-size:12px;color:var(--muted);margin-top:8px;font-weight:600;"></div>
+    <div style="font-size:11px;color:rgba(255,255,255,0.6);font-weight:600;text-align:right;" class="last-synced-ts"></div>
   </div>
   <div class="content">
     <div class="kid-hero">
@@ -301,7 +283,6 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         <div class="kid-hero-name" id="kid-dash-name">Name</div>
         <div class="kid-hero-coins" id="kid-dash-coins">🧠 0 Brain Bucks</div>
         <div class="kid-hero-progress" id="kid-dash-progress">0 of 4 done today</div>
-        <div id="kid-dash-tomorrow" style="font-size:11px;color:rgba(255,255,255,0.65);margin-top:3px;font-weight:600;"></div>
         <div class="streak-hero" id="kid-dash-streak" style="display:none">
           <span class="streak-fire">🔥</span>
           <span class="streak-count" id="streak-count-display">0</span>
@@ -317,23 +298,10 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     </div>
     <div id="no-content-msg" style="display:none"></div>
     <div class="subject-grid" id="subject-grid"></div>
-
-    <div id="vacation-banner" style="display:none;background:linear-gradient(90deg,#0EA5E9,#7C3AED);color:white;text-align:center;padding:10px 16px;font-weight:800;font-size:14px;border-radius:12px;margin-bottom:14px;">✈️ Vacation Mode — Streaks protected! Ask a parent before doing lessons.</div>
-    <div id="parent-message-banner" style="display:none;background:linear-gradient(135deg,#F59E0B,#F7C948);color:#1A1F36;border-radius:12px;padding:12px 16px;margin-bottom:14px;cursor:pointer;" onclick="dismissParentMessage()">
-      <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;opacity:0.7;margin-bottom:4px">Message from Parent 💬</div>
-      <div id="parent-message-text" style="font-weight:700;font-size:14px;"></div>
-      <div style="font-size:11px;opacity:0.6;margin-top:4px">Tap to dismiss</div>
-    </div>
+    <button onclick="startStudyMode()" id="study-mode-btn" style="display:none;width:100%;margin-bottom:18px;padding:14px;border-radius:14px;border:2px solid var(--primary);background:#EEF2FF;color:var(--primary);font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;cursor:pointer;">📖 Study Mode — Practice Missed Questions</button>
+    <div id="vacation-banner" style="display:none;background:linear-gradient(90deg,#0EA5E9,#7C3AED);color:white;text-align:center;padding:10px 16px;font-weight:800;font-size:14px;border-radius:12px;margin-bottom:14px;">✈️ Vacation Mode — Enjoy your break! Streaks are protected.</div>
     <div id="bonus-challenge-btns"></div>
     <div class="card"><div class="card-title">🎁 Rewards Shop</div><div id="kid-rewards-list"></div></div>
-    <div class="card" id="kid-progress-summary-card" style="display:none">
-      <div class="card-title">📈 My Progress</div>
-      <div id="kid-progress-summary-content"></div>
-    </div>
-    <div class="card" id="kid-bb-history-card" style="display:none">
-      <div class="card-title">🧠 Brain Bucks History</div>
-      <div id="kid-bb-history-list"></div>
-    </div>
     <div class="card" id="kid-history-card" style="display:none">
       <div class="card-title">📅 My Recent Lessons</div>
       <div id="kid-history-list"></div>
@@ -405,14 +373,6 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 </div>
 
 <!-- LEVEL UP OVERLAY -->
-<div id="session-detail-modal" style="display:none;position:fixed;inset:0;background:rgba(15,10,40,0.85);z-index:700;overflow-y:auto;-webkit-overflow-scrolling:touch;">
-  <div style="max-width:520px;margin:20px auto;padding:0 16px 40px;">
-    <div class="card" style="position:relative;">
-      <button onclick="closeSessionDetail()" style="position:absolute;top:14px;right:14px;background:var(--border);border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
-      <div id="session-detail-content"></div>
-    </div>
-  </div>
-</div>
 <div id="levelup-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,10,40,0.92);z-index:600;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;">
   <div style="font-size:80px;margin-bottom:8px;animation:starPop 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards" id="levelup-icon">⭐</div>
   <div style="font-family:'Baloo 2',cursive;font-size:36px;font-weight:800;color:white;margin-bottom:8px" id="levelup-title">Level Up!</div>
@@ -456,185 +416,158 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     </div>
   </div>
   <div class="content">
-    <div class="parent-header"><h2>👋 Parent Dashboard</h2></div>
-    <div id="writing-pending-alert" style="display:none;background:linear-gradient(135deg,#7C3AED,#4F6EF7);color:white;border-radius:14px;padding:14px 16px;margin-bottom:16px;cursor:pointer;box-shadow:0 4px 16px rgba(124,58,237,0.3);" onclick="switchTab('tab-review',document.getElementById('tab-btn-review'))">
-      <div style="font-weight:800;font-size:15px;margin-bottom:2px">✍️ Writing to Review</div>
-      <div id="writing-pending-alert-text" style="font-size:13px;opacity:0.9"></div>
-    </div>
+    <div class="parent-header"><h2>👋 Parent Dashboard</h2><p>Generate curriculum, review writing, manage rewards.</p></div>
     <div class="kid-summary-cards" id="parent-kid-summary"></div>
     <div class="tabs">
-      <button class="tab-btn active" id="tab-btn-overview" onclick="switchTab('tab-overview',this)">📊 Overview</button>
-      <button class="tab-btn" id="tab-btn-review" onclick="switchTab('tab-review',this)">✍️ Review</button>
-      <button class="tab-btn" id="tab-btn-manage" onclick="switchTab('tab-manage',this)">📚 Manage</button>
-      <button class="tab-btn" id="tab-btn-settings" onclick="switchTab('tab-settings',this)">⚙️ Settings</button>
+      <button class="tab-btn active" onclick="switchTab('tab-curriculum',this)">📚 Curriculum</button>
+      <button class="tab-btn" id="tab-btn-writing" onclick="switchTab('tab-writing',this)">✍️ Writing</button>
+      <button class="tab-btn" id="tab-btn-redemptions" onclick="switchTab('tab-redemptions',this)">🎁 Rewards</button>
+      <button class="tab-btn" onclick="switchTab('tab-rewards',this)">⚙️ Manage Rewards</button>
+      <button class="tab-btn" onclick="switchTab('tab-progress',this)">📊 Progress</button>
+      <button class="tab-btn" id="tab-btn-flagged" onclick="switchTab('tab-flagged',this)">🚩 Flagged</button>
+      <button class="tab-btn" onclick="switchTab('tab-settings',this)">⚙️ Settings</button>
     </div>
 
-    <!-- OVERVIEW TAB -->
-    <div class="tab-panel active" id="tab-overview">
-      <div class="card" id="weekly-summary-card">
-        <div class="card-title">📅 This Week</div>
-        <div id="weekly-summary-content"></div>
-      </div>
-      <div id="progress-overview"></div>
-    </div>
-
-    <!-- REVIEW TAB -->
-    <div class="tab-panel" id="tab-review">
-      <div class="card">
-        <div class="card-title">✍️ Writing to Review</div>
-        <div id="writing-approvals-list"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">🎁 Reward Redemptions</div>
-        <div id="redemptions-list"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">🚩 Flagged Questions</div>
-        <div id="flagged-list"></div>
-      </div>
-    </div>
-
-    <!-- MANAGE TAB -->
-    <div class="tab-panel" id="tab-manage">
-      <div class="card" style="background:#FFFBEA;box-shadow:none;border:2px solid #F7C948">
-        <div style="font-weight:800;margin-bottom:8px">💬 Send Message to Kid</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">A banner will appear on their dashboard when they next log in. Tap to dismiss.</div>
-        <div class="form-row" style="margin-bottom:10px"><label>Kid</label><select id="msg-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
-        <div class="form-row" style="margin-bottom:10px"><label>Message</label><input type="text" id="msg-text-input" placeholder="Nice work today! 🎉" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"/></div>
-        <button class="btn-primary" style="background:#F59E0B;color:#1A1F36" onclick="sendParentMessage()">💬 Send Message</button>
-      </div>
+    <div class="tab-panel active" id="tab-curriculum">
       <div class="card">
         <div class="card-title">📊 Level Overview</div>
         <div id="curriculum-overview"></div>
       </div>
-      <div class="card" style="background:#FFF5F5;box-shadow:none;border:2px solid #FCA5A5">
-        <div style="font-weight:800;margin-bottom:8px">🎚️ Adjust Level</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Select a kid and subject, then choose a grade and level.</div>
+      <div class="card" style="background:#F0FBF4;box-shadow:none;border:2px solid #86EFAC">
+        <div style="font-weight:800;margin-bottom:8px">🔓 Unlock Lessons</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Allow a kid to redo a completed lesson today.</div>
         <div class="form-grid">
-          <div class="form-row"><label>Kid</label><select id="level-adj-kid" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
-          <div class="form-row"><label>Subject</label><select id="level-adj-subject" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;">
-            <option value="spelling">🔤 Spelling</option><option value="math">🧮 Math</option>
-            <option value="reading">📖 Reading</option><option value="writing">✏️ Writing</option>
+          <div class="form-row"><label>Kid</label><select id="unlock-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"></select></div>
+          <div class="form-row"><label>Subject</label><select id="unlock-subject-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;">
+            <option value="spelling">🔤 Spelling</option>
+            <option value="math">🧮 Math</option>
+            <option value="reading">📖 Reading</option>
+            <option value="writing">✏️ Writing</option>
+            <option value="all">All Subjects</option>
           </select></div>
         </div>
-        <div class="form-grid" style="margin-bottom:10px">
-          <div class="form-row"><label>Grade</label><select id="level-adj-grade" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
-          <div class="form-row"><label>Level within Grade</label><select id="level-adj-level" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
+        <button class="btn-primary" onclick="parentUnlockLesson()" style="background:#2ECC71;margin-top:0">🔓 Unlock for Today</button>
+      </div>
+      <div class="card" style="background:#FFF5F5;box-shadow:none;border:2px solid #FCA5A5">
+        <div style="font-weight:800;margin-bottom:8px">🎚️ Adjust Level</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Manually move a kid up or down a level if the content is too easy or too hard.</div>
+        <div class="form-grid">
+          <div class="form-row"><label>Kid</label><select id="level-adj-kid" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"></select></div>
+          <div class="form-row"><label>Subject</label><select id="level-adj-subject" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;">
+            <option value="spelling">🔤 Spelling</option>
+            <option value="math">🧮 Math</option>
+            <option value="reading">📖 Reading</option>
+            <option value="writing">✏️ Writing</option>
+          </select></div>
         </div>
-        <button class="btn-primary" style="background:#7C3AED;margin-bottom:10px" onclick="applyLevelSelection()">✅ Set This Level</button>
         <div style="display:flex;gap:8px">
           <button class="btn-primary" style="flex:1;background:#4F6EF7" onclick="adjustLevel(-1)">⬇️ Level Down</button>
           <button class="btn-primary" style="flex:1;background:#2ECC71" onclick="adjustLevel(1)">⬆️ Level Up</button>
         </div>
         <div id="level-adj-preview" style="font-size:13px;color:var(--muted);margin-top:10px;text-align:center;font-weight:700"></div>
       </div>
-      <div class="card" style="background:#F0FBF4;box-shadow:none;border:2px solid #86EFAC">
-        <div style="font-weight:800;margin-bottom:8px">🔓 Unlock Lessons</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Allow a kid to redo a completed lesson today.</div>
-        <div class="form-grid">
-          <div class="form-row"><label>Kid</label><select id="unlock-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
-          <div class="form-row"><label>Subject</label><select id="unlock-subject-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;">
-            <option value="spelling">🔤 Spelling</option><option value="math">🧮 Math</option>
-            <option value="reading">📖 Reading</option><option value="writing">✏️ Writing</option>
-            <option value="all">All Subjects</option>
-          </select></div>
-        </div>
-        <button class="btn-primary" onclick="parentUnlockLesson()" style="background:#2ECC71">🔓 Unlock for Today</button>
-      </div>
       <div class="card" style="background:#FFFBEA;box-shadow:none;border:2px solid #F7C948">
         <div style="font-weight:800;margin-bottom:8px">⭐ Assign Bonus Challenge</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Give a kid extra practice on a specific topic.</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Give a kid extra practice on a specific topic. They'll see it on their dashboard.</div>
         <div class="form-grid">
-          <div class="form-row"><label>Kid</label><select id="bonus-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
-          <div class="form-row"><label>Subject</label><select id="bonus-subject-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;">
-            <option value="spelling">🔤 Spelling</option><option value="math">🧮 Math</option>
-            <option value="reading">📖 Reading</option><option value="writing">✏️ Writing</option>
+          <div class="form-row"><label>Kid</label><select id="bonus-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"></select></div>
+          <div class="form-row"><label>Subject</label><select id="bonus-subject-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;">
+            <option value="spelling">🔤 Spelling</option>
+            <option value="math">🧮 Math</option>
+            <option value="reading">📖 Reading</option>
+            <option value="writing">✏️ Writing</option>
           </select></div>
         </div>
         <div class="form-row"><label>Focus Topic (optional)</label><input id="bonus-topic" type="text" placeholder="e.g. fractions with unlike denominators"/></div>
-        <div class="form-row"><label>Bonus Brain Bucks</label><input id="bonus-coins" type="number" placeholder="10" value="10" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"/></div>
+        <div class="form-row"><label>Bonus Brain Bucks</label><input id="bonus-coins" type="number" placeholder="10" value="10" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"/></div>
         <button class="btn-primary" style="background:#F59E0B;color:#1A1F36" onclick="assignBonusChallenge()">⭐ Assign Challenge</button>
         <div id="bonus-challenges-list" style="margin-top:14px"></div>
       </div>
-      <div class="card">
-        <div class="card-title">🎁 Manage Rewards</div>
-        <div id="parent-rewards-list"></div>
-        <div style="height:14px"></div>
-        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
-          <div style="font-weight:800;margin-bottom:8px">Add Reward</div>
-          <div class="form-grid">
-            <div class="form-row"><label>For</label><select id="r-kid" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;">
-              <option value="lauren">👧🏾 Lauren</option><option value="andrew">🧒🏾 Andrew</option><option value="both">Both</option>
-            </select></div>
-            <div class="form-row"><label>Emoji</label><input id="r-emoji" type="text" placeholder="📺" maxlength="2"/></div>
-          </div>
-          <div class="form-row"><label>Name</label><input id="r-name" type="text" placeholder="e.g. 30 min extra screen time"/></div>
-          <div class="form-row"><label>Coin Cost</label><input id="r-cost" type="number" placeholder="50"/></div>
-          <button class="btn-primary" style="background:#2ECC71" onclick="addReward()">➕ Add Reward</button>
-        </div>
-      </div>
+    </div><!-- end tab-curriculum -->
+
+    <div class="tab-panel" id="tab-writing">
+      <div class="card"><div class="card-title">✍️ Writing to Review</div><div id="writing-approvals-list"></div></div>
     </div>
 
-    <!-- SETTINGS TAB -->
+    <div class="tab-panel" id="tab-redemptions">
+      <div class="card"><div class="card-title">🎁 Reward Redemptions</div><div id="redemptions-list"></div></div>
+    </div>
+
+    <div class="tab-panel" id="tab-flagged">
+      <div class="card"><div class="card-title">🚩 Flagged Questions</div><div id="flagged-list"></div></div>
+    </div>
+
+    <div class="tab-panel" id="tab-rewards">
+      <div class="card">
+        <div class="card-title">➕ Add Reward</div>
+        <div class="form-row"><label>For</label><select id="r-kid" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"></select></div>
+        <div class="form-row"><label>Name</label><input id="r-name" type="text" placeholder="e.g. 30 min extra screen time"/></div>
+        <div class="form-grid">
+          <div class="form-row"><label>Coin Cost</label><input id="r-cost" type="number" placeholder="50"/></div>
+          <div class="form-row"><label>Emoji</label><input id="r-emoji" type="text" placeholder="📺" maxlength="2"/></div>
+        </div>
+        <button class="btn-primary" onclick="addReward()">Add Reward</button>
+      </div>
+      <div class="card"><div class="card-title">🎁 Rewards by Child</div><div id="parent-rewards-list"></div></div>
+    </div>
+
+    <div class="tab-panel" id="tab-progress"><div id="progress-overview"></div></div>
+
     <div class="tab-panel" id="tab-settings">
       <div class="card">
         <div class="card-title">⚙️ Settings</div>
-        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
+        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
           <div style="font-weight:800;margin-bottom:10px">🔊 Spelling Voice</div>
           <div id="voice-selector-wrap">Loading voices...</div>
         </div>
-        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
-          <div style="font-weight:800;margin-bottom:8px">⚡ Auto-Advance</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Automatically move to the next question after a correct answer.</div>
-          <button id="autoadvance-toggle-btn" class="btn-primary" onclick="toggleAutoAdvance()">Loading...</button>
+        <div style="height:18px"></div>
+        <div class="form-grid">
+          <div class="form-row"><label>Adjust Brain Bucks For</label><select id="coin-kid-select"></select></div>
+          <div class="form-row"><label>Amount</label><input id="coin-adjust" type="number" placeholder="+10 or -5"/></div>
         </div>
-        <div class="card" style="background:#EEF9FF;box-shadow:none;border:2px solid #7DD3FC;margin-bottom:14px" id="vacation-mode-card">
-          <div style="font-weight:800;margin-bottom:8px">✈️ Vacation Mode</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Protects all streaks daily. Turn off when you return home.</div>
-          <button id="vacation-toggle-btn" class="btn-primary" onclick="toggleVacationMode()" style="background:#0EA5E9">Loading...</button>
-        </div>
-        <div class="card" style="background:#FFF0F9;box-shadow:none;border:2px solid #F9A8D4;margin-bottom:14px">
-          <div style="font-weight:800;margin-bottom:8px">🤒 Excuse a Kid</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Excuse a kid for any day — protects streak and won't count as incomplete week. Works retroactively.</div>
-          <div class="form-row" style="margin-bottom:10px"><label>Kid</label><select id="excuse-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
-          <div class="form-row" style="margin-bottom:10px"><label>Date</label><input type="date" id="excuse-date-input" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"/></div>
-          <div id="excuse-status" style="font-size:13px;color:var(--muted);margin-bottom:10px;font-weight:600;"></div>
-          <button class="btn-primary" style="background:#EC4899" onclick="excuseKidDay()">🤒 Excuse This Day</button>
-        </div>
-        <div class="card" style="background:#F0FBF4;box-shadow:none;border:2px solid #86EFAC;margin-bottom:14px">
-          <div style="font-weight:800;margin-bottom:8px">🛡️ Skip Days</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Grant a skip day to protect a streak for a future missed day.</div>
-          <div class="form-grid">
-            <div class="form-row"><label>Kid</label><select id="skipday-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
-            <div id="skipday-balance" style="display:flex;align-items:flex-end;padding-bottom:14px;font-weight:800;font-size:14px;color:var(--primary)"></div>
-          </div>
-          <div style="display:flex;gap:8px">
-            <button class="btn-primary" style="background:#2ECC71;width:100%" onclick="grantSkipDay(document.getElementById('skipday-kid-select').value)">➕ Grant Skip Day</button>
-          </div>
-        </div>
-        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
-          <div style="font-weight:800;margin-bottom:8px">🧠 Adjust Brain Bucks</div>
-          <div class="form-grid">
-            <div class="form-row"><label>Kid</label><select id="coin-kid-select"></select></div>
-            <div class="form-row"><label>Amount</label><input id="coin-adjust" type="number" placeholder="+10 or -5"/></div>
-          </div>
-          <button class="btn-primary" onclick="adjustCoins()">Adjust Brain Bucks</button>
-        </div>
-        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
+        <button class="btn-primary" onclick="adjustCoins()">Adjust Brain Bucks</button>
+        <div style="height:18px"></div>
+        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
           <div style="font-weight:800;margin-bottom:10px">⏱ Lesson Time Limits</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Set how many minutes each lesson type allows before time expires.</div>
           <div id="timer-inputs" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px"></div>
           <button class="btn-primary" onclick="saveTimerSettings()">Save Time Limits</button>
         </div>
-        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
-          <div style="font-weight:800;margin-bottom:8px">🧠 Brain Bucks Max per Lesson</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Max Brain Bucks a kid can earn on first attempt (score% × max).</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Set the max Brain Bucks a kid can earn on their first attempt at each subject (score% × max).</div>
           <div class="form-row"><label>Kid</label><select id="coinmax-kid-select" onchange="renderCoinMaxInputs()"></select></div>
           <div id="coinmax-inputs" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px"></div>
-          <button class="btn-primary" style="margin-top:12px" onclick="saveCoinMax()">Save Brain Bucks Limits</button>
+          <button class="btn-primary" style="margin-top:12px" onclick="saveCoinMax()">Save Coin Limits</button>
         </div>
+        <div style="height:18px"></div>
+        <div class="card" style="background:#EEF9FF;box-shadow:none;border:2px solid #7DD3FC" id="vacation-mode-card">
+          <div style="font-weight:800;margin-bottom:8px">✈️ Vacation Mode</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:14px">While on, streaks are protected daily — no lessons required. Turn off when you return home.</div>
+          <button id="vacation-toggle-btn" class="btn-primary" onclick="toggleVacationMode()" style="background:#0EA5E9">Loading...</button>
+        </div>
+        <div style="height:10px"></div>
+        <button class="btn-danger" onclick="resetAll()" style="width:100%;padding:12px">⚠️ Reset All Data</button>
+        <div style="height:18px"></div>
+        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
+          <div style="font-weight:800;margin-bottom:8px">🤖 AI Lesson Engine</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Lessons are generated via a secure Cloudflare Worker proxy. The API key is stored in the Worker environment — never in this app.</div>
+          <div id="worker-status" style="font-size:12px;padding:8px;background:white;border-radius:8px;border:1px solid var(--border);font-family:monospace;word-break:break-all;"></div>
+        </div>
+        <div style="height:18px"></div>
+        <div class="card" style="background:#F0FBF4;box-shadow:none;border:2px solid #86EFAC">
+          <div style="font-weight:800;margin-bottom:8px">🛡️ Streak Protection</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Grant a skip day so a missed day doesn't break a kid's streak (sick day, vacation, etc.).</div>
+          <div class="form-grid">
+            <div class="form-row"><label>Kid</label><select id="skipday-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"></select></div>
+            <div id="skipday-balance" style="display:flex;align-items:flex-end;padding-bottom:14px;font-weight:800;font-size:14px;color:var(--primary)"></div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-primary" style="background:#2ECC71;flex:1" onclick="grantSkipDay(document.getElementById('skipday-kid-select').value)">➕ Grant Skip Day</button>
+            <button class="btn-primary" style="background:#F7C948;color:#1A1F36;flex:1" onclick="useSkipDay(document.getElementById('skipday-kid-select').value)">🛡️ Use Skip Day</button>
+          </div>
+        </div>
+        <div style="height:18px"></div>
       </div>
     </div>
-
   </div>
 </div>
 
@@ -676,371 +609,126 @@ async function getFirebaseToken() {
 }
 
 // ── KUMON-STYLE PROGRESSION ──────────────────────────────
-// ── COBB COUNTY GA CURRICULUM ────────────────────────────
-// Grade-based progression: CURRICULUM[subject][grade] = [{name, desc}, ...]
-// Grades K–12. Each grade has multiple levels within it.
-// Auto-advancement: master last level of grade → promote to next grade level 1
-// Manual: parent can jump grade via dropdown; arrows move within grade levels
-
-const CURRICULUM = {
-  spelling: {
-    K: [
-      {name:'Letter Names & Sounds',desc:'Recognizing and writing uppercase and lowercase letters; initial consonant sounds'},
-      {name:'Short Vowel CVC Words',desc:'Simple three-letter words: cat, dog, sit, hop, bug'},
-      {name:'Sight Words Set 1',desc:'Cobb County Kindergarten sight words: the, a, is, it, in, on, can, we, see, I'}
+const PROGRESSION = {
+  lauren: {
+    spelling: [
+      {level:1,name:'Short Vowel Words',desc:'CVC words with short vowel sounds'},
+      {level:2,name:'Consonant Blends',desc:'Words with blends like bl, cr, st'},
+      {level:3,name:'Long Vowel Silent-E',desc:'Words with silent-e (cake, bike)'},
+      {level:4,name:'Vowel Teams',desc:'ai, ay, ee, ea combinations'},
+      {level:5,name:'R-Controlled Vowels',desc:'ar, er, ir, or, ur patterns'},
+      {level:6,name:'Digraphs',desc:'ch, sh, th, wh combinations'},
+      {level:7,name:'Prefixes',desc:'un-, re-, pre- word beginnings'},
+      {level:8,name:'Suffixes',desc:'-ing, -ed, -er, -est endings'},
+      {level:9,name:'Compound Words',desc:'Two words joined together'},
+      {level:10,name:'Homophones',desc:'Words that sound alike but differ in meaning'},
+      {level:11,name:'Irregular Sight Words',desc:'High-frequency irregular words'},
+      {level:12,name:'Multi-Syllabic Words',desc:'Words with 3+ syllables'}
     ],
-    1: [
-      {name:'Short Vowel Word Families',desc:'Word families: -at, -an, -ap, -ig, -in, -og, -op, -ug, -un'},
-      {name:'Consonant Blends',desc:'Beginning blends: bl, cl, fl, gl, pl, sl, br, cr, dr, fr, gr, pr, tr, st, sk, sp, sn, sw'},
-      {name:'Digraphs',desc:'ch, sh, th, wh, ph — spelling and usage in words'},
-      {name:'Long Vowel Silent-E',desc:'CVCe words: cake, bike, home, cute, Pete'},
-      {name:'Sight Words Set 2',desc:'First grade high-frequency words: said, have, do, they, was, with, you, he, she, are, all'}
+    math: [
+      {level:1,name:'Addition Within 20',desc:'Basic addition facts to 20'},
+      {level:2,name:'Addition Within 100',desc:'Two-digit addition with regrouping'},
+      {level:3,name:'Addition Within 1000',desc:'Three-digit addition with regrouping'},
+      {level:4,name:'Subtraction Within 20',desc:'Basic subtraction facts to 20'},
+      {level:5,name:'Subtraction Within 100',desc:'Two-digit subtraction with regrouping'},
+      {level:6,name:'Subtraction Within 1000',desc:'Three-digit subtraction with regrouping'},
+      {level:7,name:'Multiplication — 2s and 5s',desc:'Times tables for 2 and 5'},
+      {level:8,name:'Multiplication — 3s and 4s',desc:'Times tables for 3 and 4'},
+      {level:9,name:'Multiplication — 6s, 7s, 8s, 9s',desc:'Advanced multiplication facts'},
+      {level:10,name:'Division — 2s and 5s',desc:'Basic division with 2 and 5'},
+      {level:11,name:'Division — 3s and 4s',desc:'Division with 3 and 4'},
+      {level:12,name:'Division — 6s, 7s, 8s, 9s',desc:'Advanced division facts'},
+      {level:13,name:'Fractions — Basic Concepts',desc:'Equal parts, halves, thirds, quarters'},
+      {level:14,name:'Fractions — Comparing',desc:'Comparing and ordering fractions'},
+      {level:15,name:'Measurement — Time',desc:'Telling time and elapsed time'},
+      {level:16,name:'Measurement — Length and Weight',desc:'Inches, feet, pounds, ounces'},
+      {level:17,name:'Geometry — Shapes and Area',desc:'2D shapes, area, and perimeter'},
+      {level:18,name:'Word Problems — Mixed',desc:'Multi-step mixed operation word problems'}
     ],
-    2: [
-      {name:'Long Vowel Teams',desc:'ai/ay (rain, play), ee/ea (feet, beat), oa/ow (boat, snow), ie/igh (pie, night)'},
-      {name:'R-Controlled Vowels',desc:'ar (car), er (her), ir (bird), or (corn), ur (burn) — reading and spelling'},
-      {name:'Diphthongs',desc:'oi/oy (coin, boy), ou/ow (cloud, cow) — distinguishing and spelling'},
-      {name:'Compound Words',desc:'Combining two words: rainbow, cupcake, baseball, sunflower'},
-      {name:'Inflectional Endings',desc:'-s, -es, -ed, -ing, -er, -est — rules including doubling and dropping e'}
+    reading: [
+      {level:1,name:'Main Idea and Key Details',desc:'Finding the main point of a passage'},
+      {level:2,name:'Story Structure',desc:'Beginning, middle, and end'},
+      {level:3,name:'Character Traits',desc:'Character feelings and motivations'},
+      {level:4,name:'Setting and Influence',desc:'How setting affects the story'},
+      {level:5,name:'Cause and Effect',desc:'Why things happen in stories'},
+      {level:6,name:'Compare and Contrast',desc:'Finding similarities and differences'},
+      {level:7,name:'Inference and Prediction',desc:'Reading between the lines'},
+      {level:8,name:"Author's Purpose",desc:'Why the author wrote the text'},
+      {level:9,name:'Vocabulary in Context',desc:'Understanding word meanings from context'},
+      {level:10,name:'Theme and Central Message',desc:'The deeper lesson of a story'}
     ],
-    3: [
-      {name:'Prefixes un- re- pre-',desc:'Meaning and spelling of un- (unhappy), re- (redo), pre- (preview)'},
-      {name:'Suffixes -ful -less -ness -ly',desc:'Adding suffixes to base words; spelling changes when needed'},
-      {name:'Homophones',desc:'their/there/they\'re, to/too/two, hear/here, its/it\'s — correct usage'},
-      {name:'Irregular Plurals',desc:'child/children, foot/feet, tooth/teeth, mouse/mice, goose/geese'},
-      {name:'Multi-Syllabic Words',desc:'Dividing words into syllables; accent patterns; 2-3 syllable words from Cobb County 3rd grade lists'},
-      {name:'Commonly Confused Words',desc:'accept/except, affect/effect, than/then, lose/loose — spelling and meaning'}
-    ],
-    4: [
-      {name:'Greek & Latin Roots',desc:'bio, geo, photo, graph, tele, micro — meaning and spelling in context'},
-      {name:'Prefixes mis- dis- non- over-',desc:'Meaning and spelling; using context clues to determine word meaning'},
-      {name:'Suffixes -tion -sion -ment -ous',desc:'Converting verbs/adjectives to nouns; spelling rules for each suffix'},
-      {name:'Homophones & Homographs',desc:'principal/principle, stationary/stationery, desert/dessert, lead/lead'},
-      {name:'Words from Other Languages',desc:'Borrowed words: ballet, spaghetti, kindergarten, canyon — spelling patterns'},
-      {name:'Academic Vocabulary Spelling',desc:'4th grade content-area words: government, equation, organism, sequence, evidence'}
-    ],
-    5: [
-      {name:'Advanced Prefixes & Suffixes',desc:'inter-, sub-, super-, semi-, anti-, mid-, under- with spelling changes'},
-      {name:'Greek & Latin Roots II',desc:'struct, port, rupt, dict, aud, vis, scrib/script — meaning and spelling'},
-      {name:'Word Relationships',desc:'Synonyms, antonyms, connotation — choosing precise words; spelling of each'},
-      {name:'Multisyllabic Words — Advanced',desc:'4-5 syllable words from 5th grade Cobb curriculum; syllable types and stress'},
-      {name:'Commonly Misspelled Words',desc:'necessary, separate, definitely, occurrence, privilege — memory strategies'},
-      {name:'Content-Area Vocabulary',desc:'5th grade science/social studies terms: photosynthesis, amendment, colonization'}
-    ],
-    6: [
-      {name:'Etymology & Word Origins',desc:'Greek, Latin, Anglo-Saxon roots; how origins affect spelling patterns'},
-      {name:'Affixes in Technical Words',desc:'pre-, post-, trans-, uni-, bi-, tri-, quad- in science and math vocabulary'},
-      {name:'Spelling Conventions Review',desc:'ie/ei rules, silent letters, unstressed vowels (schwa) in multi-syllabic words'},
-      {name:'Academic & Domain Vocabulary',desc:'6th grade ELA/Science/Social Studies terms; precision in spelling'},
-      {name:'Commonly Confused Words II',desc:'affect/effect, lay/lie, who/whom, farther/further — spelling and grammar'}
-    ],
-    7: [
-      {name:'Advanced Root Words',desc:'Latin roots: bene, mal, cred, fid, jur, pend, sens — building vocabulary through spelling'},
-      {name:'Formal vs Informal Register',desc:'Choosing and spelling words appropriately for academic writing contexts'},
-      {name:'Technical Vocabulary',desc:'Science and social studies terms from 7th grade Cobb curriculum'},
-      {name:'Word Morphology',desc:'How prefixes, roots, and suffixes combine; spelling complex derivatives'},
-      {name:'Confusing Word Pairs',desc:'elicit/illicit, eminent/imminent, explicit/implicit — spelling and usage'}
-    ],
-    8: [
-      {name:'Advanced Greek & Latin',desc:'Complex root combinations; medical and scientific terminology spelling'},
-      {name:'SAT/ACT Vocabulary Spelling',desc:'High-frequency standardized test words spelled correctly in context'},
-      {name:'Nuanced Word Meanings',desc:'Ambiguous, ambivalent, ubiquitous, ephemeral — precise spelling and meaning'},
-      {name:'Domain-Specific Spelling',desc:'8th grade content-area vocabulary across ELA, Science, Social Studies, Math'}
-    ],
-    9: [
-      {name:'College-Prep Vocabulary',desc:'Tier 3 academic words in 9th grade content areas; etymology-based spelling'},
-      {name:'Advanced Morphology',desc:'Complex word formation rules; spelling of technical and academic derivatives'},
-      {name:'Literary & Rhetorical Terms',desc:'Protagonist, antagonist, metaphor, allegory, allusion — precise spelling'}
-    ],
-    10: [
-      {name:'Sophisticated Academic Vocabulary',desc:'10th grade cross-curricular high-value words; nuanced spelling patterns'},
-      {name:'Research & Argumentative Terms',desc:'Corroborate, substantiate, juxtapose, counterargument — spelling in context'}
-    ],
-    11: [
-      {name:'AP/Pre-College Vocabulary',desc:'Words from AP exam word lists; complex derivations and spelling'},
-      {name:'Interdisciplinary Academic Words',desc:'Words spanning ELA, History, Science — Cobb County 11th grade standards'}
-    ],
-    12: [
-      {name:'College-Ready Vocabulary',desc:'SAT/ACT/AP level words; sophisticated spelling and nuanced usage'},
-      {name:'Advanced Academic Discourse',desc:'Scholarly register words; technical precision in spelling and meaning'}
+    writing: [
+      {level:1,name:'Complete Sentences',desc:'Subject and predicate structure'},
+      {level:2,name:'Narrative — Personal Story',desc:'Writing about real experiences'},
+      {level:3,name:'Narrative — Fictional Story',desc:'Creating an imaginative story'},
+      {level:4,name:'Opinion Writing — Basic',desc:'Stating and supporting an opinion'},
+      {level:5,name:'Opinion Writing — With Evidence',desc:'Using facts and examples'},
+      {level:6,name:'Informational — Basic',desc:'Writing to explain or inform'},
+      {level:7,name:'Informational — With Details',desc:'Adding supporting details'},
+      {level:8,name:'Informational — Full Structure',desc:'Intro, body, and conclusion'}
     ]
   },
-
-  math: {
-    K: [
-      {name:'Counting & Cardinality',desc:'Count to 100 by 1s and 10s; count objects; compare numbers 0-10'},
-      {name:'Addition & Subtraction Concepts',desc:'Understand addition as putting together, subtraction as taking away; within 10'},
-      {name:'Shapes & Measurement',desc:'Identify and describe 2D and 3D shapes; compare lengths and weights'}
+  andrew: {
+    spelling: [
+      {level:7,name:'Prefixes',desc:'un-, re-, pre- word beginnings'},
+      {level:8,name:'Suffixes',desc:'-ing, -ed, -er, -est endings'},
+      {level:9,name:'Compound Words',desc:'Two words joined together'},
+      {level:10,name:'Homophones',desc:'Words that sound alike but differ in meaning'},
+      {level:11,name:'Irregular Sight Words',desc:'High-frequency irregular words'},
+      {level:12,name:'Multi-Syllabic Words',desc:'Words with 3+ syllables'}
     ],
-    1: [
-      {name:'Addition & Subtraction Within 20',desc:'Fluently add and subtract within 20 using strategies; word problems'},
-      {name:'Place Value to 99',desc:'Understand tens and ones; compare two-digit numbers; add multiples of 10'},
-      {name:'Measurement & Time',desc:'Order objects by length; tell time to the hour and half-hour; count coins'}
+    math: [
+      {level:1,name:'Multi-Digit Addition',desc:'Adding large numbers with regrouping'},
+      {level:2,name:'Multi-Digit Subtraction',desc:'Subtracting large numbers with regrouping'},
+      {level:3,name:'Multiplication — 2-Digit by 1-Digit',desc:'Multiplying larger numbers'},
+      {level:4,name:'Multiplication — 2-Digit by 2-Digit',desc:'Advanced multiplication'},
+      {level:5,name:'Division With Remainders',desc:'Division that leaves remainders'},
+      {level:6,name:'Long Division',desc:'1-digit divisor long division'},
+      {level:7,name:'Factors and Multiples',desc:'Finding factors and multiples'},
+      {level:8,name:'Prime and Composite Numbers',desc:'Identifying prime vs composite'},
+      {level:9,name:'Equivalent Fractions',desc:'Fractions equal in value'},
+      {level:10,name:'Adding/Subtracting Fractions — Like',desc:'Same denominator fractions'},
+      {level:11,name:'Adding/Subtracting Fractions — Unlike',desc:'Different denominator fractions'},
+      {level:12,name:'Decimals — Tenths and Hundredths',desc:'Understanding decimal place value'},
+      {level:13,name:'Comparing Decimals',desc:'Ordering and comparing decimals'},
+      {level:14,name:'Adding/Subtracting Decimals',desc:'Decimal arithmetic'},
+      {level:15,name:'Converting Measurements',desc:'Converting between units'},
+      {level:16,name:'Geometry — Lines and Angles',desc:'Lines, angles, and triangles'},
+      {level:17,name:'Area and Perimeter',desc:'Complex shapes and compound figures'},
+      {level:18,name:'Multi-Step Word Problems',desc:'Complex multi-operation problems'}
     ],
-    2: [
-      {name:'Addition & Subtraction Within 100',desc:'Add and subtract within 100 using place value strategies; mental math'},
-      {name:'Place Value to 1000',desc:'Hundreds, tens, ones; read, write, compare three-digit numbers'},
-      {name:'Multiplication Concepts',desc:'Use arrays and equal groups to understand multiplication as repeated addition'},
-      {name:'Measurement & Data',desc:'Measure in inches/centimeters; create bar graphs and picture graphs; tell time to 5 minutes'}
+    reading: [
+      {level:1,name:'Main Idea and Supporting Details',desc:'Main idea with text evidence'},
+      {level:2,name:'Plot Development',desc:'How stories develop and change'},
+      {level:3,name:'Character Development and POV',desc:'How characters grow in stories'},
+      {level:4,name:'Setting and Mood',desc:'How setting creates mood'},
+      {level:5,name:'Cause and Effect — Complex',desc:'Multiple causes and effects'},
+      {level:6,name:'Compare and Contrast — Multiple Texts',desc:'Ideas across different texts'},
+      {level:7,name:'Inference and Text Evidence',desc:'Conclusions using evidence'},
+      {level:8,name:"Author's Purpose and Perspective",desc:'Understanding bias and viewpoint'},
+      {level:9,name:'Figurative Language',desc:'Metaphors, similes, and other devices'},
+      {level:10,name:'Theme Across Multiple Texts',desc:'Theme using evidence from texts'}
     ],
-    3: [
-      {name:'Multiplication & Division Facts',desc:'Multiply and divide within 100; understand relationship between × and ÷; fluency with facts 0-10'},
-      {name:'Fractions — Basic Concepts',desc:'Understand fractions as equal parts of a whole; unit fractions; fractions on a number line'},
-      {name:'Area & Perimeter',desc:'Find area using unit squares; find perimeter of polygons; relate area to multiplication'},
-      {name:'Multi-Step Word Problems',desc:'Solve two-step word problems using all four operations; assess reasonableness'}
-    ],
-    4: [
-      {name:'Multi-Digit Multiplication',desc:'Multiply up to 4-digit by 1-digit and 2-digit by 2-digit using standard algorithm'},
-      {name:'Division with Remainders',desc:'Divide multi-digit numbers; interpret remainders in context; long division intro'},
-      {name:'Fraction Operations',desc:'Add and subtract fractions with like denominators; equivalent fractions; mixed numbers'},
-      {name:'Decimals — Intro',desc:'Understand tenths and hundredths; compare decimals; relate to fractions'},
-      {name:'Geometry & Measurement',desc:'Classify 2D shapes by properties; find area; convert within measurement systems'}
-    ],
-    5: [
-      {name:'Decimal Operations',desc:'Add, subtract, multiply, divide decimals to hundredths; place value patterns'},
-      {name:'Fraction Operations — Advanced',desc:'Add/subtract fractions with unlike denominators; multiply fractions; divide unit fractions'},
-      {name:'Volume',desc:'Understand volume as packing with unit cubes; apply V = l × w × h'},
-      {name:'Coordinate Plane',desc:'Graph points in first quadrant; solve real-world problems using coordinates'},
-      {name:'Algebraic Thinking',desc:'Analyze patterns and relationships; write and interpret simple expressions'}
-    ],
-    6: [
-      {name:'Ratios & Proportional Relationships',desc:'Understand ratio concepts; use ratio reasoning to solve problems; unit rates'},
-      {name:'Operations with Fractions',desc:'Divide fractions by fractions; multiply and divide multi-digit decimals'},
-      {name:'Expressions & Equations',desc:'Write and evaluate expressions; solve one-variable equations and inequalities'},
-      {name:'Geometry',desc:'Find area of polygons; surface area and volume of 3D figures using nets'},
-      {name:'Statistics',desc:'Understand statistical variability; summarize data distributions; mean, median, mode, range'}
-    ],
-    7: [
-      {name:'Proportional Relationships',desc:'Recognize and represent proportional relationships; constant of proportionality'},
-      {name:'Operations with Rational Numbers',desc:'Add, subtract, multiply, divide rational numbers including negatives'},
-      {name:'Expressions & Equations II',desc:'Rewrite expressions using properties; solve multi-step equations and inequalities'},
-      {name:'Geometry — Scale & Constructions',desc:'Scale drawings; geometric constructions; area and circumference of circles'},
-      {name:'Probability',desc:'Understand probability as a number 0-1; theoretical vs experimental probability; compound events'}
-    ],
-    8: [
-      {name:'Linear Equations',desc:'Solve linear equations in one variable; understand solutions; slope-intercept form'},
-      {name:'Functions',desc:'Understand functions as input-output rules; linear vs non-linear; compare functions'},
-      {name:'Systems of Equations',desc:'Solve systems of two linear equations graphically and algebraically'},
-      {name:'Geometry — Transformations',desc:'Translations, reflections, rotations, dilations; congruence and similarity; Pythagorean theorem'},
-      {name:'Statistics & Probability',desc:'Scatter plots; linear association; two-way tables; relative frequency'}
-    ],
-    9: [
-      {name:'Algebra I — Linear Functions',desc:'Cobb County Algebra I: linear equations, inequalities, systems, functions'},
-      {name:'Algebra I — Polynomials',desc:'Add, subtract, multiply polynomials; factor; quadratic equations intro'},
-      {name:'Algebra I — Statistics',desc:'Descriptive statistics; scatter plots; linear regression; correlation'}
-    ],
-    10: [
-      {name:'Geometry — Proofs & Reasoning',desc:'Cobb County Geometry: congruence proofs; parallel lines; triangle theorems'},
-      {name:'Geometry — Similarity & Trig',desc:'Similar figures; trigonometric ratios; right triangle problem solving'},
-      {name:'Geometry — Circles & Volume',desc:'Circle theorems; arc length; area; volume of 3D solids'}
-    ],
-    11: [
-      {name:'Algebra II — Functions',desc:'Polynomial, rational, exponential, logarithmic functions — Cobb County Algebra II'},
-      {name:'Algebra II — Statistics',desc:'Normal distribution; confidence intervals; hypothesis testing intro'}
-    ],
-    12: [
-      {name:'Pre-Calculus / Calculus Intro',desc:'Limits, derivatives intro, trigonometry — Cobb County Pre-Calculus standards'},
-      {name:'Statistics — Advanced',desc:'AP Statistics topics: regression, probability models, inference'}
-    ]
-  },
-
-  reading: {
-    K: [
-      {name:'Print Concepts',desc:'Book handling; directionality; one-to-one correspondence; identify letters vs words'},
-      {name:'Phonological Awareness',desc:'Rhyme, syllables, onset-rime, blending and segmenting sounds'},
-      {name:'Comprehension — Read-Aloud',desc:'Retell stories; identify characters and setting; ask and answer questions about text'}
-    ],
-    1: [
-      {name:'Decoding & Fluency',desc:'Use phonics knowledge to decode words; read first-grade texts with accuracy and expression'},
-      {name:'Story Elements',desc:'Identify characters, setting, problem, and solution; retell beginning, middle, end'},
-      {name:'Main Idea & Details',desc:'Identify the main topic and key details in informational texts'},
-      {name:'Vocabulary in Context',desc:'Use context clues and picture clues; understand words in stories and informational text'}
-    ],
-    2: [
-      {name:'Character & Plot',desc:'Describe how characters respond to challenges; compare characters within and across stories'},
-      {name:'Informational Text',desc:'Identify main topic and supporting details; use text features (headings, captions, glossary)'},
-      {name:'Author\'s Purpose',desc:'Identify why the author wrote the text (inform, entertain, persuade)'},
-      {name:'Comparing Texts',desc:'Compare and contrast two versions of same story; compare information from two texts on same topic'}
-    ],
-    3: [
-      {name:'Story Structure & Theme',desc:'Describe how chapters build on each other; determine theme and central message'},
-      {name:'Character Motivation & Traits',desc:'Explain character traits using text evidence; how characters change throughout story'},
-      {name:'Informational — Text Structure',desc:'Describe logical connection between sentences using cause/effect, compare/contrast, sequence'},
-      {name:'Vocabulary & Figurative Language',desc:'Distinguish literal vs nonliteral language; identify similes and metaphors; use context clues'},
-      {name:'Point of View',desc:'Distinguish own point of view from narrator\'s; compare first and third person narration'}
-    ],
-    4: [
-      {name:'Theme & Summary',desc:'Determine theme from details; summarize without personal opinion; compare themes across texts'},
-      {name:'Inferencing & Text Evidence',desc:'Use text evidence to support inferences; quote accurately from text'},
-      {name:'Informational — Main Idea',desc:'Determine main idea and supporting details; explain how details support main idea'},
-      {name:'Figurative Language',desc:'Explain meaning of similes, metaphors, alliteration, idioms, and adages'},
-      {name:'Text Structures',desc:'Describe overall structure of text: chronology, comparison, cause/effect, problem/solution'}
-    ],
-    5: [
-      {name:'Theme Across Texts',desc:'Compare and contrast two texts on same theme or topic; analyze how theme is developed'},
-      {name:'Point of View & Perspective',desc:'Describe how narrator\'s or character\'s POV influences how events are described'},
-      {name:'Informational — Integrate Information',desc:'Explain relationships or interactions between two or more individuals, events, or concepts'},
-      {name:'Figurative Language — Advanced',desc:'Interpret figurative language including personification, hyperbole, and symbolism'},
-      {name:'Argumentative Text',desc:'Explain how an author uses reasons and evidence to support points in a text'}
-    ],
-    6: [
-      {name:'Central Idea & Evidence',desc:'Determine central idea; provide summary distinct from personal opinions; cite textual evidence'},
-      {name:'Character & Plot Analysis',desc:'Analyze how plot unfolds; explain how a character responds to challenges'},
-      {name:'Connotation & Word Choice',desc:'Analyze impact of specific word choices on meaning and tone'},
-      {name:'Point of View & Purpose',desc:'Explain how author develops point of view; distinguish from other viewpoints'},
-      {name:'Argument & Evidence',desc:'Trace argument and evaluate claims; distinguish claims from evidence from reasoning'}
-    ],
-    7: [
-      {name:'Theme & Central Idea',desc:'Analyze theme development over course of text; summarize objectively'},
-      {name:'Author\'s Craft',desc:'Analyze how author develops and contrasts points of view of different characters or narrators'},
-      {name:'Informational Analysis',desc:'Analyze the structure author uses to organize text; evaluate effectiveness'},
-      {name:'Figurative & Connotative Language',desc:'Analyze impact of rhymes, repetition, and figurative language on meaning'},
-      {name:'Comparing Across Genres',desc:'Compare and contrast fictional portrayals and historical accounts of same period/event'}
-    ],
-    8: [
-      {name:'Textual Analysis — Theme',desc:'Analyze how modern works draw on myths and traditional stories; compare treatments'},
-      {name:'Author\'s Purpose & Rhetoric',desc:'Analyze how author acknowledges and responds to conflicting evidence or viewpoints'},
-      {name:'Informational — Argument',desc:'Delineate and evaluate argument; assess whether reasoning is sound and evidence is relevant'},
-      {name:'Vocabulary — Connotation & Denotation',desc:'Distinguish connotations of words with similar denotations; analyze word choices'},
-      {name:'Comparing Texts — Perspectives',desc:'Analyze how two different texts address similar topics; evaluate different interpretations'}
-    ],
-    9: [
-      {name:'Literary Analysis',desc:'Cobb County 9th grade ELA: analyze theme, character, structure in complex literary texts'},
-      {name:'Informational & Argumentative',desc:'Evaluate arguments; analyze rhetoric; identify fallacies; synthesize multiple sources'}
-    ],
-    10: [
-      {name:'World Literature Analysis',desc:'Analyze themes in world literature; examine cultural and historical contexts'},
-      {name:'Research & Synthesis',desc:'Synthesize information from multiple complex texts; evaluate credibility and relevance'}
-    ],
-    11: [
-      {name:'American Literature Analysis',desc:'Analyze American literary traditions; Romanticism, Realism, Modernism'},
-      {name:'AP Language & Composition',desc:'Rhetorical analysis; argumentation; synthesis essays — AP level comprehension'}
-    ],
-    12: [
-      {name:'British Literature & World Texts',desc:'Analyze British literary canon and world texts; complex thematic connections'},
-      {name:'AP Literature & Composition',desc:'AP-level literary analysis; close reading; thematic and structural complexity'}
-    ]
-  },
-
-  writing: {
-    K: [
-      {name:'Opinion Writing',desc:'Use a combination of drawing, dictating, and writing to tell about a topic and state an opinion'},
-      {name:'Narrative Writing',desc:'Use drawing, dictating, and writing to narrate a single event with a reaction'}
-    ],
-    1: [
-      {name:'Opinion Writing',desc:'Introduce a topic or book; state an opinion; supply a reason; provide closure'},
-      {name:'Informative Writing',desc:'Name a topic; supply facts; provide closure'},
-      {name:'Narrative Writing',desc:'Recount two or more events; use temporal words; provide a sense of closure'}
-    ],
-    2: [
-      {name:'Opinion Writing',desc:'Introduce topic; state opinion; give two or more reasons; concluding statement'},
-      {name:'Informative Writing',desc:'Introduce a topic; use facts and definitions to develop points; concluding statement'},
-      {name:'Narrative Writing',desc:'Recount a well-elaborated event; include details; use temporal words; closure'}
-    ],
-    3: [
-      {name:'Opinion Writing',desc:'State an opinion; create an organizational structure; provide reasons with linking words; concluding statement'},
-      {name:'Informative/Explanatory',desc:'Introduce a topic; develop with facts, definitions, details; use linking words; concluding statement'},
-      {name:'Narrative Writing',desc:'Establish a situation and narrator; use dialogue and description; temporal words; natural conclusion'}
-    ],
-    4: [
-      {name:'Opinion Writing',desc:'Introduce a topic clearly; state opinion; organize reasons with facts and details; linking words; concluding statement'},
-      {name:'Informative/Explanatory',desc:'Introduce a topic with a topic sentence; develop with facts, definitions, concrete details, quotes; concluding statement'},
-      {name:'Narrative Writing',desc:'Orient the reader; use dialogue, description, and pacing; use concrete words and sensory details; provide conclusion'}
-    ],
-    5: [
-      {name:'Opinion Writing',desc:'Introduce a topic clearly; logically group reasons; provide evidence; use linking language; concluding statement'},
-      {name:'Informative/Explanatory',desc:'Introduce a topic with a thesis; develop with facts, definitions, concrete details; domain-specific vocabulary; conclusion'},
-      {name:'Narrative Writing',desc:'Establish narrator and point of view; use dialogue, description, pacing; varied transitions; reflection in conclusion'}
-    ],
-    6: [
-      {name:'Argumentative Writing',desc:'Introduce claim; organize reasons and evidence clearly; acknowledge counterclaim; use credible sources; concluding statement'},
-      {name:'Informative/Explanatory',desc:'Introduce topic with a thesis; develop with relevant evidence; use varied transitions; domain-specific vocabulary; strong conclusion'},
-      {name:'Narrative Writing',desc:'Engage reader from start; use narrative techniques; well-structured sequence; precise language; conclusion reflects on experience'}
-    ],
-    7: [
-      {name:'Argumentative Writing',desc:'Introduce claim(s); support with logical reasoning and relevant evidence; address counterclaims; maintain formal style'},
-      {name:'Informative/Explanatory',desc:'Examine a topic through multiple relevant facts; use precise language; formal style; strong concluding section'},
-      {name:'Narrative Writing',desc:'Engage reader; develop real or imagined experiences with effective technique; precise words; sequenced narrative'}
-    ],
-    8: [
-      {name:'Argumentative Writing',desc:'Introduce and develop claim(s) with evidence; distinguish claim from counterclaim; use credible sources; maintain formal style'},
-      {name:'Informative/Explanatory',desc:'Introduce topic with clear thesis; develop each point with relevant evidence; precise language; formal conclusion'},
-      {name:'Research Writing',desc:'Write research essay integrating multiple sources; cite sources; avoid plagiarism; present findings clearly'}
-    ],
-    9: [
-      {name:'Literary Analysis Essay',desc:'Analyze literary elements using textual evidence; develop argument; formal academic style'},
-      {name:'Argumentative Essay',desc:'Cobb County 9th grade: develop and support claim; address counterclaims; use credible sources'}
-    ],
-    10: [
-      {name:'Comparative Analysis Essay',desc:'Compare literary or informational texts; develop analytical thesis; use textual evidence'},
-      {name:'Research-Based Argument',desc:'Synthesize multiple sources; develop nuanced argument; MLA/APA citation basics'}
-    ],
-    11: [
-      {name:'Rhetorical Analysis',desc:'Analyze author\'s rhetorical choices; AP Language style argumentation and synthesis'},
-      {name:'AP Argumentative Essay',desc:'AP-level argument; nuanced claim; sophisticated evidence; formal academic voice'}
-    ],
-    12: [
-      {name:'Literary Analysis — Advanced',desc:'AP Literature style close reading essays; complex thesis; sophisticated analysis'},
-      {name:'College Application & Academic Writing',desc:'Personal essays; college-level argumentation; research writing; proper citation'}
+    writing: [
+      {level:5,name:'Opinion Writing — With Evidence',desc:'Using strong facts and examples'},
+      {level:6,name:'Informational — Basic',desc:'Writing to explain or inform'},
+      {level:7,name:'Informational — With Details',desc:'Adding supporting details'},
+      {level:8,name:'Informational — Full Structure',desc:'Intro, body, and conclusion'}
     ]
   }
 };
 
-const GRADE_LABELS = {
-  K:'Kindergarten', 1:'Grade 1', 2:'Grade 2', 3:'Grade 3', 4:'Grade 4',
-  5:'Grade 5', 6:'Grade 6', 7:'Grade 7', 8:'Grade 8', 9:'Grade 9',
-  10:'Grade 10', 11:'Grade 11', 12:'Grade 12'
-};
-const GRADE_ORDER = ['K',1,2,3,4,5,6,7,8,9,10,11,12];
-
-// ── NEW LEVEL FUNCTIONS ──────────────────────────────────
-// state.levels[kidId][subjectId] = {grade: 3, levelIdx: 0}
-// grade is K,1,2,...,12; levelIdx is 0-based index within that grade
-
-function getGradeLevels(grade, subject) {
-  return (CURRICULUM[subject] && CURRICULUM[subject][grade]) || [];
-}
-
-function getCurrentGradeLevel(kidId, subjectId) {
-  const l = state.levels && state.levels[kidId] && state.levels[kidId][subjectId];
-  if (l && typeof l === 'object' && l.grade !== undefined) return l;
-  // Legacy flat index — migrate to grade 3 level 0 as default
-  return {grade: 3, levelIdx: 0};
-}
-
-function getCurrentLevelData(kidId, subjectId) {
-  const gl = getCurrentGradeLevel(kidId, subjectId);
-  const levels = getGradeLevels(gl.grade, subjectId);
-  const idx = Math.min(gl.levelIdx || 0, levels.length - 1);
-  const lvl = levels[idx];
-  if (!lvl) return {name: GRADE_LABELS[gl.grade] || ('Grade ' + gl.grade), desc: subjectId + ' at ' + (GRADE_LABELS[gl.grade] || 'Grade ' + gl.grade)};
-  return {
-    name: (GRADE_LABELS[gl.grade] || ('Grade ' + gl.grade)) + ' — ' + lvl.name,
-    desc: lvl.desc,
-    grade: gl.grade,
-    levelIdx: idx,
-    totalInGrade: levels.length,
-    gradeLabel: GRADE_LABELS[gl.grade] || ('Grade ' + gl.grade)
-  };
-}
-
-// Legacy compatibility — returns flat array for functions that still use it
-function getSubjectProgression(kidId, subjectId) {
-  const gl = getCurrentGradeLevel(kidId, subjectId);
-  return getGradeLevels(gl.grade, subjectId);
-}
-
-// Legacy — returns levelIdx within current grade
+function getProgression(kidId) { return PROGRESSION[kidId] || PROGRESSION[kidId === 'tester' ? 'andrew' : 'lauren']; }
+function getSubjectProgression(kidId, subjectId) { return getProgression(kidId)[subjectId] || []; }
 function getCurrentLevelIndex(kidId, subjectId) {
-  const gl = getCurrentGradeLevel(kidId, subjectId);
-  return gl.levelIdx || 0;
+  if (!state.levels || !state.levels[kidId]) return 0;
+  return state.levels[kidId][subjectId] || 0;
 }
-
-function getProgression(kidId) {
-  // No longer per-kid — curriculum is universal, grade-based
-  return {};
+function getCurrentLevelData(kidId, subjectId) {
+  const lvls = getSubjectProgression(kidId, subjectId);
+  const idx = getCurrentLevelIndex(kidId, subjectId);
+  return lvls[Math.min(idx, lvls.length-1)] || {name:'Complete',desc:'All levels mastered!'};
 }
-
 function getStreakScores(kidId, subjectId) {
   if (!state.streaks || !state.streaks[kidId]) return [];
   return state.streaks[kidId][subjectId] || [];
@@ -1069,46 +757,27 @@ const DEFAULT_STATE = {
     lauren:[
       {id:'r1',name:'30 min extra screen time',cost:40,emoji:'📺'},
       {id:'r2',name:'Choose dinner',cost:60,emoji:'🍕'},
-      {id:'r3',name:'$10 at Dollar Tree',cost:80,emoji:'💵'},
-      {id:'r4',name:'New bat grip from TT',cost:75,emoji:'🎁'}
+      {id:'r3',name:'$1 allowance bonus',cost:80,emoji:'💵'}
     ],
     andrew:[
-      {id:'r1',name:'Catch with Daddy',cost:40,emoji:'📺'},
+      {id:'r1',name:'30 min extra screen time',cost:40,emoji:'📺'},
       {id:'r2',name:'Choose dinner',cost:60,emoji:'🍕'},
-      {id:'r3',name:'$10 at Dollar Tree',cost:80,emoji:'💵'},
-      {id:'r4',name:'New bat grip from TT',cost:75,emoji:'🎁'}
+      {id:'r3',name:'$1 allowance bonus',cost:80,emoji:'💵'}
     ],
     tester:[
       {id:'r1',name:'30 min extra screen time',cost:40,emoji:'📺'},
       {id:'r2',name:'Choose dinner',cost:60,emoji:'🍕'},
-      {id:'r3',name:'$10 at Dollar Tree',cost:80,emoji:'💵'}
+      {id:'r3',name:'$1 allowance bonus',cost:80,emoji:'💵'}
     ]
   },
+  curriculum:{lauren:null,andrew:null,tester:null},
   progress:{lauren:{},andrew:{},tester:{}},
-  levels:{
-    lauren:{
-      spelling:{grade:3,levelIdx:3},
-      math:{grade:3,levelIdx:2},
-      reading:{grade:3,levelIdx:2},
-      writing:{grade:3,levelIdx:1}
-    },
-    andrew:{
-      spelling:{grade:4,levelIdx:0},
-      math:{grade:3,levelIdx:2},
-      reading:{grade:3,levelIdx:2},
-      writing:{grade:3,levelIdx:1}
-    },
-    tester:{
-      spelling:{grade:3,levelIdx:0},
-      math:{grade:3,levelIdx:0},
-      reading:{grade:3,levelIdx:0},
-      writing:{grade:3,levelIdx:0}
-    }
-  },
+  levels:{lauren:{spelling:0,math:0,reading:0,writing:0},andrew:{spelling:0,math:0,reading:0,writing:0},tester:{spelling:0,math:0,reading:0,writing:0}},
   streaks:{lauren:{spelling:[],math:[],reading:[],writing:[]},andrew:{spelling:[],math:[],reading:[],writing:[]},tester:{spelling:[],math:[],reading:[],writing:[]}},
   unlockedToday:{lauren:{},andrew:{},tester:{}},
   writingQueue:[],
   difficultyLevel:{lauren:2,andrew:2,tester:2},
+  usedTopics:{lauren:[],andrew:[],tester:[]},
   coinMax:{lauren:{spelling:2,math:2,reading:2,writing:2},andrew:{spelling:2,math:2,reading:2,writing:2},tester:{spelling:2,math:2,reading:2,writing:2}},
   redemptionQueue:[],
   dailyStreak:{lauren:{count:0,lastDate:''},andrew:{count:0,lastDate:''},tester:{count:0,lastDate:''}},
@@ -1123,18 +792,7 @@ const DEFAULT_STATE = {
   lastSynced: null,
   vacationMode: false,
   paceData: {lauren:{}, andrew:{}, tester:{}},
-  adaptiveQ: {lauren:10, andrew:10, tester:10},
-  perfectWeekClaimed: {lauren:'', andrew:'', tester:''},
-  rewardsUpdatedAt: 0,
-  levelsUpdatedAt: {lauren:0, andrew:0, tester:0},
-  coinsUpdatedAt: {lauren:0, andrew:0, tester:0},
-  incompleteWeekPenalized: {lauren:'', andrew:'', tester:''},
-  soundsOff: false,
-  autoAdvance: false,
-  liveLesson: {lauren: null, andrew: null, tester: null},
-  excusedToday: {},
-  excusedDays: {},
-  parentMessages: {}
+  adaptiveQ: {lauren:10, andrew:10, tester:10}
 };
 
 let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
@@ -1176,24 +834,9 @@ async function flushOfflineQueue() {
 // ── LESSON HISTORY SYSTEM ────────────────────────────────
 // History now lives inside state.lessonHistory so it syncs with everything else
 
-function recordLessonHistory(kidId, subjectId, pct, coins, correct, total, elapsedMin, levelIdx, grade) {
+function recordLessonHistory(kidId, subjectId, pct, coins, correct, total, elapsedMin, levelIdx) {
   if (!state.lessonHistory) state.lessonHistory = {};
   if (!state.lessonHistory[kidId]) state.lessonHistory[kidId] = [];
-  // Build rich wrong answers — include full question text, passage snippet, full option text
-  const rawWrong = (lessonState && lessonState.wrongAnswers) || [];
-  const richWrong = rawWrong.slice(0, 10).map(function(w) {
-    // Find original question to get full passage/options context
-    const origQ = lessonState && lessonState._originalQuestions && lessonState._originalQuestions.find(function(q) {
-      return (q.question && q.question === w.question) || (q.word && q.word === w.question);
-    });
-    return {
-      question: w.question || '',
-      yourAnswer: w.yourAnswer || '',
-      correctAnswer: w.correctAnswer || '',
-      passage: (origQ && origQ.passage) ? origQ.passage.slice(0, 300) : '',
-      options: (origQ && origQ.options) ? origQ.options : []
-    };
-  });
   const entry = {
     date: new Date().toISOString().slice(0,10),
     dateDisplay: new Date().toLocaleDateString(),
@@ -1204,11 +847,7 @@ function recordLessonHistory(kidId, subjectId, pct, coins, correct, total, elaps
     total: total,
     duration: elapsedMin || 0,
     level: levelIdx + 1,
-    grade: grade || 3,
-    gradeLabel: grade ? (GRADE_LABELS[grade] || ('Grade ' + grade)) : 'Grade 3',
-    wrongAnswers: richWrong,
-    readingStory: (lessonState && lessonState.readingStory) ? lessonState.readingStory.slice(0, 2000) : null,
-    writingPrompt: (lessonState && lessonState.writingPrompt) ? lessonState.writingPrompt : null
+    wrongAnswers: (lessonState && lessonState.wrongAnswers || []).slice(0, 10)
   };
   state.lessonHistory[kidId].unshift(entry);
   // Trim to HISTORY_DAYS days
@@ -1242,26 +881,7 @@ function updatePaceData(kidId, elapsedMin) {
 function getAvgDailyMinutes(kidId) {
   if (!state.paceData || !state.paceData[kidId]) return 0;
   const entries = Object.values(state.paceData[kidId]);
-  // If paceData is empty but we have lessonHistory, seed it on the fly
-  if (!entries.length) {
-    const history = (state.lessonHistory && state.lessonHistory[kidId]) || [];
-    if (!history.length) return 0;
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - PACE_WINDOW_DAYS);
-    const cutoffStr = cutoff.toISOString().slice(0,10);
-    const recent = history.filter(e => e.date >= cutoffStr && e.duration > 0);
-    if (!recent.length) {
-      // Fall back to all-time average if nothing in window
-      const allDurations = history.filter(e => e.duration > 0);
-      if (!allDurations.length) return 0;
-      const totalMin = allDurations.reduce((s,e) => s + (e.duration||0), 0);
-      return totalMin / allDurations.length;
-    }
-    const byDay = {};
-    recent.forEach(function(e) { byDay[e.date] = (byDay[e.date]||0) + (e.duration||0); });
-    const dayVals = Object.values(byDay);
-    return dayVals.reduce((s,v) => s+v, 0) / dayVals.length;
-  }
+  if (!entries.length) return 0;
   return entries.reduce(function(s, v) { return s + v; }, 0) / entries.length;
 }
 
@@ -1276,16 +896,15 @@ function updateAdaptiveQuestionCount(kidId) {
   if (!state.adaptiveQ) state.adaptiveQ = {};
   if (!state.adaptiveQ[kidId]) state.adaptiveQ[kidId] = 10;
   const avg = getAvgDailyMinutes(kidId);
-  if (avg <= 0) return; // no data yet
+  // Need at least 3 days of data before adjusting
   const dayCount = state.paceData && state.paceData[kidId] ? Object.keys(state.paceData[kidId]).length : 0;
-  const historyCount = (state.lessonHistory && state.lessonHistory[kidId]) ? state.lessonHistory[kidId].length : 0;
-  if (dayCount < 3 && historyCount < 3) return; // not enough data
+  if (dayCount < 3) return;
   const diff = PACE_TARGET_MIN - avg; // positive = under target, negative = over
   let delta = 0;
   const absDiff = Math.abs(diff);
-  if (absDiff <= 5) delta = diff > 0 ? 1 : -1;
-  else if (absDiff <= 10) delta = diff > 0 ? 2 : -2;
-  else delta = diff > 0 ? 4 : -4;
+  if (absDiff <= 5) delta = diff > 0 ? 1 : -1;        // close — nudge ±1
+  else if (absDiff <= 10) delta = diff > 0 ? 2 : -2;  // moderate — ±2
+  else delta = diff > 0 ? 4 : -4;                      // way off — aggressive ±4
   state.adaptiveQ[kidId] = Math.max(5, Math.min(25, state.adaptiveQ[kidId] + delta));
 }
 
@@ -1344,9 +963,8 @@ async function pullState() {
     const sharedData = await fbGet('shared') || {};
 
     // Merge parent settings into state (non-destructive)
-    const parentFields = ['pin','kidPins','rewards','rewardsUpdatedAt','coinMax','lessonTimers','selectedVoice',
-                          'difficultyLevel','bonusChallenges','badgeQuarter','vacationMode','paceData','adaptiveQ',
-                          'perfectWeekClaimed','levelsUpdatedAt','incompleteWeekPenalized','soundsOff','autoAdvance','excusedToday','excusedDays','parentMessages'];
+    const parentFields = ['pin','kidPins','rewards','coinMax','lessonTimers','selectedVoice',
+                          'difficultyLevel','bonusChallenges','badgeQuarter','vacationMode','paceData','adaptiveQ'];
     parentFields.forEach(function(f) {
       if (parentData[f] !== undefined) state[f] = parentData[f];
     });
@@ -1356,43 +974,30 @@ async function pullState() {
     kidIds.forEach(function(kidId) {
       const remote = kidsData[kidId];
       if (!remote) return;
+      // Find kid in state
       const kidIdx = state.kids.findIndex(k => k.id === kidId);
       if (kidIdx === -1 && remote.info) {
         state.kids.push(remote.info);
       } else if (kidIdx !== -1 && remote.info) {
-        // Use timestamp to determine which coins value wins
-        const remoteTs = remote.coinsUpdatedAt || 0;
-        const localTs = (state.coinsUpdatedAt && state.coinsUpdatedAt[kidId]) || 0;
-        const useRemoteCoins = remoteTs >= localTs;
+        // Take higher coin value
         state.kids[kidIdx] = Object.assign({}, state.kids[kidIdx], remote.info, {
-          coins: useRemoteCoins ? (remote.info.coins || 0) : (state.kids[kidIdx].coins || 0)
+          coins: Math.max(state.kids[kidIdx].coins || 0, remote.info.coins || 0)
         });
-        if (!state.coinsUpdatedAt) state.coinsUpdatedAt = {};
-        state.coinsUpdatedAt[kidId] = Math.max(remoteTs, localTs);
       }
-      const kidFields = ['progress','streaks','levels','levelsUpdatedAt','badges','dailyStreak',
-                         'brainBucksMilestones','skipDay','unlockedToday','lessonHistory','perfectWeekClaimed','liveLesson'];
+      // Per-kid data fields
+      const kidFields = ['progress','streaks','levels','badges','dailyStreak',
+                         'brainBucksMilestones','skipDay','unlockedToday','lessonHistory'];
       kidFields.forEach(function(f) {
         if (remote[f] !== undefined) {
           if (!state[f]) state[f] = {};
           if (f === 'lessonHistory' && Array.isArray(remote[f]) && Array.isArray(state[f][kidId])) {
+            // Merge and deduplicate history
             const seen = new Set();
             state[f][kidId] = (remote[f] || []).concat(state[f][kidId] || []).filter(function(e) {
               const key = e.date + '|' + e.subject;
               if (seen.has(key)) return false;
               seen.add(key); return true;
             });
-          } else if (f === 'levels') {
-            // Only overwrite local levels if remote is newer
-            const remoteTs = (remote['levelsUpdatedAt'] !== undefined) ? remote['levelsUpdatedAt'] : 0;
-            const localTs = (state.levelsUpdatedAt && state.levelsUpdatedAt[kidId]) || 0;
-            if (remoteTs >= localTs) {
-              state[f][kidId] = remote[f];
-            }
-            if (!state.levelsUpdatedAt) state.levelsUpdatedAt = {};
-            state.levelsUpdatedAt[kidId] = Math.max(remoteTs, localTs);
-          } else if (f === 'levelsUpdatedAt') {
-            // Handled above
           } else {
             state[f][kidId] = remote[f];
           }
@@ -1419,37 +1024,6 @@ async function pullState() {
 
     localStorage.setItem('kidstuff_cache', JSON.stringify(state));
     runMigrations();
-
-    // ── REWARD FIX v3.2 — runs after pull so Firebase can't stomp it ──
-    if (!localStorage.getItem('rewardsMigrationV32')) {
-      const correctRewards = {
-        lauren: [
-          {id:'r1',name:'30 min extra screen time',cost:40,emoji:'📺'},
-          {id:'r2',name:'Choose dinner',cost:60,emoji:'🍕'},
-          {id:'r3',name:'$10 at Dollar Tree',cost:80,emoji:'💵'},
-          {id:'r4',name:'New bat grip from TT',cost:75,emoji:'🎁'}
-        ],
-        andrew: [
-          {id:'r1',name:'Catch with Daddy',cost:40,emoji:'📺'},
-          {id:'r2',name:'Choose dinner',cost:60,emoji:'🍕'},
-          {id:'r3',name:'$10 at Dollar Tree',cost:80,emoji:'💵'},
-          {id:'r4',name:'New bat grip from TT',cost:75,emoji:'🎁'}
-        ],
-        tester: [
-          {id:'r1',name:'30 min extra screen time',cost:40,emoji:'📺'},
-          {id:'r2',name:'Choose dinner',cost:60,emoji:'🍕'},
-          {id:'r3',name:'$10 at Dollar Tree',cost:80,emoji:'💵'}
-        ]
-      };
-      if (!state.rewards) state.rewards = {};
-      Object.keys(correctRewards).forEach(function(kidId) {
-        state.rewards[kidId] = correctRewards[kidId];
-      });
-      state.rewardsUpdatedAt = Date.now();
-      localStorage.setItem('kidstuff_cache', JSON.stringify(state));
-      localStorage.setItem('rewardsMigrationV32', '1');
-      try { await pushParentData(); } catch(e) { console.warn('Reward fix push failed:', e); }
-    }
     setSyncBar('✅ Synced', '');
     setTimeout(() => setSyncBar('', 'hide'), 2000);
     document.getElementById('sync-status-landing').textContent = '☁️ Firebase sync active';
@@ -1477,16 +1051,12 @@ async function pushKidData(kidId) {
       progress: (state.progress || {})[kidId] || {},
       streaks: (state.streaks || {})[kidId] || {},
       levels: (state.levels || {})[kidId] || {},
-      levelsUpdatedAt: (state.levelsUpdatedAt || {})[kidId] || 0,
-      coinsUpdatedAt: (state.coinsUpdatedAt || {})[kidId] || 0,
       badges: (state.badges || {})[kidId] || [],
       dailyStreak: (state.dailyStreak || {})[kidId] || {},
       brainBucksMilestones: (state.brainBucksMilestones || {})[kidId] || [],
       skipDay: (state.skipDay || {})[kidId] || 0,
       unlockedToday: (state.unlockedToday || {})[kidId] || {},
-      lessonHistory: (state.lessonHistory || {})[kidId] || [],
-      perfectWeekClaimed: (state.perfectWeekClaimed || {})[kidId] || '',
-      liveLesson: (state.liveLesson || {})[kidId] || null
+      lessonHistory: (state.lessonHistory || {})[kidId] || []
     };
     await fbSet('kids/' + kidId, kidPayload);
   } catch(e) {
@@ -1501,7 +1071,6 @@ async function pushParentData() {
       pin: state.pin,
       kidPins: state.kidPins,
       rewards: state.rewards,
-      rewardsUpdatedAt: state.rewardsUpdatedAt || 0,
       coinMax: state.coinMax,
       lessonTimers: state.lessonTimers,
       selectedVoice: state.selectedVoice,
@@ -1509,15 +1078,7 @@ async function pushParentData() {
       badgeQuarter: state.badgeQuarter,
       vacationMode: state.vacationMode || false,
       paceData: state.paceData || {},
-      adaptiveQ: state.adaptiveQ || {},
-      perfectWeekClaimed: state.perfectWeekClaimed || {},
-      levelsUpdatedAt: state.levelsUpdatedAt || {},
-      incompleteWeekPenalized: state.incompleteWeekPenalized || {},
-      soundsOff: state.soundsOff === true,
-      autoAdvance: state.autoAdvance === true,
-      excusedToday: state.excusedToday || {},
-      excusedDays: state.excusedDays || {},
-      parentMessages: state.parentMessages || {}
+      adaptiveQ: state.adaptiveQ || {}
     };
     await fbSet('parent', parentPayload);
   } catch(e) {
@@ -1557,11 +1118,6 @@ function pushState() {
   }
 }
 
-function stampCoins(kidId) {
-  if (!state.coinsUpdatedAt) state.coinsUpdatedAt = {};
-  state.coinsUpdatedAt[kidId] = Date.now();
-}
-
 function saveState() {
   localStorage.setItem('kidstuff_cache', JSON.stringify(state));
   updateParentBadge();
@@ -1584,26 +1140,25 @@ function startRealtimeListener() {
     const url = FIREBASE_URL + '/.json?accept=text/event-stream&auth=' + token;
     _realtimeES = new EventSource(url);
     _realtimeES.addEventListener('put', function(e) {
+      // Ignore our own pushes (they arrive ~800ms after saveState debounce)
+      // Only pull if we're not currently pushing
       if (isSyncing) return;
       clearTimeout(_realtimeRetryTimer);
       _realtimeRetryTimer = setTimeout(function() {
         pullState().then(function() {
+          // Re-render whichever screen is active
           const parent = document.getElementById('screen-parent');
           const kid = document.getElementById('screen-kid');
           if (parent && parent.classList.contains('active')) renderParentDashboard();
           if (kid && kid.classList.contains('active')) renderKidDashboard();
         }).catch(e => console.warn('Realtime pull error:', e));
-      }, 1200);
+      }, 1200); // small debounce so rapid changes don't flood pulls
     });
     _realtimeES.addEventListener('patch', function() {
       if (isSyncing) return;
       clearTimeout(_realtimeRetryTimer);
       _realtimeRetryTimer = setTimeout(function() {
-        pullState().then(function() {
-          // On patch (e.g. live lesson update), refresh parent summary if open
-          const parent = document.getElementById('screen-parent');
-          if (parent && parent.classList.contains('active')) renderParentKidSummary();
-        }).catch(e => console.warn('Realtime patch pull error:', e));
+        pullState().catch(e => console.warn('Realtime patch pull error:', e));
       }, 1200);
     });
     _realtimeES.onerror = function() {
@@ -1655,23 +1210,10 @@ function loadLocalFallback() {
       if (!state.adaptiveQ) state.adaptiveQ = {lauren:10, andrew:10, tester:10};
       if (!state.paceData) state.paceData = {lauren:{}, andrew:{}, tester:{}};
       if (state.vacationMode === undefined) state.vacationMode = false;
-      if (!state.perfectWeekClaimed) state.perfectWeekClaimed = {lauren:'', andrew:'', tester:''};
-      if (!state.levelsUpdatedAt) state.levelsUpdatedAt = {lauren:0, andrew:0, tester:0};
-      if (state.rewardsUpdatedAt === undefined) state.rewardsUpdatedAt = 0;
-      if (!state.coinsUpdatedAt) state.coinsUpdatedAt = {lauren:0, andrew:0, tester:0};
-      if (!state.incompleteWeekPenalized) state.incompleteWeekPenalized = {lauren:'', andrew:'', tester:''};
-      if (state.soundsOff === undefined) state.soundsOff = false;
-      if (state.autoAdvance === undefined) state.autoAdvance = false;
-      if (!state.excusedToday) state.excusedToday = {};
-      if (!state.excusedDays) state.excusedDays = {};
-      if (!state.parentMessages) state.parentMessages = {};
+      // Per-kid adaptiveQ guard for existing kids
       state.kids.forEach(function(k) {
         if (!state.adaptiveQ[k.id]) state.adaptiveQ[k.id] = 10;
         if (!state.paceData[k.id]) state.paceData[k.id] = {};
-        if (state.perfectWeekClaimed[k.id] === undefined) state.perfectWeekClaimed[k.id] = '';
-        if (!state.levelsUpdatedAt[k.id]) state.levelsUpdatedAt[k.id] = 0;
-        if (!state.coinsUpdatedAt[k.id]) state.coinsUpdatedAt[k.id] = 0;
-        if (state.incompleteWeekPenalized[k.id] === undefined) state.incompleteWeekPenalized[k.id] = '';
       });
     }
   } catch(e) { state = JSON.parse(JSON.stringify(DEFAULT_STATE)); }
@@ -1689,7 +1231,6 @@ function setSyncBar(msg, type) {
 function updateLastSyncedDisplay() {
   const ts = state.lastSynced;
   let label = '';
-  let isStale = false;
   if (ts) {
     const d = new Date(ts);
     const now = new Date();
@@ -1702,17 +1243,14 @@ function updateLastSyncedDisplay() {
       const ampm = d.getHours() >= 12 ? 'pm' : 'am';
       label = 'Synced at ' + h + ':' + m + ampm;
     }
-    isStale = diffMin > 30;
   }
-  // Connection dot — green if recent sync, red if stale or never
-  const dot = ts && !isStale ? '🟢' : '🔴';
-  const staleWarning = isStale ? ' ⚠️ Stale' : '';
+  // Update all sync timestamp elements
   document.querySelectorAll('.last-synced-ts').forEach(function(el) {
-    el.textContent = dot + ' ' + label + staleWarning;
-    el.style.color = isStale ? '#EF4444' : '';
+    el.textContent = label;
   });
+  // Also update landing page status
   const landingStatus = document.getElementById('sync-status-landing');
-  if (landingStatus) landingStatus.textContent = ts ? (dot + ' Firebase • ' + label + staleWarning) : '🔴 Not synced';
+  if (landingStatus && ts) landingStatus.textContent = '☁️ Firebase • ' + label;
 }
 
 // ── SCREENS ─────────────────────────────────────────────
@@ -1778,8 +1316,6 @@ function pinKey(d) {
           const cb = document.getElementById('remember-me-checkbox');
           if (cb && cb.checked) localStorage.setItem('kidstuff_rememberedKid', currentKidId);
           else localStorage.removeItem('kidstuff_rememberedKid');
-          // Check for missed week penalty on login
-          checkIncompleteWeekPenalty(currentKidId);
           showScreen('screen-kid');
         } else {
           document.getElementById('pin-error').textContent = 'Incorrect PIN.';
@@ -1809,7 +1345,6 @@ function selectKid(id) {
   } else {
     localStorage.removeItem('kidstuff_rememberedKid');
   }
-  checkIncompleteWeekPenalty(id);
   showScreen('screen-kid');
 }
 function updateParentBadge() {
@@ -1850,15 +1385,19 @@ function getTodayKey() { return new Date().toDateString(); }
 // Day B (Tue/Thu = odd dow): Reading + Writing
 // Sunday (dow=0): Rest day
 function getTodaySchedule() {
-  const dow = new Date().getDay();
-  const s = getScheduleForDow(dow);
-  if (s.isRest) return s;
+  const dow = new Date().getDay(); // 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
+  if (dow === 0) return { isRest: true, subjects: [] };
+  // Odd days (Mon=1,Wed=3,Fri=5,Sat=6) → Day A
+  // Even days (Tue=2,Thu=4) → Day B
   const isDayA = (dow % 2 === 1) || dow === 6;
-  return Object.assign({}, s, {
+  return {
+    isRest: false,
     isDayA,
+    subjects: isDayA ? ['spelling','math'] : ['reading','writing'],
     label: isDayA ? 'Spelling & Math today' : 'Reading & Writing today'
-  });
+  };
 }
+
 
 function getTimeGreeting() {
   const h = new Date().getHours();
@@ -1905,13 +1444,11 @@ function renderKidDashboard() {
   const schedule = getTodaySchedule();
   const greetingEl = document.getElementById('kid-dash-greeting');
   if (greetingEl) {
-    const streakCount = (state.dailyStreak && state.dailyStreak[currentKidId]) ? state.dailyStreak[currentKidId].count : 0;
-    const streakMsg = streakCount >= 3 ? ' 🔥 ' + streakCount + '-day streak!' : streakCount === 1 ? ' You started a streak!' : '';
     if (schedule.isRest) {
-      greetingEl.textContent = getTimeGreeting() + ', ' + kid.name + '! Enjoy your day off 😴';
+      greetingEl.textContent = getTimeGreeting() + ', ' + kid.name + '! Today is your rest day 😴';
     } else {
       const subjectNames = schedule.subjects.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' & ');
-      greetingEl.textContent = getTimeGreeting() + ', ' + kid.name + '!' + streakMsg + ' Today: ' + subjectNames + ' 🌟';
+      greetingEl.textContent = getTimeGreeting() + ', ' + kid.name + '! Ready for ' + subjectNames + '? 🌟';
     }
     greetingEl.style.display = 'block';
   }
@@ -1921,20 +1458,8 @@ function renderKidDashboard() {
   renderBadges(currentKidId);
 
   // Vacation mode banner
-  const tomorrowEl = document.getElementById('kid-dash-tomorrow');
-  if (tomorrowEl) {
-    const tmrDow = (new Date().getDay() + 1) % 7;
-    const tmrSched = getScheduleForDow(tmrDow);
-    if (tmrSched.isRest) {
-      tomorrowEl.textContent = 'Tomorrow: Rest day 😴';
-    } else {
-      const subjectNames = tmrSched.subjects.map(s => s.charAt(0).toUpperCase()+s.slice(1)).join(' & ');
-      tomorrowEl.textContent = 'Tomorrow: ' + subjectNames;
-    }
-  }
   const vacBanner = document.getElementById('vacation-banner');
   if (vacBanner) vacBanner.style.display = state.vacationMode ? 'block' : 'none';
-  renderParentMessageBanner(currentKidId);
 
   // Show redo notice or quarterly badge reset notice
   const redoNotice = (state.redoNotices||[]).find(function(n){ return n.kidId === currentKidId && n.subject === 'writing'; });
@@ -1997,30 +1522,20 @@ function renderKidDashboard() {
       reading:'linear-gradient(135deg,#4facfe,#00f2fe)',
       writing:'linear-gradient(135deg,#43e97b,#38f9d7)'
     };
-    const subjects = schedule.subjects.slice(); // copy so we don't mutate
-    // If writing redo is pending, always show writing card even on non-writing days
-    if (redoNotice && !subjects.includes('writing')) subjects.push('writing');
+    const subjects = schedule.subjects;
     const timerMins = state.lessonTimers || {spelling:15,math:15,reading:15,writing:15};
 
-    const regularSubjects = schedule.subjects;
     subjects.forEach(function(subjectId) {
-      const p = progress[subjectId]; const d = p && p.date === todayKey;
-      // Only count regular scheduled subjects toward "done" — redo is separate
-      if(d && regularSubjects.includes(subjectId)) done++;
-      const locked = d && !isUnlockedToday(currentKidId, subjectId) && !redoNotice;
-      // If writing redo is pending, lock all non-writing subjects until redo is done
-      const redoLocked = redoNotice && subjectId !== 'writing';
-      // Is this writing card injected only because of redo?
-      const isRedoOnly = redoNotice && subjectId === 'writing' && !regularSubjects.includes('writing');
+      const p = progress[subjectId]; const d = p && p.date === todayKey; if(d) done++;
+      const locked = d && !isUnlockedToday(currentKidId, subjectId);
       const art = subjectArt[subjectId];
       const col = subjectColors[subjectId];
-      const gl = getCurrentGradeLevel(currentKidId, subjectId);
-      const gradeLevels = getGradeLevels(gl.grade, subjectId);
-      const curIdx = gl.levelIdx || 0;
-      const gradeLabel = GRADE_LABELS[gl.grade] || ('Grade ' + gl.grade);
-      const lvl = gradeLevels[curIdx];
-      const lvlName = lvl ? lvl.name : subjectId;
+      const levelData = getCurrentLevelData(currentKidId, subjectId);
       const streakScores = getStreakScores(currentKidId, subjectId);
+      const subjLevels = getSubjectProgression(currentKidId, subjectId);
+      const curIdx = getCurrentLevelIndex(currentKidId, subjectId);
+      const levelNum = curIdx + 1;
+      const totalLevels = subjLevels.length;
       const mins = timerMins[subjectId] || 15;
 
       const div = document.createElement('div');
@@ -2041,33 +1556,18 @@ function renderKidDashboard() {
       })();
 
       div.innerHTML = '<div style="width:72px;height:72px;border-radius:50%;background:' + col + ';display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 10px;box-shadow:0 4px 16px rgba(0,0,0,0.15);">' + art + '</div>'
-        + '<div class="subj-name">' + (isRedoOnly ? '✍️ Writing Redo' : lvlName) + '</div>'
-        + '<div style="font-size:11px;color:var(--primary);font-weight:700;margin-top:2px">' + gradeLabel + ' · Level ' + (curIdx+1) + '/' + gradeLevels.length + '</div>'
+        + '<div class="subj-name">' + (levelData ? levelData.name : subjectId) + '</div>'
+        + '<div style="font-size:11px;color:var(--primary);font-weight:700;margin-top:2px">Level ' + levelNum + ' of ' + totalLevels + '</div>'
         + (locked
           ? '<div class="subj-score" style="margin-top:6px">✓ ' + p.score + '%</div>'
-          : redoLocked
-            ? '<div style="font-size:11px;color:#EF4444;font-weight:700;margin-top:4px">✍️ Finish Writing Redo first</div>'
-            : isRedoOnly
-              ? '<div style="font-size:11px;color:#EF4444;font-weight:700;margin-top:4px">🔄 Redo required</div>'
-              : '<div class="subj-status" style="font-size:11px;color:var(--muted);margin-top:4px">⏱ ' + mins + ' min</div>')
+          : '<div class="subj-status" style="font-size:11px;color:var(--muted);margin-top:4px">⏱ ' + mins + ' min</div>')
         + streakHtml
-        + (locked ? '<div style="position:absolute;top:10px;right:10px;background:#2ECC71;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:14px;">✓</div>' : '')
-        + (redoLocked ? '<div style="position:absolute;top:10px;right:10px;background:#EF4444;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:14px;">🔒</div>' : '')
-        + (isRedoOnly ? '<div style="position:absolute;top:10px;right:10px;background:#EF4444;color:white;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:800;">REDO</div>' : '');
-      if (redoLocked) {
-        div.onclick = function() { showToast('✍️ Complete the Writing Redo first!'); };
-        div.style.opacity = '0.6';
-        div.style.cursor = 'not-allowed';
-      } else if (redoNotice && subjectId === 'writing') {
-        // Launch redo directly — don't generate new lesson
-        div.onclick = function() { startWritingRedo(); };
-      } else {
-        div.onclick = (function(id){ return function(){ startLesson(id); }; })(subjectId);
-      }
+        + (locked ? '<div style="position:absolute;top:10px;right:10px;background:#2ECC71;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:14px;">✓</div>' : '');
+      div.onclick = (function(id){ return function(){ startLesson(id); }; })(subjectId);
       grid.appendChild(div);
     });
 
-    const total_subjects = regularSubjects.length;
+    const total_subjects = subjects.length;
     if (done === total_subjects) {
       prog_el.textContent = '🎉 All done for today!';
       prog_el.style.color = '#2ECC71';
@@ -2089,25 +1589,21 @@ function renderKidDashboard() {
         + '</button>';
     }).join('');
   }
+  const studyBtn = document.getElementById('study-mode-btn');
+  if (studyBtn) {
+    const hasWrong = ['spelling','math','reading','writing'].some(function(s) {
+      const p = (state.progress[currentKidId]||{})[s];
+      return p && p.wrongAnswers && p.wrongAnswers.length > 0;
+    });
+    studyBtn.style.display = hasWrong ? 'block' : 'none';
+  }
 
   const rewardsEl = document.getElementById('kid-rewards-list');
-  // Show pending redemptions first
-  const pendingRedemptions = (state.redemptionQueue||[]).filter(function(r){ return r.kidId === currentKidId && r.status === 'pending'; });
-  let pendingHtml = '';
-  if (pendingRedemptions.length) {
-    pendingHtml = pendingRedemptions.map(function(r) {
-      return '<div style="background:#FFF8E1;border:2px solid #F7C948;border-radius:12px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px">'
-        + '<div style="font-size:24px">⏳</div>'
-        + '<div><div style="font-weight:700;font-size:14px">' + (r.rewardName||'Reward') + '</div>'
-        + '<div style="font-size:12px;color:#B45309">Pending parent approval</div></div>'
-        + '</div>';
-    }).join('');
-  }
   const kidRewards2 = getRewardsForKid(currentKidId);
   if (!kidRewards2 || !kidRewards2.length) {
-    rewardsEl.innerHTML = pendingHtml + '<div class="empty-state"><div class="empty-icon">🎁</div><p>No rewards yet.</p></div>';
+    rewardsEl.innerHTML = '<div class="empty-state"><div class="empty-icon">🎁</div><p>No rewards yet.</p></div>';
   } else {
-    rewardsEl.innerHTML = pendingHtml;
+    rewardsEl.innerHTML = '';
     kidRewards2.forEach(function(r) {
       const item = document.createElement('div');
       item.className = 'reward-item';
@@ -2123,76 +1619,6 @@ function renderKidDashboard() {
     });
   }
   renderKidHistory(currentKidId);
-  renderBrainBucksHistory(currentKidId);
-  renderKidProgressSummary(currentKidId);
-}
-
-function renderBrainBucksHistory(kidId) {
-  const card = document.getElementById('kid-bb-history-card');
-  const list = document.getElementById('kid-bb-history-list');
-  if (!card || !list) return;
-  // Build history from lessonHistory (earnings) + redemptionQueue (spending)
-  const entries = [];
-  const history = (state.lessonHistory && state.lessonHistory[kidId]) || [];
-  history.forEach(function(e) {
-    if (e.coins > 0) entries.push({
-      date: e.date, type: 'earn',
-      desc: ({spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'}[e.subject]||'📚') + ' ' + e.subject.charAt(0).toUpperCase()+e.subject.slice(1) + ' lesson',
-      amount: +e.coins
-    });
-  });
-  (state.redemptionQueue||[]).filter(r => r.kidId === kidId).forEach(function(r) {
-    entries.push({
-      date: r.date || '', type: 'spend',
-      desc: '🎁 ' + (r.rewardName || 'Reward redeemed'),
-      amount: -(r.cost || 0)
-    });
-  });
-  if (!entries.length) { card.style.display = 'none'; return; }
-  card.style.display = 'block';
-  entries.sort((a,b) => b.date.localeCompare(a.date));
-  const recent = entries.slice(0, 20);
-  list.innerHTML = recent.map(function(e) {
-    const color = e.type === 'earn' ? '#2ECC71' : '#EF4444';
-    const sign = e.type === 'earn' ? '+' : '';
-    const dateDisp = e.date ? new Date(e.date + 'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'}) : '';
-    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px">'
-      + '<div style="flex:1"><div style="font-weight:600">' + e.desc + '</div>'
-      + '<div style="font-size:11px;color:var(--muted)">' + dateDisp + '</div></div>'
-      + '<div style="font-weight:800;color:' + color + '">' + sign + e.amount + ' 🧠</div>'
-      + '</div>';
-  }).join('');
-}
-
-function renderKidProgressSummary(kidId) {
-  const card = document.getElementById('kid-progress-summary-card');
-  const content = document.getElementById('kid-progress-summary-content');
-  if (!card || !content) return;
-  const history = (state.lessonHistory && state.lessonHistory[kidId]) || [];
-  if (!history.length) { card.style.display = 'none'; return; }
-  card.style.display = 'block';
-  const subjects = ['spelling','math','reading','writing'];
-  const icons = {spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'};
-  const rows = subjects.map(function(s) {
-    const entries = history.filter(e => e.subject === s);
-    if (!entries.length) return '';
-    const avg = Math.round(entries.reduce((a,e)=>a+e.score,0)/entries.length);
-    const best = Math.max(...entries.map(e=>e.score));
-    const gl = getCurrentGradeLevel(kidId, s);
-    const gradeLabel = GRADE_LABELS[gl.grade] || ('Grade ' + gl.grade);
-    const color = avg >= 90 ? '#2ECC71' : avg >= 70 ? 'var(--primary)' : '#EF4444';
-    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">'
-      + '<span style="font-size:20px">' + icons[s] + '</span>'
-      + '<div style="flex:1">'
-      + '<div style="font-weight:700;font-size:14px">' + s.charAt(0).toUpperCase()+s.slice(1) + '</div>'
-      + '<div style="font-size:11px;color:var(--muted)">' + gradeLabel + ' · ' + entries.length + ' lesson' + (entries.length!==1?'s':'') + '</div>'
-      + '</div>'
-      + '<div style="text-align:right">'
-      + '<div style="font-weight:800;font-size:15px;color:' + color + '">' + avg + '%</div>'
-      + '<div style="font-size:11px;color:var(--muted)">Best: ' + best + '%</div>'
-      + '</div></div>';
-  }).join('');
-  content.innerHTML = rows || '<div style="color:var(--muted);font-size:14px">No sessions yet.</div>';
 }
 
 function renderKidHistory(kidId) {
@@ -2200,7 +1626,7 @@ function renderKidHistory(kidId) {
   const list = document.getElementById('kid-history-list');
   if (!card || !list) return;
   const history = (state.lessonHistory && state.lessonHistory[kidId]) || [];
-  const recent = history.slice().sort((a,b) => b.date.localeCompare(a.date)).slice(0, 20);
+  const recent = history.slice(0, 14); // last 14 entries
   if (!recent.length) { card.style.display = 'none'; return; }
   card.style.display = 'block';
   const subjectIcons = {spelling:'🔤', math:'🧮', reading:'📖', writing:'✏️'};
@@ -2217,7 +1643,7 @@ function renderKidHistory(kidId) {
       return '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)">'
         + '<span style="font-size:20px">' + (subjectIcons[e.subject]||'📚') + '</span>'
         + '<div style="flex:1">'
-        + '<div style="font-weight:700;font-size:14px;text-transform:capitalize">' + e.subject + ' — ' + (e.gradeLabel || ('Grade ' + (e.grade||3))) + ' L' + e.level + '</div>'
+        + '<div style="font-weight:700;font-size:14px;text-transform:capitalize">' + e.subject + ' — Level ' + e.level + '</div>'
         + '<div style="font-size:12px;color:var(--muted)">' + (e.duration||0) + ' min · ' + e.correct + '/' + e.total + ' correct</div>'
         + '</div>'
         + '<div style="font-weight:800;font-size:15px;color:' + scoreColor + '">' + e.score + '%</div>'
@@ -2235,7 +1661,6 @@ function redeemReward(id) {
   const kid = state.kids.find(k => k.id === currentKidId);
   if (!r || !kid || kid.coins < r.cost) return;
   kid.coins -= r.cost;
-  stampCoins(currentKidId);
   if (!state.redemptionQueue) state.redemptionQueue = [];
   state.redemptionQueue.push({
     id: 'rq' + Date.now(),
@@ -2304,19 +1729,6 @@ async function startLesson(subjectId) {
     return;
   }
 
-  // Vacation mode soft block
-  if (state.vacationMode) {
-    const kid = state.kids.find(k => k.id === currentKidId);
-    const name = kid ? kid.name : 'you';
-    const proceed = confirm('🏖️ You\'re on vacation, ' + name + '!\n\nAsk a parent if you should do lessons today.\n\nPress OK to do a lesson anyway, or Cancel to go back.');
-    if (!proceed) return;
-  }
-
-  // Write live lesson indicator to Firebase and local state
-  if (!state.liveLesson) state.liveLesson = {};
-  state.liveLesson[currentKidId] = {subject: subjectId, icon: icon, startTime: Date.now()};
-  try { fbSet('kids/' + currentKidId + '/liveLesson', state.liveLesson[currentKidId]); } catch(e){}
-
   // Show loading overlay
   document.getElementById('generating-overlay').style.display='flex';
   document.getElementById('gen-kid-name').textContent = (state.kids.find(k=>k.id===currentKidId)||{}).name || '';
@@ -2349,17 +1761,7 @@ async function startLesson(subjectId) {
   } catch(e) {
     document.getElementById('generating-overlay').style.display='none';
     console.error('Lesson load error:', e);
-    // Clear the live lesson indicator since we failed
-    if (state.liveLesson) state.liveLesson[currentKidId] = null;
-    try { fbSet('kids/' + currentKidId + '/liveLesson', null); } catch(_){}
-    // Show friendly retry dialog instead of a raw error
-    const isOffline = !navigator.onLine;
-    const msg = isOffline
-      ? "Looks like you're offline. Connect to the internet and try again! 🌐"
-      : "Couldn't load the lesson right now — the AI might be taking a quick nap. Try again in a moment! 😴";
-    if (confirm('⚠️ ' + msg + '\n\nTap OK to try again, or Cancel to go back.')) {
-      startLesson(subjectId);
-    }
+    showToast('❌ ' + (e.message || String(e)));
   }
 }
 
@@ -2415,8 +1817,7 @@ Difficulty: ${diffName}. Student: ${kid.name}.${topicNote}${wrongContext}
 Mix of multiple choice and typed answer questions.
 Return ONLY valid JSON array, no markdown:
 [{"type":"mc","question":"REAL MATH QUESTION","options":["A","B","C","D"],"answer":"A"},{"type":"typed","question":"REAL MATH QUESTION","answer":"ANSWER"},...]
-Use exactly ${mcCount} mc and ${typedCount} typed questions. All content must be real math problems for "${levelName}". No placeholder text. Use actual numbers and symbols (use x for multiplication, / for division).
-CRITICAL: The "answer" field must always be the COMPUTED RESULT — never the expression. For example: 48/6 answer must be "8" not "6" or "48/6". 8x7 answer must be "56". Always verify your answers are mathematically correct before returning.`;
+Use exactly ${mcCount} mc and ${typedCount} typed questions. All content must be real math problems for "${levelName}". No placeholder text. Use actual numbers and symbols (use x for multiplication, / for division).`;
 
   } else if (type === 'reading') {
     prompt = `Generate a reading comprehension lesson for a student practicing "${levelName}" (${levelDesc}).
@@ -2442,22 +1843,12 @@ Rules:
 - The hint field is optional but helpful (e.g. "Look at the second sentence" or "Think about what Maya said")`;
 
   } else if (type === 'writing') {
-    // Build context from recent writing history to avoid repeating prompts
-    const recentWritingPrompts = (state.lessonHistory[kidId] || [])
-      .filter(e => e.subject === 'writing' && e.writingPrompt)
-      .slice(0, 3)
-      .map(e => e.writingPrompt);
-    const avoidNote = recentWritingPrompts.length
-      ? '\nAvoid these recent prompts: ' + recentWritingPrompts.map(p => '"' + p.slice(0,50) + '"').join(', ')
-      : '';
-    prompt = `Generate a writing prompt for ${kid.name}, a student practicing "${levelName}" (${levelDesc}).
-Grade level context: ${GRADE_LABELS[getCurrentGradeLevel(kidId,'writing').grade] || 'Grade 3'}.
-Difficulty: ${diffName}.${avoidNote}
-The prompt must be a CLEAR INSTRUCTION — NOT a story starter or opening sentence.
-Good: "Write 3-5 sentences about your favorite animal. Include what it looks like, where it lives, and why you like it."
-Bad: "After discovering a mysterious box..." (story starter, not an instruction)
-Personalize it slightly for ${kid.name} — make it feel like it was written just for them.
-Return ONLY valid JSON, no markdown:
+    prompt = `Generate a writing prompt for a student practicing "${levelName}" (${levelDesc}).
+Difficulty: ${diffName}. Student: ${kid.name}.
+The prompt must be a CLEAR INSTRUCTION telling the student what to write — NOT a story starter or opening sentence.
+Good examples: "Write 3-5 sentences about your favorite animal. Include what it looks like, where it lives, and why you like it."
+Bad examples: "After discovering a mysterious box..." (this is a story starter, not an instruction)
+Return ONLY valid JSON object, no markdown:
 {"prompt":"WRITING INSTRUCTION HERE"}
 Make it fun, creative, age-appropriate, and specific about what and how much to write.`;
   }
@@ -2578,34 +1969,11 @@ function renderSpellingQ(c, q) {
     <div class="question-text">🔊 Listen and spell the word</div>
     <div class="question-sub">Press the button to hear the word, then type it below.</div>
     <button class="speak-btn" onclick="speakWord('${w}')">🔊 Hear the Word</button>
-    <input class="answer-input" id="spell-input" type="text"
-      placeholder="Type the word..."
-      autocomplete="new-password"
-      autocorrect="off"
-      autocapitalize="off"
-      autocomplete="off"
-      spellcheck="false"
-      inputmode="text"
-      data-form-type="other"
-      style="ime-mode:disabled;"
-    />
+    <input class="answer-input" id="spell-input" type="text" placeholder="Type the word..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
     <div class="feedback-box" id="feedback"></div>
     <button class="btn-primary" id="check-btn" onclick="checkSpelling('${w}')" style="margin-top:14px">Check Answer</button>
   </div>`;
-  setTimeout(() => {
-    speakWord(w);
-    const el = document.getElementById('spell-input');
-    if (el) {
-      el.focus();
-      // Suppress iOS QuickType / predictive text
-      el.setAttribute('autocomplete', 'off');
-      el.setAttribute('autocorrect', 'off');
-      el.setAttribute('spellcheck', 'false');
-      // Prevent paste (another cheat vector)
-      el.addEventListener('paste', function(e){ e.preventDefault(); });
-      el.addEventListener('drop', function(e){ e.preventDefault(); });
-    }
-  }, 400);
+  setTimeout(() => { speakWord(w); const el = document.getElementById('spell-input'); if(el) el.focus(); }, 400);
 }
 
 // ── VOICE SYSTEM ─────────────────────────────────────────
@@ -2809,9 +2177,7 @@ function renderMCQ(c, q) {
       `<button class="option-btn" onclick="selectOption(this,'${escQ(o)}','${escQ(resolvedAns)}')">${o}</button>`).join('')}
     </div>
     <div class="feedback-box" id="feedback"></div>
-    ${lessonState && lessonState.subjectType === 'math' ? mathScratchPadHTML() : ''}
   </div>`;
-  if (lessonState && lessonState.subjectType === 'math') initMathScratchPad();
 }
 
 function renderShortQ(c, q) {
@@ -2828,58 +2194,6 @@ function renderShortQ(c, q) {
   </div>`;
 }
 
-function mathScratchPadHTML() {
-  return `<div style="margin-top:14px;border-top:1px solid var(--border);padding-top:10px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-      <span style="font-size:12px;font-weight:800;color:var(--muted)">🖊 SCRATCH PAD</span>
-      <button onclick="clearMathScratch()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;">Clear</button>
-    </div>
-    <canvas id="math-scratch-canvas" width="600" height="180"
-      style="width:100%;height:180px;border:1.5px solid var(--border);border-radius:10px;background:#FAFBFF;touch-action:none;cursor:crosshair;display:block;"></canvas>
-  </div>`;
-}
-
-function initMathScratchPad() {
-  const canvas = document.getElementById('math-scratch-canvas');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  ctx.strokeStyle = '#1A1F36';
-  ctx.lineWidth = 2;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  let drawing = false;
-  let lastX = 0, lastY = 0;
-  function getPos(e) {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const src = e.touches ? e.touches[0] : e;
-    return { x: (src.clientX - rect.left) * scaleX, y: (src.clientY - rect.top) * scaleY };
-  }
-  function start(e) { e.preventDefault(); drawing = true; const p = getPos(e); lastX = p.x; lastY = p.y; }
-  function move(e) {
-    e.preventDefault();
-    if (!drawing) return;
-    const p = getPos(e);
-    ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(p.x, p.y); ctx.stroke();
-    lastX = p.x; lastY = p.y;
-  }
-  function stop() { drawing = false; }
-  canvas.addEventListener('mousedown', start);
-  canvas.addEventListener('mousemove', move);
-  canvas.addEventListener('mouseup', stop);
-  canvas.addEventListener('mouseleave', stop);
-  canvas.addEventListener('touchstart', start, {passive:false});
-  canvas.addEventListener('touchmove', move, {passive:false});
-  canvas.addEventListener('touchend', stop);
-}
-
-function clearMathScratch() {
-  const canvas = document.getElementById('math-scratch-canvas');
-  if (!canvas) return;
-  canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-}
-
 function renderTypedQ(c, q) {
   const cleanQ = sanitizeUnicode(q.question);
   const cleanSub = q.sub ? sanitizeUnicode(q.sub) : null;
@@ -2892,10 +2206,8 @@ function renderTypedQ(c, q) {
     <input class="answer-input" id="typed-input" type="text" placeholder="Your answer..." autocomplete="off"/>
     <div class="feedback-box" id="feedback"></div>
     <button class="btn-primary" id="check-btn" onclick="checkTyped('${escQ(q.answer)}')">Check Answer</button>
-    ${lessonState && lessonState.subjectType === 'math' ? mathScratchPadHTML() : ''}
   </div>`;
   setTimeout(() => { const el=document.getElementById('typed-input'); if(el) el.focus(); }, 200);
-  if (lessonState && lessonState.subjectType === 'math') initMathScratchPad();
 }
 
 function renderWritingLesson(c) {
@@ -2903,6 +2215,7 @@ function renderWritingLesson(c) {
     <div class="kumon-q-num">Writing Activity</div>
     <div class="question-text">✍️ Write about this prompt:</div>
     <div class="writing-prompt">${lessonState.writingPrompt||'Write 3–5 sentences about your favorite season. Use describing words!'}</div>
+    <div class="question-sub" style="margin-bottom:12px">Use your finger or Apple Pencil to write your response on the lines below. Try to write at least 3–5 sentences!</div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
       <button id="tool-pen" onclick="setCanvasTool('pen')" style="padding:7px 14px;border-radius:8px;border:2px solid var(--primary);background:var(--primary);color:white;font-family:Nunito,sans-serif;font-weight:700;font-size:13px;cursor:pointer;">✏️ Pen</button>
       <button id="tool-eraser" onclick="setCanvasTool('eraser')" style="padding:7px 14px;border-radius:8px;border:2px solid var(--border);background:white;color:var(--text);font-family:Nunito,sans-serif;font-weight:700;font-size:13px;cursor:pointer;">🧹 Eraser</button>
@@ -2915,9 +2228,8 @@ function renderWritingLesson(c) {
       <button onclick="clearCanvas()" style="margin-left:auto;background:rgba(255,255,255,0.9);border:1.5px solid var(--border);border-radius:8px;padding:5px 12px;font-family:Nunito,sans-serif;font-weight:700;font-size:12px;cursor:pointer;color:var(--muted);">🗑 Clear All</button>
     </div>
     <div style="position:relative;margin-bottom:14px;">
-      <canvas id="writing-canvas" width="700" height="660"
-        style="width:100%;height:660px;border:2px solid var(--border);border-radius:12px;background:#FAFBFF;touch-action:none;cursor:crosshair;display:block;"></canvas>
-      <button onclick="expandWritingCanvas()" id="expand-canvas-btn" style="width:100%;margin-top:8px;padding:10px;border-radius:10px;border:2px dashed var(--border);background:transparent;color:var(--muted);font-family:Nunito,sans-serif;font-weight:700;font-size:13px;cursor:pointer;">+ Add More Space</button>
+      <canvas id="writing-canvas" width="700" height="380"
+        style="width:100%;height:380px;border:2px solid var(--border);border-radius:12px;background:#FAFBFF;touch-action:none;cursor:crosshair;display:block;"></canvas>
     </div>
     <div class="feedback-box" id="feedback"></div>
     <button class="btn-primary" id="writing-submit-btn" onclick="submitWriting()">Submit for Review ✉️</button>
@@ -3085,29 +2397,6 @@ function setEraserSize(size) {
   });
 }
 
-function expandWritingCanvas() {
-  const canvas = document.getElementById('writing-canvas');
-  if (!canvas) return;
-  const addHeight = 330; // add ~half a page each tap
-  const oldH = canvas.height;
-  const newH = oldH + addHeight;
-  // Save existing drawing
-  const tmp = document.createElement('canvas');
-  tmp.width = canvas.width; tmp.height = oldH;
-  tmp.getContext('2d').drawImage(canvas, 0, 0);
-  // Resize
-  canvas.height = newH;
-  canvas.style.height = newH + 'px';
-  // Restore drawing then redraw lines
-  const ctx = canvas.getContext('2d');
-  const lineSpacing = 44;
-  ctx.strokeStyle = '#C7D2FE'; ctx.lineWidth = 1;
-  for (let ly = lineSpacing; ly < newH; ly += lineSpacing) {
-    ctx.beginPath(); ctx.moveTo(0, ly); ctx.lineTo(canvas.width, ly); ctx.stroke();
-  }
-  ctx.drawImage(tmp, 0, 0);
-}
-
 function clearCanvas() {
   const canvas = document.getElementById('writing-canvas');
   if (!canvas) return;
@@ -3130,14 +2419,12 @@ function submitWriting() {
   if (!hasDrawing) { showToast('✏️ Please write something first!'); return; }
 
   const imageDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-  const isRedo = !!(state.redoNotices || []).find(function(n){ return n.kidId === currentKidId && n.subject === 'writing'; });
   if (!state.writingQueue) state.writingQueue = [];
   state.writingQueue.push({
     id: 'w'+Date.now(), kidId: currentKidId,
     prompt: lessonState.writingPrompt,
     kidAnswer: imageDataUrl,
     kidAnswerType: 'drawing',
-    isRedo: isRedo,
     status: 'pending', date: new Date().toLocaleDateString()
   });
   saveState();
@@ -3175,8 +2462,7 @@ function selectOption(btn, selected, correct) {
     }
   } else {
     showFeedback(true, '✅ Correct!');
-    recordAnswer(true);
-    setTimeout(showNextBtn, state.autoAdvance ? 400 : 0);
+    recordAnswer(true); showNextBtn();
   }
 }
 
@@ -3286,19 +2572,8 @@ function showNextBtn(flagged) {
   const qc = document.querySelector('#lesson-content .question-card');
   if (!qc) return;
 
-  // Auto-advance on correct answer (not on wrong, not on last question, not in writing)
-  if (state.autoAdvance && !flagged && !isLast && ls.subjectType !== 'writing') {
-    const lastAnswer = ls.answers && ls.answers[ls.answers.length - 1];
-    if (lastAnswer && lastAnswer.correct === true) {
-      setTimeout(function() {
-        if (lessonState && lessonState.currentQ === ls.currentQ) nextQuestion();
-      }, 800);
-      return;
-    }
-  }
-
-  // Flag button — hide during drill round, study mode, and writing lessons
-  if (!flagged && !ls.isDrillRound && !ls.isStudyMode && ls.subjectType !== 'writing') {
+  // Flag button — hide during drill round and study mode
+  if (!flagged && !ls.isDrillRound && !ls.isStudyMode) {
     const flagBtn = document.createElement('button');
     flagBtn.id = 'flag-btn';
     flagBtn.style.cssText = 'width:100%;margin-top:10px;padding:11px;border-radius:12px;border:2px solid #F7C948;background:#FFFBEA;color:#B45309;font-family:Nunito,sans-serif;font-weight:700;font-size:14px;cursor:pointer;';
@@ -3424,13 +2699,14 @@ function nextQuestion() {
 
 function startDrillRound() {
   const ls = lessonState;
+  // Build drill questions from wrong answers
   const drillQs = ls.wrongAnswers.map(function(w) {
-    // Find original question — match by question text or spelling word
+    // Find the original question object
     const orig = ls._originalQuestions && ls._originalQuestions.find(function(q) {
-      return (q.question && q.question === w.question) || (q.word && q.word === w.question);
+      return (q.question === w.question || q.word === w.question);
     });
-    if (orig) return orig; // preserves type, hint, options, word, spelling audio etc.
-    // Fallback only if original not found
+    if (orig) return orig;
+    // Fallback: rebuild a typed question
     return { type:'typed', question: w.question, answer: w.correctAnswer };
   }).filter(Boolean);
 
@@ -3442,7 +2718,6 @@ function startDrillRound() {
   ls.currentQ = 0;
   ls.drillCorrect = 0;
   ls.drillTotal = drillQs.length;
-  stopLessonTimer();
   window.scrollTo(0,0);
   renderQuestion();
 }
@@ -3450,10 +2725,8 @@ function startDrillRound() {
 function finishLesson() {
   stopLessonTimer();
   const ls = lessonState;
-  // Clear live lesson indicator
-  if (!state.liveLesson) state.liveLesson = {};
-  state.liveLesson[currentKidId] = null;
-  try { fbSet('kids/' + currentKidId + '/liveLesson', null); } catch(e){}
+  // Study mode — no scoring, just return to dashboard
+  if (ls.isStudyMode) { endStudyMode(); return; }
   // Use original question set for scoring (not drill questions)
   const origQuestions = ls._originalQuestions || ls.questions;
   const origTotal = origQuestions.length;
@@ -3493,7 +2766,7 @@ function finishLesson() {
     });
   });
   const kid = state.kids.find(k=>k.id===currentKidId);
-  if (kid && !alreadyDone) { kid.coins += coins; stampCoins(currentKidId); }
+  if (kid && !alreadyDone) kid.coins += coins;
   state.difficultyLevel[currentKidId] = ls.diffLevel;
 
   // ── Kumon advancement logic ──────────────────────────
@@ -3503,60 +2776,33 @@ function finishLesson() {
     if (!state.streaks[currentKidId][ls.subjectId]) state.streaks[currentKidId][ls.subjectId] = [];
     const streakArr = state.streaks[currentKidId][ls.subjectId];
     streakArr.push(pct);
+    // Keep only last 3 scores
     if (streakArr.length > 3) streakArr.shift();
     state.streaks[currentKidId][ls.subjectId] = streakArr;
 
     if (!state.levels) state.levels = {};
     if (!state.levels[currentKidId]) state.levels[currentKidId] = {};
-    const gl = getCurrentGradeLevel(currentKidId, ls.subjectId);
-    const gradeLevels = getGradeLevels(gl.grade, ls.subjectId);
-    const curIdx = gl.levelIdx || 0;
+    const subjLevels = getSubjectProgression(currentKidId, ls.subjectId);
+    const curIdx = getCurrentLevelIndex(currentKidId, ls.subjectId);
 
     // Advance: 3 consecutive scores >= 90%
     if (streakArr.length >= 3 && streakArr.every(s => s >= 90)) {
-      state.streaks[currentKidId][ls.subjectId] = [];
-      if (curIdx < gradeLevels.length - 1) {
-        // Move to next level within same grade
-        const newIdx = curIdx + 1;
-        state.levels[currentKidId][ls.subjectId] = {grade: gl.grade, levelIdx: newIdx};
-        if (!state.levelsUpdatedAt) state.levelsUpdatedAt = {};
-        state.levelsUpdatedAt[currentKidId] = Date.now();
-        const newLvl = gradeLevels[newIdx];
-        setTimeout(function() {
-          showToast('⬆️ Level up! Now on: ' + (GRADE_LABELS[gl.grade]||'Grade '+gl.grade) + ' — ' + (newLvl?newLvl.name:''));
-        }, 400);
-        triggerLevelUpCelebration(currentKidId, ls.subjectId);
-      } else {
-        // Mastered all levels in grade — promote to next grade
-        const gradeIdx = GRADE_ORDER.indexOf(gl.grade);
-        if (gradeIdx < GRADE_ORDER.length - 1) {
-          const nextGrade = GRADE_ORDER[gradeIdx + 1];
-          state.levels[currentKidId][ls.subjectId] = {grade: nextGrade, levelIdx: 0};
-          if (!state.levelsUpdatedAt) state.levelsUpdatedAt = {};
-          state.levelsUpdatedAt[currentKidId] = Date.now();
-          setTimeout(function() {
-            showToast('🎓 Grade promoted! ' + (GRADE_LABELS[nextGrade]||'Grade '+nextGrade) + ' ' + ls.subjectId + ' unlocked!');
-            launchConfetti(5000);
-            playSound('epic');
-          }, 400);
-        }
+      if (curIdx < subjLevels.length - 1) {
+        state.levels[currentKidId][ls.subjectId] = curIdx + 1;
+        state.streaks[currentKidId][ls.subjectId] = [];
+        triggerLevelUpIfNeeded(currentKidId, ls.subjectId, curIdx, curIdx + 1, subjLevels);
       }
     }
     // Step back: last 2 scores both < 70%
     if (streakArr.length >= 2 && streakArr.slice(-2).every(s => s < 70)) {
-      state.streaks[currentKidId][ls.subjectId] = [];
       if (curIdx > 0) {
-        // Step back within grade
-        const newIdx = curIdx - 1;
-        state.levels[currentKidId][ls.subjectId] = {grade: gl.grade, levelIdx: newIdx};
-        if (!state.levelsUpdatedAt) state.levelsUpdatedAt = {};
-        state.levelsUpdatedAt[currentKidId] = Date.now();
-        const prevLvl = gradeLevels[newIdx];
+        state.levels[currentKidId][ls.subjectId] = curIdx - 1;
+        state.streaks[currentKidId][ls.subjectId] = [];
         setTimeout(function() {
-          showToast('📚 Let\'s practice: ' + (prevLvl ? prevLvl.name : 'previous level') + ' a bit more.');
+          const prevLevel = subjLevels[curIdx-1];
+          showToast('📚 Let\'s practice: ' + (prevLevel ? prevLevel.name : 'previous level') + ' a bit more.');
         }, 1500);
       }
-      // At levelIdx 0 — stay at level 0, don't demote grade (parent does that manually)
     }
   }
 
@@ -3568,8 +2814,8 @@ function finishLesson() {
   }
   // Record to 30-day history
   if (!alreadyDone) {
-    const gl = getCurrentGradeLevel(currentKidId, ls.subjectId);
-    recordLessonHistory(currentKidId, ls.subjectId, pct, coins, origCorrect, total, elapsedMin, gl.levelIdx || 0, gl.grade);
+    const curIdx = getCurrentLevelIndex(currentKidId, ls.subjectId);
+    recordLessonHistory(currentKidId, ls.subjectId, pct, coins, origCorrect, total, elapsedMin, curIdx);
     updateAdaptiveQuestionCount(currentKidId);
   }
   // Check daily streak and badges
@@ -3604,10 +2850,8 @@ function finishLesson() {
   const flagRow = flagCount > 0 ? '<div class="breakdown-row"><span>🚩 Flagged</span><strong style="color:#B45309">' + flagCount + ' question' + (flagCount>1?'s':'') + ' for review</strong></div>' : '';
   const timeRow = '<div class="breakdown-row"><span>⏱ Time</span><strong>' + elapsedStr + '</strong></div>';
   const drillRow = ls.isDrillRound ? '<div class="breakdown-row"><span>🔄 Drill Round</span><strong>' + (ls.drillCorrect||0) + ' / ' + (ls.drillTotal||0) + ' corrected</strong></div>' : '';
-  const lvlData = getCurrentLevelData(currentKidId, ls.subjectId);
   document.getElementById('results-breakdown-list').innerHTML =
     '<div class="breakdown-row"><span>Subject</span><strong>' + ls.subjectIcon + ' ' + ls.subjectName + '</strong></div>'
-    + '<div class="breakdown-row"><span>Level</span><strong>' + (lvlData ? lvlData.name : '') + '</strong></div>'
     + '<div class="breakdown-row"><span>Correct</span><strong>' + origCorrect + ' / ' + total + '</strong></div>'
     + '<div class="breakdown-row"><span>Score</span><strong>' + pct + '%</strong></div>'
     + '<div class="breakdown-row"><span>Brain Bucks Earned</span><strong>' + (alreadyDone ? '0 (replay)' : '🧠 ' + coins) + '</strong></div>'
@@ -3718,79 +2962,19 @@ function adjustLevel(delta) {
   if (!kidId || !subjectId) return;
   if (!state.levels) state.levels = {};
   if (!state.levels[kidId]) state.levels[kidId] = {};
-  const gl = getCurrentGradeLevel(kidId, subjectId);
-  const gradeLevels = getGradeLevels(gl.grade, subjectId);
-  const curIdx = gl.levelIdx || 0;
-  const newIdx = curIdx + delta;
-  if (newIdx < 0) { showToast('⬇️ Already at first level of ' + (GRADE_LABELS[gl.grade]||'Grade '+gl.grade) + '.'); return; }
-  if (newIdx >= gradeLevels.length) { showToast('⬆️ Already at last level of ' + (GRADE_LABELS[gl.grade]||'Grade '+gl.grade) + '.'); return; }
-  state.levels[kidId][subjectId] = {grade: gl.grade, levelIdx: newIdx};
-  if (!state.levelsUpdatedAt) state.levelsUpdatedAt = {};
-  state.levelsUpdatedAt[kidId] = Date.now();
+  const subjLevels = getSubjectProgression(kidId, subjectId);
+  const curIdx = getCurrentLevelIndex(kidId, subjectId);
+  const newIdx = Math.max(0, Math.min(subjLevels.length - 1, curIdx + delta));
+  if (newIdx === curIdx) { showToast('Already at ' + (delta > 0 ? 'max' : 'min') + ' level.'); return; }
+  state.levels[kidId][subjectId] = newIdx;
+  // Clear streak so advancement check resets cleanly
   if (state.streaks && state.streaks[kidId]) state.streaks[kidId][subjectId] = [];
   saveState();
   const kid = state.kids.find(k => k.id === kidId);
-  const newLvl = gradeLevels[newIdx];
-  showToast((delta > 0 ? '⬆️' : '⬇️') + ' ' + (kid ? kid.name : kidId) + ' → ' + (GRADE_LABELS[gl.grade]||'Grade '+gl.grade) + ' — ' + (newLvl ? newLvl.name : ''));
-  populateLevelAdjGrade();
+  const newLevel = subjLevels[newIdx];
+  showToast((delta > 0 ? '⬆️' : '⬇️') + ' ' + (kid ? kid.name : kidId) + ' → ' + (newLevel ? newLevel.name : 'Level ' + (newIdx+1)));
   updateLevelAdjPreview();
   renderCurriculumOverview();
-}
-
-function applyLevelSelection() {
-  const kidId = document.getElementById('level-adj-kid').value;
-  const subjectId = document.getElementById('level-adj-subject').value;
-  const gradeSel = document.getElementById('level-adj-grade');
-  const levelSel = document.getElementById('level-adj-level');
-  if (!kidId || !subjectId || !gradeSel || !levelSel) return;
-  const grade = gradeSel.value;
-  const levelIdx = parseInt(levelSel.value) || 0;
-  if (!state.levels) state.levels = {};
-  if (!state.levels[kidId]) state.levels[kidId] = {};
-  state.levels[kidId][subjectId] = {grade: isNaN(parseInt(grade)) ? grade : parseInt(grade), levelIdx};
-  if (!state.levelsUpdatedAt) state.levelsUpdatedAt = {};
-  state.levelsUpdatedAt[kidId] = Date.now();
-  if (state.streaks && state.streaks[kidId]) state.streaks[kidId][subjectId] = [];
-  saveState();
-  const kid = state.kids.find(k => k.id === kidId);
-  const lvl = getGradeLevels(grade, subjectId)[levelIdx];
-  showToast('✅ ' + (kid ? kid.name : kidId) + ' set to ' + (GRADE_LABELS[grade]||'Grade '+grade) + ' — ' + (lvl ? lvl.name : 'Level '+(levelIdx+1)));
-  updateLevelAdjPreview();
-  renderCurriculumOverview();
-}
-
-function populateLevelAdjGrade() {
-  const gradeSel = document.getElementById('level-adj-grade');
-  const kidId = document.getElementById('level-adj-kid') && document.getElementById('level-adj-kid').value;
-  const subjectId = document.getElementById('level-adj-subject') && document.getElementById('level-adj-subject').value;
-  if (!gradeSel) return;
-  gradeSel.innerHTML = GRADE_ORDER.map(function(g) {
-    return '<option value="' + g + '">' + (GRADE_LABELS[g]||'Grade '+g) + '</option>';
-  }).join('');
-  // Set to current grade
-  if (kidId && subjectId) {
-    const gl = getCurrentGradeLevel(kidId, subjectId);
-    gradeSel.value = gl.grade;
-  }
-  populateLevelAdjLevel();
-}
-
-function populateLevelAdjLevel() {
-  const gradeSel = document.getElementById('level-adj-grade');
-  const levelSel = document.getElementById('level-adj-level');
-  const kidId = document.getElementById('level-adj-kid') && document.getElementById('level-adj-kid').value;
-  const subjectId = document.getElementById('level-adj-subject') && document.getElementById('level-adj-subject').value;
-  if (!gradeSel || !levelSel) return;
-  const grade = gradeSel.value;
-  const gradeLevels = getGradeLevels(grade, subjectId || 'spelling');
-  levelSel.innerHTML = gradeLevels.map(function(lvl, i) {
-    return '<option value="' + i + '">Level ' + (i+1) + ' — ' + lvl.name + '</option>';
-  }).join('');
-  // Set to current levelIdx if same grade
-  if (kidId && subjectId) {
-    const gl = getCurrentGradeLevel(kidId, subjectId);
-    if (String(gl.grade) === String(grade)) levelSel.value = gl.levelIdx || 0;
-  }
 }
 
 function updateLevelAdjPreview() {
@@ -3801,8 +2985,10 @@ function updateLevelAdjPreview() {
   const kidId = kidSel.value;
   const subjectId = subjSel.value;
   if (!kidId || !subjectId) return;
-  const lvlData = getCurrentLevelData(kidId, subjectId);
-  el.textContent = 'Current: ' + lvlData.name;
+  const subjLevels = getSubjectProgression(kidId, subjectId);
+  const curIdx = getCurrentLevelIndex(kidId, subjectId);
+  const lvl = subjLevels[curIdx];
+  el.textContent = 'Current: Level ' + (curIdx + 1) + ' — ' + (lvl ? lvl.name : '');
 }
 
 function parentUnlockLesson() {
@@ -3826,7 +3012,6 @@ function renderParentDashboard() {
     renderWritingApprovals();
     renderParentRewards();
     renderProgressOverview();
-    renderWeeklySummary();
     renderFlaggedList();
     renderRedemptionQueue();
     updateRedemptionBadge();
@@ -3843,12 +3028,9 @@ function renderParentDashboard() {
     const levelAdjKid = document.getElementById('level-adj-kid');
     if (levelAdjKid) {
       levelAdjKid.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
-      levelAdjKid.onchange = function() { populateLevelAdjGrade(); updateLevelAdjPreview(); };
+      levelAdjKid.onchange = updateLevelAdjPreview;
       const levelAdjSubj = document.getElementById('level-adj-subject');
-      if (levelAdjSubj) levelAdjSubj.onchange = function() { populateLevelAdjGrade(); updateLevelAdjPreview(); };
-      const levelAdjGrade = document.getElementById('level-adj-grade');
-      if (levelAdjGrade) levelAdjGrade.onchange = populateLevelAdjLevel;
-      populateLevelAdjGrade();
+      if (levelAdjSubj) levelAdjSubj.onchange = updateLevelAdjPreview;
       updateLevelAdjPreview();
     }
     const skipSel = document.getElementById('skipday-kid-select');
@@ -3857,28 +3039,12 @@ function renderParentDashboard() {
       skipSel.onchange = function() { updateSkipDayBalance(skipSel.value); };
       updateSkipDayBalance(skipSel.value);
     }
-    const msgKidSel = document.getElementById('msg-kid-select');
-    if (msgKidSel) {
-      msgKidSel.innerHTML = state.kids.filter(k=>k.id!=='tester').map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
-    }
-    const excuseSel = document.getElementById('excuse-kid-select');
-    if (excuseSel) {
-      excuseSel.innerHTML = state.kids.filter(k=>k.id!=='tester').map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
-      excuseSel.onchange = renderExcuseStatus;
-      const excuseDateInp = document.getElementById('excuse-date-input');
-      if (excuseDateInp) {
-        if (!excuseDateInp.value) excuseDateInp.value = new Date().toISOString().slice(0,10);
-        excuseDateInp.onchange = renderExcuseStatus;
-      }
-      renderExcuseStatus();
-    }
     const coinmaxSel = document.getElementById('coinmax-kid-select');
     if (coinmaxSel) coinmaxSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.name}</option>`).join('');
     renderCoinMaxInputs();
     renderTimerInputs();
     renderApiKeyStatus();
     renderVacationBtn();
-    renderAutoAdvanceToggle();
     updateBinIdDisplay();
   } catch(e) {
     console.error('renderParentDashboard error:', e);
@@ -3887,41 +3053,18 @@ function renderParentDashboard() {
 }
 
 function renderParentKidSummary() {
-  // Writing pending alert
-  const pendingW = (state.writingQueue||[]).filter(function(w){ return w.status==='pending'; });
-  const alertEl = document.getElementById('writing-pending-alert');
-  const alertText = document.getElementById('writing-pending-alert-text');
-  if (alertEl) {
-    if (pendingW.length) {
-      alertEl.style.display = 'block';
-      const names = pendingW.map(function(w){
-        const k = state.kids.find(function(k){ return k.id===w.kidId; });
-        return k ? k.name : w.kidId;
-      });
-      alertText.textContent = names.join(', ') + ' submitted writing — tap to review';
-    } else {
-      alertEl.style.display = 'none';
-    }
-  }
   document.getElementById('parent-kid-summary').innerHTML = state.kids.map(k => {
     const qCount = getAdaptiveQuestionCount(k.id);
     const avgMin = Math.round(getAvgDailyMinutes(k.id));
     const dayCount = state.paceData && state.paceData[k.id] ? Object.keys(state.paceData[k.id]).length : 0;
-    const historyCount = (state.lessonHistory && state.lessonHistory[k.id]) ? state.lessonHistory[k.id].length : 0;
-    const calibrated = dayCount >= 3 || historyCount >= 3;
-    const paceLabel = !calibrated
+    const paceLabel = dayCount < 3
       ? '<div style="font-size:11px;color:var(--muted);margin-top:4px">⏱ Pace calibrating…</div>'
       : '<div style="font-size:11px;color:var(--muted);margin-top:4px">⏱ ~' + avgMin + ' min/day · ' + qCount + ' q/lesson</div>';
-    const live = state.liveLesson && state.liveLesson[k.id];
-    const liveLabel = live
-      ? '<div style="font-size:11px;color:#2ECC71;font-weight:800;margin-top:4px;animation:pulse 1.5s infinite">🟢 Working on ' + live.icon + ' ' + live.subject + ' now</div>'
-      : '';
     return `<div class="kid-summary-card">
       <div class="ks-emoji">${k.emoji}</div>
       <div class="ks-name">${k.name}</div>
       <div class="ks-coins">${k.coins}</div>
       <div style="font-size:12px;color:var(--muted)">🧠 Brain Bucks</div>
-      ${liveLabel}
       ${paceLabel}
     </div>`;
   }).join('');
@@ -3932,26 +3075,23 @@ function renderCurriculumOverview() {
   const icons = {spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'};
   document.getElementById('curriculum-overview').innerHTML = state.kids.map(k => {
     return '<div style="margin-bottom:18px">'
-      + '<div style="font-family:\'Baloo 2\',cursive;font-size:17px;font-weight:700;margin-bottom:10px">' + k.emoji + ' ' + k.name + '</div>'
+      + '<div style="font-family:\"Baloo 2\",cursive;font-size:17px;font-weight:700;margin-bottom:10px">' + k.emoji + ' ' + k.name + '</div>'
       + subjects.map(function(s) {
-          const gl = getCurrentGradeLevel(k.id, s);
-          const gradeLevels = getGradeLevels(gl.grade, s);
-          const lvlIdx = gl.levelIdx || 0;
-          const lvl = gradeLevels[lvlIdx];
+          const lvlData = getCurrentLevelData(k.id, s);
           const streakArr = getStreakScores(k.id, s);
+          const lvlIdx = getCurrentLevelIndex(k.id, s);
+          const totalLvls = getSubjectProgression(k.id, s).length;
+          const streakToAdvance = 3;
           const goodScores = streakArr.filter(function(sc){ return sc >= 90; }).length;
           const badScores = streakArr.filter(function(sc){ return sc < 70; }).length;
           let statusColor = '#6B7280';
           let statusTxt = streakArr.length ? 'Last: ' + streakArr.slice(-1)[0] + '%' : 'Not started';
           if (goodScores >= 2) { statusColor = '#2ECC71'; statusTxt = '🔥 ' + goodScores + '/3 toward level up'; }
           if (badScores >= 1) { statusColor = '#EF4444'; statusTxt = '⚠️ ' + badScores + ' low score(s)'; }
-          const gradeLabel = GRADE_LABELS[gl.grade] || ('Grade ' + gl.grade);
-          const lvlName = lvl ? lvl.name : 'Level ' + (lvlIdx+1);
           return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px">'
-            + '<div><div>' + icons[s] + ' ' + s.charAt(0).toUpperCase()+s.slice(1) + '</div>'
-            + '<div style="font-size:12px;color:var(--muted)">' + lvlName + '</div></div>'
+            + '<span>' + icons[s] + ' ' + (lvlData ? lvlData.name : s) + '</span>'
             + '<span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">'
-            + '<span style="font-weight:700;color:var(--primary)">' + gradeLabel + ' · L' + (lvlIdx+1) + '/' + gradeLevels.length + '</span>'
+            + '<span style="font-weight:700;color:var(--primary)">Level ' + (lvlIdx+1) + ' / ' + totalLvls + '</span>'
             + '<span style="font-size:11px;color:' + statusColor + '">' + statusTxt + '</span>'
             + '</span></div>';
         }).join('')
@@ -3967,7 +3107,7 @@ function renderWritingApprovals() {
     const kid = state.kids.find(k=>k.id===w.kidId);
     return `<div class="approval-item">
       <div class="approval-info">
-        <div style="font-weight:700">${kid?kid.emoji+' '+kid.name:w.kidId} · ${w.date}${w.isRedo ? ' <span style="background:#EF4444;color:white;font-size:11px;font-weight:800;padding:2px 8px;border-radius:10px;margin-left:6px">🔄 REDO</span>' : ''}</div>
+        <div style="font-weight:700">${kid?kid.emoji+' '+kid.name:w.kidId} · ${w.date}</div>
         <div style="font-size:13px;color:var(--muted);margin-top:4px"><strong>Prompt:</strong> ${w.prompt}</div>
         ${w.kidAnswerType === 'drawing'
           ? `<img src="${w.kidAnswer}" style="width:100%;border-radius:8px;border:1.5px solid var(--border);margin-top:8px;display:block;" alt="Student handwriting"/>`
@@ -4045,7 +3185,7 @@ function resolveFlag(id, award) {
       const newCoins = Math.round(newPct * (max / 100));
       bonusCoins = Math.max(0, newCoins - p.coins);
     }
-    if (kid && bonusCoins > 0) { kid.coins += bonusCoins; stampCoins(f.kidId); }
+    if (kid && bonusCoins > 0) kid.coins += bonusCoins;
     showToast('✅ Accepted — ' + bonusCoins + ' Brain Buck' + (bonusCoins !== 1 ? 's' : '') + ' awarded to ' + (kid ? kid.name : 'kid') + '!');
   } else {
     showToast('❌ Marked incorrect — noted for review.');
@@ -4060,56 +3200,11 @@ function approveWriting(id) {
   if (!w) return;
   w.status = 'approved';
   const kid = state.kids.find(k=>k.id===w.kidId);
-  // Also clear any pending flagged review items for this kid's writing subject
-  // — writing flags and writing queue are separate, approving one should clear both
-  if (state.flaggedReview) {
-    state.flaggedReview = state.flaggedReview.filter(function(f) {
-      const isWritingFlag = f.kidId === w.kidId && (f.subject||'').toLowerCase().includes('writing');
-      return !isWritingFlag || f.status !== 'pending';
-    });
-  }
   saveState();
   showToast('✅ Approved — ' + (kid?kid.name:'') + '\'s writing looks great!');
   renderWritingApprovals();
-  renderFlaggedList();
   renderParentKidSummary();
   updateTabBadges();
-}
-
-function startWritingRedo() {
-  const lvlData = getCurrentLevelData(currentKidId, 'writing');
-
-  // Must always have the original prompt — search both redo and approved items
-  const redoItem = (state.writingQueue||[]).find(function(w){
-    return w.kidId === currentKidId && (w.status === 'redo' || w.status === 'pending');
-  });
-  const originalPrompt = redoItem ? redoItem.prompt : null;
-
-  // Build redo prompt — show original assignment with a redo header
-  const redoPrompt = originalPrompt
-    ? '🔄 Your parent asked you to try this again:\n\n' + originalPrompt
-    : null;
-
-  if (!redoPrompt) {
-    // No original prompt found — generate a fresh one instead
-    showToast('⏳ Generating your writing assignment...');
-    startLesson('writing');
-    return;
-  }
-
-  lessonState = {
-    subjectId: 'writing', subjectName: lvlData.name, subjectIcon: '✏️', subjectType: 'writing',
-    questions: [{type:'writing', question:'Writing Redo'}],
-    _originalQuestions: [{type:'writing', question:'Writing Redo'}],
-    currentQ: 0, answers: [], correct: 0, streak: 0, missStreak: 0, wrongAnswers: [],
-    diffLevel: 2, startTime: Date.now(), isDrillRound: false, timerSeconds: 0,
-    writingPrompt: redoPrompt,
-    isRedo: true
-  };
-  showScreen('screen-lesson');
-  document.getElementById('lesson-title').textContent = '✏️ Writing Redo';
-  startLessonTimer();
-  renderQuestion();
 }
 
 function denyWriting(id) {
@@ -4120,20 +3215,13 @@ function denyWriting(id) {
   // Deduct Brain Bucks earned from the writing lesson
   const writingProgress = state.progress[w.kidId] && state.progress[w.kidId]['writing'];
   if (kid && writingProgress && writingProgress.coins) {
-    kid.coins = Math.max(0, kid.coins - writingProgress.coins); stampCoins(w.kidId);
+    kid.coins = Math.max(0, kid.coins - writingProgress.coins);
   }
   // Clear progress so they can redo it today
   if (state.progress[w.kidId]) delete state.progress[w.kidId]['writing'];
   // Pop the last streak entry so level meter reflects the redo
   if (state.streaks && state.streaks[w.kidId] && state.streaks[w.kidId]['writing'] && state.streaks[w.kidId]['writing'].length) {
     state.streaks[w.kidId]['writing'].pop();
-  }
-  // Clear any pending flagged review items for this kid's writing — they're redundant now
-  if (state.flaggedReview) {
-    state.flaggedReview = state.flaggedReview.filter(function(f) {
-      const isWritingFlag = f.kidId === w.kidId && (f.subject||'').toLowerCase().includes('writing');
-      return !isWritingFlag || f.status !== 'pending';
-    });
   }
   // Add redo notice — replace any existing one for this kid
   if (!state.redoNotices) state.redoNotices = [];
@@ -4185,23 +3273,32 @@ function acknowledgeRedemption(id) {
 }
 
 function updateTabBadges() {
-  const reviewCount = (state.writingQueue||[]).filter(w => w.status === 'pending').length
-    + (state.redemptionQueue||[]).filter(r => r.status === 'pending').length
-    + (state.flaggedReview||[]).filter(f => f.status === 'pending').length;
-  const btn = document.getElementById('tab-btn-review');
-  if (btn) {
+  const configs = [
+    { id: 'tab-btn-writing',     count: (state.writingQueue||[]).filter(w => w.status === 'pending').length },
+    { id: 'tab-btn-redemptions', count: (state.redemptionQueue||[]).filter(r => r.status === 'pending').length },
+    { id: 'tab-btn-flagged',     count: (state.flaggedReview||[]).filter(f => f.status === 'pending').length },
+  ];
+  configs.forEach(function(cfg) {
+    const btn = document.getElementById(cfg.id);
+    if (!btn) return;
     const existing = btn.querySelector('.tab-dot');
-    if (reviewCount > 0) {
-      if (!existing) { const dot = document.createElement('span'); dot.className = 'tab-dot'; btn.appendChild(dot); }
+    if (cfg.count > 0) {
+      if (!existing) {
+        const dot = document.createElement('span');
+        dot.className = 'tab-dot';
+        btn.appendChild(dot);
+      }
     } else {
       if (existing) existing.remove();
     }
-  }
+  });
 }
 
 function updateRedemptionBadge() {
-  // Now handled by updateTabBadges — kept for compatibility
-  updateTabBadges();
+  const btn = document.getElementById('tab-btn-redemptions');
+  if (!btn) return;
+  const count = (state.redemptionQueue||[]).filter(function(r){ return r.status === 'pending'; }).length;
+  btn.textContent = count > 0 ? '🎁 Rewards (' + count + ')' : '🎁 Rewards';
 }
 
 function renderParentRewards() {
@@ -4227,113 +3324,6 @@ function renderParentRewards() {
       }
     </div>`;
   }).join('<hr style="border:none;border-top:1px solid var(--border);margin:8px 0"/>');
-}
-
-function renderWeeklySummary() {
-  const el = document.getElementById('weekly-summary-content');
-  if (!el) return;
-  const weekStart = getWeekStart(new Date());
-  const weekStartStr = weekStart.toISOString().slice(0,10);
-  el.innerHTML = state.kids.filter(k => k.id !== 'tester').map(function(k) {
-    const history = (state.lessonHistory && state.lessonHistory[k.id]) || [];
-    const weekEntries = history.filter(e => e.date >= weekStartStr);
-    const totalMin = weekEntries.reduce((s,e) => s + (e.duration||0), 0);
-    const avgScore = weekEntries.length ? Math.round(weekEntries.reduce((s,e) => s+e.score,0)/weekEntries.length) : 0;
-    const brainBucks = weekEntries.reduce((s,e) => s + (e.coins||0), 0);
-    const subjects = ['spelling','math','reading','writing'];
-    const doneDays = new Set(weekEntries.map(e=>e.date)).size;
-    return '<div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)">'
-      + '<div style="font-family:\'Baloo 2\',cursive;font-size:16px;font-weight:700;margin-bottom:8px">' + k.emoji + ' ' + k.name + '</div>'
-      + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">'
-      + '<div style="background:#EEF2FF;border-radius:10px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--primary)">' + doneDays + '</div><div style="font-size:10px;color:var(--muted);font-weight:700">DAYS</div></div>'
-      + '<div style="background:#F0FBF4;border-radius:10px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:#2ECC71">' + totalMin + 'm</div><div style="font-size:10px;color:var(--muted);font-weight:700">TIME</div></div>'
-      + '<div style="background:#FFFBEA;border-radius:10px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:#F59E0B">' + (weekEntries.length ? avgScore+'%' : '—') + '</div><div style="font-size:10px;color:var(--muted);font-weight:700">AVG</div></div>'
-      + '<div style="background:#FFF0F0;border-radius:10px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:#EF4444">🧠 ' + brainBucks + '</div><div style="font-size:10px;color:var(--muted);font-weight:700">EARNED</div></div>'
-      + '</div></div>';
-  }).join('') || '<div style="color:var(--muted);font-size:14px">No activity yet this week.</div>';
-}
-
-function closeSessionDetail() {
-  document.getElementById('session-detail-modal').style.display = 'none';
-}
-
-function showSessionDetail(entry) {
-  const modal = document.getElementById('session-detail-modal');
-  const content = document.getElementById('session-detail-content');
-  if (!modal || !content) return;
-  const subjectIcons = {spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'};
-  const icon = subjectIcons[entry.subject] || '📚';
-  const scoreColor = entry.score >= 90 ? '#2ECC71' : entry.score >= 70 ? 'var(--primary)' : '#EF4444';
-
-  let html = '<div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)">'
-    + '<div style="font-size:28px;margin-bottom:6px">' + icon + '</div>'
-    + '<div style="font-family:\'Baloo 2\',cursive;font-size:20px;font-weight:800">'
-    + entry.subject.charAt(0).toUpperCase()+entry.subject.slice(1) + ' — ' + (entry.gradeLabel||'Grade '+entry.grade) + '</div>'
-    + '<div style="font-size:13px;color:var(--muted);margin-top:2px">' + entry.dateDisplay + ' · ' + (entry.duration||0) + ' min</div>'
-    + '</div>';
-
-  // Stats row
-  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">'
-    + '<div style="background:#EEF2FF;border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:800;color:' + scoreColor + '">' + entry.score + '%</div><div style="font-size:10px;color:var(--muted);font-weight:700">SCORE</div></div>'
-    + '<div style="background:#F0FBF4;border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:800;color:#2ECC71">' + entry.correct + '/' + entry.total + '</div><div style="font-size:10px;color:var(--muted);font-weight:700">CORRECT</div></div>'
-    + '<div style="background:#FFFBEA;border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:800;color:#F59E0B">🧠 ' + entry.coins + '</div><div style="font-size:10px;color:var(--muted);font-weight:700">EARNED</div></div>'
-    + '</div>';
-
-  // Reading story
-  if (entry.readingStory) {
-    html += '<div style="margin-bottom:16px">'
-      + '<div style="font-weight:800;font-size:13px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">📖 Reading Story</div>'
-      + '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:14px;line-height:1.7;max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch;">'
-      + entry.readingStory + '</div></div>';
-  }
-
-  // Writing prompt
-  if (entry.writingPrompt) {
-    html += '<div style="margin-bottom:16px">'
-      + '<div style="font-weight:800;font-size:13px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">✏️ Writing Prompt</div>'
-      + '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:14px;line-height:1.6;">'
-      + entry.writingPrompt + '</div></div>';
-  }
-
-  // Wrong answers
-  const wrongs = entry.wrongAnswers || [];
-  if (wrongs.length) {
-    html += '<div>'
-      + '<div style="font-weight:800;font-size:13px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">❌ Missed Questions (' + wrongs.length + ')</div>';
-    wrongs.forEach(function(w) {
-      html += '<div style="background:#FFF5F5;border:1px solid #FCA5A5;border-radius:10px;padding:12px;margin-bottom:10px;">';
-      // Show passage snippet if available
-      if (w.passage) {
-        html += '<div style="font-size:11px;color:var(--muted);font-style:italic;margin-bottom:6px;border-bottom:1px solid var(--border);padding-bottom:6px;">'
-          + w.passage.slice(0,150) + (w.passage.length>150?'…':'') + '</div>';
-      }
-      html += '<div style="font-weight:700;font-size:14px;margin-bottom:8px">' + w.question + '</div>';
-      // Show all options if available, highlighting correct/wrong
-      if (w.options && w.options.length) {
-        w.options.forEach(function(opt) {
-          const isCorrect = opt === w.correctAnswer;
-          const isWrong = opt === w.yourAnswer && !isCorrect;
-          const bg = isCorrect ? '#D1FAE5' : isWrong ? '#FEE2E2' : 'transparent';
-          const border = isCorrect ? '1.5px solid #2ECC71' : isWrong ? '1.5px solid #EF4444' : '1.5px solid var(--border)';
-          const prefix = isCorrect ? '✅ ' : isWrong ? '❌ ' : '　';
-          html += '<div style="background:' + bg + ';border:' + border + ';border-radius:8px;padding:7px 10px;margin-bottom:5px;font-size:13px;">'
-            + prefix + opt + '</div>';
-        });
-      } else {
-        // Typed answer — no options
-        html += '<div style="font-size:13px;color:#EF4444;margin-bottom:4px">❌ Their answer: <strong>' + w.yourAnswer + '</strong></div>'
-          + '<div style="font-size:13px;color:#2ECC71">✅ Correct: <strong>' + w.correctAnswer + '</strong></div>';
-      }
-      html += '</div>';
-    });
-    html += '</div>';
-  } else if (entry.correct === entry.total) {
-    html += '<div style="text-align:center;padding:16px;color:#2ECC71;font-weight:800;font-size:15px">🎉 Perfect score — no mistakes!</div>';
-  }
-
-  content.innerHTML = html;
-  modal.style.display = 'block';
-  modal.scrollTop = 0;
 }
 
 function renderProgressOverview() {
@@ -4405,20 +3395,17 @@ function renderProgressOverview() {
       // Recent history table
       const recentDiv = document.createElement('div');
       recentDiv.innerHTML = '<div style="font-weight:800;font-size:14px;margin-bottom:8px;color:var(--muted)">RECENT SESSIONS</div>';
-      const recent = history.slice().sort((a,b) => b.date.localeCompare(a.date)).slice(0, 30);
+      const recent = history.slice(0, 30);
       recent.forEach(function(e) {
         const scoreColor = e.score >= 90 ? '#2ECC71' : e.score >= 70 ? 'var(--primary)' : '#EF4444';
-        const hasDetail = (e.wrongAnswers && e.wrongAnswers.length > 0) || e.readingStory || e.writingPrompt;
         const row = document.createElement('div');
-        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;cursor:pointer;';
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;';
         row.innerHTML = '<span>' + subjectIcons[e.subject] + '</span>'
           + '<span style="flex:1;color:var(--muted)">' + e.dateDisplay + '</span>'
           + '<span style="font-weight:800;color:' + scoreColor + '">' + e.score + '%</span>'
           + '<span style="color:var(--muted);font-size:11px">' + e.correct + '/' + e.total + '</span>'
           + '<span style="background:#EEF2FF;color:var(--primary);border-radius:8px;padding:2px 7px;font-size:11px;font-weight:700">Lv ' + e.level + '</span>'
-          + '<span style="color:#F59E0B;font-size:11px;font-weight:700">🧠 ' + e.coins + '</span>'
-          + '<span style="color:var(--muted);font-size:11px;margin-left:2px">›</span>';
-        row.onclick = (function(entry){ return function(){ showSessionDetail(entry); }; })(e);
+          + '<span style="color:#F59E0B;font-size:11px;font-weight:700">🧠 ' + e.coins + '</span>';
         recentDiv.appendChild(row);
       });
       card.appendChild(recentDiv);
@@ -4515,7 +3502,7 @@ function adjustCoins() {
   const amt=parseInt(document.getElementById('coin-adjust').value)||0;
   const kid=state.kids.find(k=>k.id===kidId);
   if (!kid) return;
-  kid.coins=Math.max(0,kid.coins+amt); stampCoins(kidId);
+  kid.coins=Math.max(0,kid.coins+amt);
   saveState(); document.getElementById('coin-adjust').value='';
   showToast('✅ Coins updated!'); renderParentKidSummary();
 }
@@ -4538,7 +3525,7 @@ function resetProgress() {
       if (prog[subj].date === todayKey) {
         // Deduct coins earned today from this lesson
         const kid = state.kids.find(k=>k.id===id);
-        if (kid) { kid.coins = Math.max(0, kid.coins - (prog[subj].coins||0)); stampCoins(kid.id); }
+        if (kid) kid.coins = Math.max(0, kid.coins - (prog[subj].coins||0));
         delete prog[subj];
       }
     });
@@ -4547,6 +3534,14 @@ function resetProgress() {
   saveState();
   showToast('✅ Progress reset!');
   renderParentDashboard();
+}
+
+function resetAll() {
+  if (confirm('Reset ALL data? Cannot be undone.')) {
+    localStorage.clear(); state=JSON.parse(JSON.stringify(DEFAULT_STATE));
+    showToast('🔄 Reset.'); showScreen('screen-landing'); initSync();
+    setTimeout(updateParentBadge, 1500);
+  }
 }
 
 function renderWorkerStatus() {
@@ -4663,7 +3658,6 @@ function launchConfetti(duration) {
 
 // ── FUN: SOUNDS ──────────────────────────────────────────
 function playSound(type) {
-  if (state.soundsOff) return; // respect sound toggle
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const osc = ctx.createOscillator();
@@ -4788,170 +3782,19 @@ function applyVacationStreakProtection() {
   localStorage.setItem('kidstuff_cache', JSON.stringify(state));
 }
 
-// ── WEEK REWARDS & PENALTIES ─────────────────────────────
-const PERFECT_WEEK_BONUS = 5;
-const INCOMPLETE_WEEK_PENALTY = 5;
-
-function getWeekStart(date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  d.setHours(0,0,0,0);
-  return d;
-}
-
-function getScheduleForDow(dow) {
-  if (dow === 0) return { isRest: true, subjects: [] };
-  const isDayA = (dow % 2 === 1) || dow === 6;
-  return { isRest: false, subjects: isDayA ? ['spelling','math'] : ['reading','writing'] };
-}
-
-function evaluateWeek(kidId) {
-  // Returns {complete, excused, required, perfect} for Mon-Sat of current week
-  const today = new Date();
-  const dow = today.getDay();
-  if (dow === 0) return null; // don't evaluate on Sunday
-  const weekStart = getWeekStart(today);
-  const history = (state.lessonHistory && state.lessonHistory[kidId]) || [];
-  let perfectDays = 0, requiredDays = 0;
-  for (let i = 0; i < 6; i++) {
-    const day = new Date(weekStart);
-    day.setDate(weekStart.getDate() + i);
-    if (day > today) break;
-    const dayDow = day.getDay();
-    if (dayDow === 0) continue;
-    if (isUSFederalHoliday(day) || state.vacationMode) { perfectDays++; requiredDays++; continue; }
-    requiredDays++;
-    const daySchedule = getScheduleForDow(dayDow);
-    if (daySchedule.isRest) { perfectDays++; continue; }
-    const dateStr = day.toISOString().slice(0,10);
-    const dayEntries = history.filter(e => e.date === dateStr);
-    const allDone = daySchedule.subjects.every(function(s) {
-      return dayEntries.some(e => e.subject === s);
-    });
-    if (allDone) perfectDays++;
-  }
-  return { perfectDays, requiredDays, perfect: requiredDays > 0 && perfectDays >= requiredDays };
-}
-
-function checkPerfectWeek(kidId) {
-  if (kidId === 'tester') return;
-  const today = new Date();
-  const dow = today.getDay();
-  if (!state.perfectWeekClaimed) state.perfectWeekClaimed = {};
-  if (!state.perfectWeekClaimed[kidId]) state.perfectWeekClaimed[kidId] = '';
-  const weekStart = getWeekStart(today);
-  const weekKey = weekStart.toISOString().slice(0,10);
-  if (state.perfectWeekClaimed[kidId] === weekKey) return;
-  const result = evaluateWeek(kidId);
-  if (!result || !result.perfect) return;
-  state.perfectWeekClaimed[kidId] = weekKey;
-  const kid = state.kids.find(k => k.id === kidId);
-  if (kid) {
-    kid.coins += PERFECT_WEEK_BONUS;
-    stampCoins(kidId);
-    saveState();
-    setTimeout(function() {
-      launchConfetti(5000);
-      playSound('epic');
-      showToast('🏆 Perfect Week! +' + PERFECT_WEEK_BONUS + ' 🧠 Bonus Brain Bucks!');
-    }, 800);
-  }
-}
-
-function checkIncompleteWeekPenalty(kidId) {
-  if (kidId === 'tester') return;
-  const today = new Date();
-  const dow = today.getDay();
-  // Only fire on Saturday after 8pm (lessons should be done by then)
-  // OR Sunday as catch-up for kids who didn't log in Saturday
-  const isSaturday = dow === 6 && today.getHours() >= 20;
-  const isSunday = dow === 0;
-  if (!isSaturday && !isSunday) return;
-
-  if (!state.incompleteWeekPenalized) state.incompleteWeekPenalized = {};
-
-  // For Sunday, check the previous week (Mon-Sat just passed)
-  let checkDate = today;
-  if (isSunday) {
-    checkDate = new Date(today.getTime() - 86400000); // go back to Saturday
-  }
-  const weekStart = getWeekStart(checkDate);
-  const weekKey = weekStart.toISOString().slice(0,10);
-
-  // Already processed this week — never deduct twice
-  if (state.incompleteWeekPenalized[kidId] === weekKey) return;
-
-  // Don't penalize if perfect week already claimed
-  if ((state.perfectWeekClaimed || {})[kidId] === weekKey) {
-    state.incompleteWeekPenalized[kidId] = weekKey;
-    saveState();
-    return;
-  }
-
-  // Evaluate the full week (Mon–Sat)
-  const history = (state.lessonHistory && state.lessonHistory[kidId]) || [];
-  let requiredDays = 0, completedDays = 0;
-  for (let i = 0; i < 6; i++) { // Mon–Sat
-    const day = new Date(weekStart);
-    day.setDate(weekStart.getDate() + i);
-    const dateStr = day.toISOString().slice(0, 10);
-    const isExcused = isUSFederalHoliday(day) || state.vacationMode || isKidExcused(kidId, dateStr);
-    if (isExcused) { requiredDays++; completedDays++; continue; }
-    requiredDays++;
-    const sched = getScheduleForDow(day.getDay());
-    if (sched.isRest) { completedDays++; continue; }
-    const dayEntries = history.filter(e => e.date === dateStr);
-    const allDone = sched.subjects.every(function(s) {
-      return dayEntries.some(e => e.subject === s);
-    });
-    if (allDone) completedDays++;
-  }
-
-  // Mark as checked regardless of outcome — prevents re-firing
-  state.incompleteWeekPenalized[kidId] = weekKey;
-
-  const weekComplete = requiredDays > 0 && completedDays >= requiredDays;
-  if (weekComplete) { saveState(); return; }
-
-  const kid = state.kids.find(k => k.id === kidId);
-  if (kid) {
-    kid.coins -= INCOMPLETE_WEEK_PENALTY;
-    stampCoins(kidId);
-    saveState();
-    setTimeout(function() {
-      showToast('📉 Incomplete week — ' + INCOMPLETE_WEEK_PENALTY + ' 🧠 Brain Bucks deducted for ' + (kid.name || kidId) + '.');
-    }, 1200);
-  }
-}
-
 function checkDailyStreak(kidId) {
   if (!state.dailyStreak) state.dailyStreak = {};
   if (!state.dailyStreak[kidId]) state.dailyStreak[kidId] = { count: 0, lastDate: '' };
   const ds = state.dailyStreak[kidId];
   const today = getTodayKey();
-  if (ds.lastDate === today) return;
+  if (ds.lastDate === today) return; // already checked today
 
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
   const yesterdayKey = yesterday.toDateString();
 
   const schedule = getTodaySchedule();
-  if (schedule.isRest) return;
-
-  // Per-kid excuse protection — treat as rest day
-  const todayISO = new Date().toISOString().slice(0,10);
-  const isExcusedToday = isKidExcused(kidId, todayISO);
-  if (isExcusedToday) {
-    // Protect streak — advance lastDate so streak isn't broken
-    if (ds.lastDate === yesterdayKey || ds.lastDate === today) {
-      ds.lastDate = today;
-      saveState();
-    }
-    return;
-  }
-
+  if (schedule.isRest) return; // no streak on rest days
   const prog = state.progress[kidId] || {};
   const subjects = schedule.subjects;
   const allDoneToday = subjects.every(function(s) {
@@ -4967,17 +3810,6 @@ function checkDailyStreak(kidId) {
     ds.lastDate = today;
     saveState();
     checkBadges(kidId);
-    checkPerfectWeek(kidId);
-    checkIncompleteWeekPenalty(kidId);
-    // Streak milestone celebrations
-    const milestones = {7:'🔥 7-Day Streak! You\'re on fire!', 14:'⚡ 14 Days! Two weeks strong!', 30:'🏆 30-Day Streak! Incredible!', 60:'🌟 60 Days! You\'re a legend!', 100:'👑 100-Day Streak! Unbelievable!'};
-    if (milestones[ds.count]) {
-      setTimeout(function() {
-        launchConfetti(4000);
-        playSound('epic');
-        showToast(milestones[ds.count]);
-      }, 1000);
-    }
   }
 }
 
@@ -5001,11 +3833,12 @@ const BADGE_DEFS = [
   { id: 'streak_3',        icon: '🔥', label: '3-Day Streak',       check: (kidId) => (state.dailyStreak[kidId]||{}).count >= 3 },
   { id: 'streak_7',        icon: '🌟', label: '7-Day Streak',       check: (kidId) => (state.dailyStreak[kidId]||{}).count >= 7 },
   { id: 'streak_30',       icon: '🏆', label: '30-Day Streak',      check: (kidId) => (state.dailyStreak[kidId]||{}).count >= 30 },
-  { id: 'level_up', icon: '⬆️', label: 'First Level Up', check: (kidId) => Object.values(state.levels[kidId]||{}).some(l => l && typeof l === 'object' && (l.levelIdx > 0 || (l.grade && l.grade !== 3 && l.grade !== 'K'))) },
+  { id: 'level_up',        icon: '⬆️',  label: 'First Level Up',    check: (kidId) => Object.values(state.levels[kidId]||{}).some(l => l >= 1) },
   { id: 'brainbucks_50',   icon: '🧠', label: '50 Brain Bucks',     check: (kidId) => (state.kids.find(k=>k.id===kidId)||{}).coins >= 50 },
   { id: 'brainbucks_200',  icon: '💰', label: '200 Brain Bucks',    check: (kidId) => (state.kids.find(k=>k.id===kidId)||{}).coins >= 200 },
-  { id: 'spelling_master', icon: '🔤', label: 'Spelling Master', check: (kidId) => { const gl = getCurrentGradeLevel(kidId,'spelling'); return gl.grade > 3 || (gl.grade === 3 && gl.levelIdx >= 3); } },
-  { id: 'math_master',     icon: '🧮', label: 'Math Master',     check: (kidId) => { const gl = getCurrentGradeLevel(kidId,'math'); return gl.grade > 3 || (gl.grade === 3 && gl.levelIdx >= 2); } },
+  { id: 'all_subjects',    icon: '📚', label: 'All Done Today!',   check: (kidId) => { const p=state.progress[kidId]||{}; const t=getTodayKey(); const sched=getTodaySchedule(); return !sched.isRest && sched.subjects.every(s=>p[s]&&p[s].date===t); } },
+  { id: 'spelling_master', icon: '🔤', label: 'Spelling Master',    check: (kidId) => (state.levels[kidId]||{}).spelling >= 5 },
+  { id: 'math_master',     icon: '🧮', label: 'Math Master',        check: (kidId) => (state.levels[kidId]||{}).math >= 5 },
 ];
 
 function checkBadges(kidId) {
@@ -5096,6 +3929,35 @@ function renderMilestoneBar(kidId) {
 }
 
 // ── STUDY MODE ───────────────────────────────────────────
+function startStudyMode() {
+  const allWrong = [];
+  const subjects = ['spelling','math','reading','writing'];
+  subjects.forEach(function(s) {
+    const prog = (state.progress[currentKidId]||{})[s];
+    if (prog && prog.wrongAnswers && prog.wrongAnswers.length) {
+      prog.wrongAnswers.forEach(function(w) {
+        allWrong.push({ type:'typed', question: w.question, answer: w.correctAnswer, _hint: w.hint || '' });
+      });
+    }
+  });
+  if (!allWrong.length) { showToast('🎉 No missed questions — you aced everything!'); return; }
+
+  // Shuffle
+  allWrong.sort(() => Math.random() - 0.5);
+
+  lessonState = {
+    subjectId: 'study', subjectName: 'Study Mode', subjectIcon: '📖', subjectType: 'study',
+    questions: allWrong, _originalQuestions: allWrong.slice(),
+    currentQ: 0, answers: [], correct: 0, streak: 0, missStreak: 0, wrongAnswers: [],
+    diffLevel: 2, startTime: Date.now(), isDrillRound: false, timerSeconds: 0,
+    isStudyMode: true
+  };
+  showScreen('screen-lesson');
+  document.getElementById('lesson-title').textContent = '📖 Study Mode';
+  startLessonTimer();
+  renderQuestion();
+}
+
 function renderTimerInputs() {
   const container = document.getElementById('timer-inputs');
   if (!container) return;
@@ -5179,7 +4041,7 @@ function deleteCompletedLesson(kidId, subjectId) {
   if (prog) {
     // Deduct coins
     const kid = state.kids.find(k => k.id === kidId);
-    if (kid && prog.coins) { kid.coins = Math.max(0, kid.coins - prog.coins); stampCoins(kid.id); }
+    if (kid && prog.coins) kid.coins = Math.max(0, kid.coins - prog.coins);
     // Remove progress
     delete state.progress[kidId][subjectId];
     // Remove from streak (pop last entry)
@@ -5198,24 +4060,6 @@ function deleteCompletedLesson(kidId, subjectId) {
   showToast('🗑️ Deleted ' + subjectId + ' for ' + (state.kids.find(k=>k.id===kidId)?.name || kidId));
   renderProgressOverview();
   renderParentKidSummary();
-}
-
-function purgeOldWritingQueue() {
-  if (!state.writingQueue) return;
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 30);
-  const cutoffStr = cutoff.toLocaleDateString();
-  // Keep pending/redo items regardless of age, purge old approved/denied
-  const before = state.writingQueue.length;
-  state.writingQueue = state.writingQueue.filter(function(w) {
-    if (w.status === 'pending' || w.status === 'redo') return true;
-    // Parse date — entries use toLocaleDateString() format
-    try {
-      const d = new Date(w.date);
-      return isNaN(d.getTime()) || d >= cutoff;
-    } catch(e) { return true; }
-  });
-  if (state.writingQueue.length !== before) saveState();
 }
 
 function purgeBonusChallenges() {
@@ -5263,214 +4107,6 @@ function renderBonusChallengesList() {
       }).join('');
 }
 
-function renderSoundsToggle() {
-  const btn = document.getElementById('sounds-toggle-btn');
-  if (!btn) return;
-  if (state.soundsOff) {
-    btn.textContent = '🔇 Sounds OFF — tap to enable';
-    btn.style.background = '#9CA3AF';
-  } else {
-    btn.textContent = '🔊 Sounds ON — tap to mute';
-    btn.style.background = '#2ECC71';
-  }
-}
-
-function toggleSounds() {
-  state.soundsOff = !state.soundsOff;
-  saveState();
-  renderSoundsToggle();
-  showToast(state.soundsOff ? '🔇 Sounds muted.' : '🔊 Sounds on!');
-}
-
-function renderAutoAdvanceToggle() {
-  const btn = document.getElementById('autoadvance-toggle-btn');
-  if (!btn) return;
-  if (state.autoAdvance) {
-    btn.textContent = '⚡ Auto-Advance ON — tap to disable';
-    btn.style.background = '#2ECC71';
-  } else {
-    btn.textContent = '⚡ Auto-Advance OFF — tap to enable';
-    btn.style.background = '#9CA3AF';
-  }
-}
-
-function toggleAutoAdvance() {
-  state.autoAdvance = !state.autoAdvance;
-  saveState();
-  renderAutoAdvanceToggle();
-  showToast(state.autoAdvance ? '⚡ Auto-advance enabled.' : '⚡ Auto-advance disabled.');
-}
-
-function renderDarkModeToggle() {
-  const btn = document.getElementById('darkmode-toggle-btn');
-  if (!btn) return;
-  const isDark = document.body.classList.contains('dark-mode');
-  if (isDark) {
-    btn.textContent = '🌙 Dark Mode ON — tap for light';
-    btn.style.background = '#1A1F2E';
-    btn.style.border = '2px solid #6B8EFF';
-  } else {
-    btn.textContent = '☀️ Light Mode — tap for dark';
-    btn.style.background = '#4F6EF7';
-    btn.style.border = 'none';
-  }
-}
-
-function toggleDarkMode() {
-  document.body.classList.toggle('dark-mode');
-  const isDark = document.body.classList.contains('dark-mode');
-  localStorage.setItem('kidstuff_darkmode', isDark ? '1' : '0');
-  renderDarkModeToggle();
-  showToast(isDark ? '🌙 Dark mode on.' : '☀️ Light mode on.');
-}
-
-function applyDarkModePreference() {
-  if (localStorage.getItem('kidstuff_darkmode') === '1') {
-    document.body.classList.add('dark-mode');
-  }
-}
-
-function toggleKidSettings() {
-  const panel = document.getElementById('kid-settings-panel');
-  if (!panel) return;
-  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-  renderKidSettingsButtons();
-}
-
-function kidUseSkipDay() {
-  const bal = (state.skipDay && state.skipDay[currentKidId]) || 0;
-  if (bal <= 0) { showToast('⚠️ No skip days available. Ask a parent!'); return; }
-  useSkipDay(currentKidId);
-  renderKidSettingsButtons();
-}
-
-function renderKidSettingsButtons() {
-  const soundsBtn = document.getElementById('kid-sounds-btn');
-  const darkBtn = document.getElementById('kid-dark-btn');
-  const skipBtn = document.getElementById('kid-skipday-btn');
-  const skipBal = document.getElementById('kid-skipday-balance');
-  if (soundsBtn) {
-    soundsBtn.textContent = state.soundsOff ? '🔇 Sounds OFF' : '🔊 Sounds ON';
-    soundsBtn.style.background = state.soundsOff ? '#E5E7EB' : '#D1FAE5';
-    soundsBtn.style.color = state.soundsOff ? '#6B7280' : '#065F46';
-  }
-  if (darkBtn) {
-    const isDark = document.body.classList.contains('dark-mode');
-    darkBtn.textContent = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
-    darkBtn.style.background = isDark ? '#1E293B' : '#EEF2FF';
-    darkBtn.style.color = isDark ? '#93C5FD' : '#3451D1';
-  }
-  if (skipBtn) {
-    const bal = (state.skipDay && state.skipDay[currentKidId]) || 0;
-    skipBtn.style.opacity = bal > 0 ? '1' : '0.5';
-    skipBtn.style.cursor = bal > 0 ? 'pointer' : 'not-allowed';
-  }
-  if (skipBal) {
-    const bal = (state.skipDay && state.skipDay[currentKidId]) || 0;
-    skipBal.textContent = bal > 0 ? '🛡️ ' + bal + ' skip day' + (bal !== 1 ? 's' : '') + ' available' : 'No skip days available';
-    skipBal.style.color = bal > 0 ? '#B45309' : 'var(--muted)';
-  }
-}
-
-function kidToggleSounds() {
-  state.soundsOff = !state.soundsOff;
-  saveState();
-  renderKidSettingsButtons();
-  showToast(state.soundsOff ? '🔇 Sounds muted.' : '🔊 Sounds on!');
-}
-
-function kidToggleDark() {
-  toggleDarkMode();
-  renderKidSettingsButtons();
-}
-
-function excuseKidDay() {
-  const sel = document.getElementById('excuse-kid-select');
-  const dateInput = document.getElementById('excuse-date-input');
-  if (!sel || !sel.value) return;
-  const kidId = sel.value;
-  const dateVal = dateInput && dateInput.value ? dateInput.value : new Date().toISOString().slice(0,10);
-  // excusedDays stores an array of dates per kid (supports retroactive)
-  if (!state.excusedDays) state.excusedDays = {};
-  if (!state.excusedDays[kidId]) state.excusedDays[kidId] = [];
-  if (!state.excusedDays[kidId].includes(dateVal)) {
-    state.excusedDays[kidId].push(dateVal);
-    // Keep only last 30 days to avoid growing forever
-    state.excusedDays[kidId] = state.excusedDays[kidId].sort().slice(-30);
-  }
-  // Also update excusedToday if it's today (for streak check compatibility)
-  const today = new Date().toISOString().slice(0,10);
-  if (dateVal === today) {
-    if (!state.excusedToday) state.excusedToday = {};
-    state.excusedToday[kidId] = today;
-  }
-  saveState();
-  const kid = state.kids.find(k=>k.id===kidId);
-  const displayDate = new Date(dateVal + 'T12:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});
-  showToast('🤒 ' + (kid?kid.name:kidId) + ' excused for ' + displayDate + ' — streak protected.');
-  renderExcuseStatus();
-}
-
-// Keep old name as alias
-function excuseKidToday() { excuseKidDay(); }
-
-function isKidExcused(kidId, dateStr) {
-  // Check both excusedToday (today) and excusedDays (any date)
-  if (state.excusedToday && state.excusedToday[kidId] === dateStr) return true;
-  if (state.excusedDays && state.excusedDays[kidId] && state.excusedDays[kidId].includes(dateStr)) return true;
-  return false;
-}
-
-function renderExcuseStatus() {
-  const sel = document.getElementById('excuse-kid-select');
-  const statusEl = document.getElementById('excuse-status');
-  const dateInput = document.getElementById('excuse-date-input');
-  if (!sel || !statusEl) return;
-  const kidId = sel.value;
-  const dateVal = dateInput && dateInput.value ? dateInput.value : new Date().toISOString().slice(0,10);
-  const excused = isKidExcused(kidId, dateVal);
-  const kid = state.kids.find(k=>k.id===kidId);
-  const displayDate = new Date(dateVal + 'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'});
-  statusEl.textContent = excused ? '✅ ' + (kid?kid.name:kidId) + ' is already excused for ' + displayDate + '.' : '';
-  statusEl.style.color = excused ? '#2ECC71' : 'var(--muted)';
-}
-
-function sendParentMessage() {
-  const sel = document.getElementById('msg-kid-select');
-  const inp = document.getElementById('msg-text-input');
-  if (!sel || !inp || !inp.value.trim()) { showToast('⚠️ Enter a message first.'); return; }
-  const kidId = sel.value;
-  if (!state.parentMessages) state.parentMessages = {};
-  state.parentMessages[kidId] = { text: inp.value.trim(), date: new Date().toLocaleDateString() };
-  saveState();
-  inp.value = '';
-  const kid = state.kids.find(k=>k.id===kidId);
-  showToast('💬 Message sent to ' + (kid?kid.name:kidId) + '!');
-}
-
-function dismissParentMessage() {
-  if (!state.parentMessages) return;
-  if (state.parentMessages[currentKidId]) {
-    delete state.parentMessages[currentKidId];
-    saveState();
-  }
-  const banner = document.getElementById('parent-message-banner');
-  if (banner) banner.style.display = 'none';
-}
-
-function renderParentMessageBanner(kidId) {
-  const banner = document.getElementById('parent-message-banner');
-  const text = document.getElementById('parent-message-text');
-  if (!banner || !text) return;
-  const msg = state.parentMessages && state.parentMessages[kidId];
-  if (msg && msg.text) {
-    text.textContent = msg.text;
-    banner.style.display = 'block';
-  } else {
-    banner.style.display = 'none';
-  }
-}
-
 function renderVacationBtn() {
   const btn = document.getElementById('vacation-toggle-btn');
   const card = document.getElementById('vacation-mode-card');
@@ -5512,7 +4148,7 @@ function completeBonusChallenge(id) {
   if (!bc) return;
   bc.status = 'completed';
   const kid = state.kids.find(k => k.id === bc.kidId);
-  if (kid) { kid.coins += bc.coins; stampCoins(kid.id); }
+  if (kid) kid.coins += bc.coins;
   saveState();
   showToast('⭐ Bonus challenge complete! +' + bc.coins + ' 🧠 Brain Bucks!');
   launchConfetti(2500);
@@ -5536,19 +4172,22 @@ function dismissQuarterNotice() {
   renderKidDashboard();
 }
 
+function endStudyMode() {
+  stopLessonTimer();
+  showScreen('screen-kid');
+  showToast('📖 Study session done! Great work reviewing.');
+}
+
 // ── WIRE INTO finishLesson: level-up celebration ──────────
 // (called from inside finishLesson after advancement logic)
 function triggerLevelUpIfNeeded(kidId, subjectId, prevIdx, newIdx, subjLevels) {
-  // Legacy shim — calls new function
-  triggerLevelUpCelebration(kidId, subjectId);
-}
-
-function triggerLevelUpCelebration(kidId, subjectId) {
-  const lvlData = getCurrentLevelData(kidId, subjectId);
-  setTimeout(function() {
-    showLevelUp(subjectId.charAt(0).toUpperCase() + subjectId.slice(1), lvlData.name);
-  }, 800);
-  checkBadges(kidId);
+  if (newIdx > prevIdx && newIdx < subjLevels.length) {
+    const nextLevel = subjLevels[newIdx];
+    setTimeout(function() {
+      showLevelUp(subjectId.charAt(0).toUpperCase() + subjectId.slice(1), nextLevel.name);
+    }, 800);
+    checkBadges(kidId);
+  }
 }
 
 // ── QUARTERLY BADGE RESET ────────────────────────────────
@@ -5631,16 +4270,14 @@ function useSkipDay(kidId) {
   if (state.skipDay[kidId] <= 0) { showToast('⚠️ No skip days available for this kid.'); return; }
   if (!state.dailyStreak) state.dailyStreak = {};
   if (!state.dailyStreak[kidId]) state.dailyStreak[kidId] = { count: 0, lastDate: '' };
+  // Set lastDate to today so streak doesn't break tomorrow
   const today = getTodayKey();
   state.dailyStreak[kidId].lastDate = today;
   state.skipDay[kidId]--;
   saveState();
   const kid = state.kids.find(k => k.id === kidId);
   showToast('✅ Skip day used for ' + (kid ? kid.name : kidId) + ' — streak protected!');
-  // Only re-render parent dashboard if we're on that screen
-  if (document.getElementById('screen-parent') && document.getElementById('screen-parent').classList.contains('active')) {
-    renderParentDashboard();
-  }
+  renderParentDashboard();
 }
 
 function grantSkipDay(kidId) {
@@ -5653,6 +4290,76 @@ function grantSkipDay(kidId) {
   renderParentDashboard();
 }
 
+// ── WEEKLY EMAIL ─────────────────────────────────────────
+const EMAILJS_SERVICE_ID  = 'YOUR_SERVICE_ID';
+const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';
+const EMAILJS_PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';
+const REPORT_EMAIL        = 'YOUR_EMAIL@example.com';
+
+function generateWeeklyReport() {
+  const lines = [];
+  lines.push('Weekly KidStuff Summary — ' + new Date().toLocaleDateString());
+  lines.push('');
+  state.kids.forEach(function(k) {
+    lines.push('── ' + k.name + ' ──────────────');
+    lines.push('🧠 Brain Bucks: ' + k.coins);
+    const ds = (state.dailyStreak && state.dailyStreak[k.id]) || {};
+    lines.push('🔥 Streak: ' + (ds.count || 0) + ' day(s)');
+    const prog = state.progress[k.id] || {};
+    const subjects = ['spelling','math','reading','writing'];
+    subjects.forEach(function(s) {
+      const p = prog[s];
+      if (p) {
+        lines.push('  ' + ({spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'}[s]) + ' ' + s.charAt(0).toUpperCase()+s.slice(1) + ': ' + p.score + '% — Level ' + ((state.levels[k.id]||{})[s]||0+1));
+      }
+    });
+    const badges = (state.badges && state.badges[k.id]) || [];
+    if (badges.length) lines.push('🏅 Badges: ' + badges.map(b=>b.icon+' '+b.label).join(', '));
+    lines.push('');
+  });
+  return lines.join('\n');
+}
+
+async function sendWeeklyEmail() {
+  if (EMAILJS_SERVICE_ID === 'YOUR_SERVICE_ID') {
+    showToast('⚠️ EmailJS not configured yet — add credentials in Settings.');
+    return;
+  }
+  try {
+    if (typeof emailjs === 'undefined') throw new Error('EmailJS not loaded');
+    const report = generateWeeklyReport();
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+      to_name: 'Marc',
+      report_body: report
+    }, EMAILJS_PUBLIC_KEY);
+    showToast('📧 Weekly report sent!');
+  } catch(e) {
+    showToast('❌ Email failed: ' + e.message);
+  }
+}
+
+// ── INIT ────────────────────────────────────────────────
+// ── DEV MODE: wipe progress on every load ───────────────
+// Set DEV_MODE = false when going to production
+const DEV_MODE = false;
+function devWipe() {
+  if (!DEV_MODE) return;
+  // Wipe progress, coins, queues — keep PIN, rewards, levels, kids
+  state.kids.forEach(function(k) {
+    k.coins = 0;
+  });
+  state.progress = {};
+  state.streaks = {};
+  state.unlockedToday = {};
+  state.writingQueue = [];
+  state.redemptionQueue = [];
+  state.flaggedReview = [];
+  state.redoNotices = [];
+  state.difficultyLevel = {};
+  state.usedTopics = {};
+  localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+}
+
 // ── ONE-TIME MIGRATIONS ──────────────────────────────────
 function runMigrations() {
   let changed = false;
@@ -5663,12 +4370,9 @@ function runMigrations() {
     if (state.rewards && !state.rewards.tester) state.rewards.tester = [
       {id:'r1',name:'30 min extra screen time',cost:40,emoji:'📺'},
       {id:'r2',name:'Choose dinner',cost:60,emoji:'🍕'},
-      {id:'r3',name:'$10 at Dollar Tree',cost:80,emoji:'💵'}
+      {id:'r3',name:'$1 allowance bonus',cost:80,emoji:'💵'}
     ];
-    if (state.levels && !state.levels.tester) state.levels.tester = {
-      spelling:{grade:3,levelIdx:0}, math:{grade:3,levelIdx:0},
-      reading:{grade:3,levelIdx:0}, writing:{grade:3,levelIdx:0}
-    };
+    if (state.levels && !state.levels.tester) state.levels.tester = {spelling:0,math:0,reading:0,writing:0};
     if (state.streaks && !state.streaks.tester) state.streaks.tester = {spelling:[],math:[],reading:[],writing:[]};
     if (state.progress && !state.progress.tester) state.progress.tester = {};
     if (state.dailyStreak && !state.dailyStreak.tester) state.dailyStreak.tester = {count:0,lastDate:''};
@@ -5684,79 +4388,18 @@ function runMigrations() {
     changed = true;
   }
 
-  // ── MIGRATE flat level indexes to new {grade, levelIdx} format ──
-  // Runs once per device, guarded by levelsMigrationV1 flag
-  if (!localStorage.getItem('levelsMigrationV1')) {
-    const subjects = ['spelling','math','reading','writing'];
-    // Default starting points if we can't determine from old index
-    const defaultGrade = {
-      lauren: {spelling:3, math:3, reading:3, writing:3},
-      andrew: {spelling:4, math:3, reading:3, writing:3},
-      tester:  {spelling:3, math:3, reading:3, writing:3}
-    };
-    if (state.levels) {
-      state.kids.forEach(function(k) {
-        if (!state.levels[k.id]) return;
-        subjects.forEach(function(s) {
-          const existing = state.levels[k.id][s];
-          // Already migrated — skip
-          if (existing && typeof existing === 'object' && existing.grade !== undefined) return;
-          // Old flat index — convert using default grade
-          const grade = (defaultGrade[k.id] && defaultGrade[k.id][s]) || 3;
-          state.levels[k.id][s] = {grade: grade, levelIdx: 0};
-        });
-      });
-    }
-    if (!state.levelsUpdatedAt) state.levelsUpdatedAt = {};
-    state.kids.forEach(function(k) { state.levelsUpdatedAt[k.id] = Date.now(); });
-    localStorage.setItem('levelsMigrationV1', '1');
-    changed = true;
-  }
-
-  // ── SEED paceData from lessonHistory if empty ──────────
-  // Runs once — ensures kids with existing history show calibrated pace immediately
-  if (!localStorage.getItem('paceDataSeedV1')) {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - PACE_WINDOW_DAYS);
-    const cutoffStr = cutoff.toISOString().slice(0,10);
-    if (!state.paceData) state.paceData = {};
-    state.kids.forEach(function(k) {
-      if (!state.paceData[k.id]) state.paceData[k.id] = {};
-      const history = (state.lessonHistory && state.lessonHistory[k.id]) || [];
-      // Only seed from last 7 days to match window
-      history.filter(e => e.date >= cutoffStr).forEach(function(e) {
-        state.paceData[k.id][e.date] = (state.paceData[k.id][e.date] || 0) + (e.duration || 0);
-      });
-    });
-    localStorage.setItem('paceDataSeedV1', '1');
-    // Also recalculate adaptiveQ immediately from seeded data
-    if (!state.adaptiveQ) state.adaptiveQ = {};
-    state.kids.forEach(function(k) {
-      const entries = Object.values(state.paceData[k.id] || {});
-      if (!entries.length) return;
-      const avg = entries.reduce(function(s,v){ return s+v; },0) / entries.length;
-      if (avg <= 0) return;
-      // Estimate questions needed: if avg is 8 min/day with 10q, scale to 30 min
-      const currentQ = state.adaptiveQ[k.id] || 10;
-      const targetQ = avg > 0 ? Math.round(currentQ * (PACE_TARGET_MIN / avg)) : currentQ;
-      state.adaptiveQ[k.id] = Math.max(5, Math.min(25, targetQ));
-    });
-    changed = true;
-  }
-
   if (changed) localStorage.setItem('kidstuff_cache', JSON.stringify(state));
 }
 
 // Load local cache immediately so UI is always responsive
-applyDarkModePreference();
 loadLocalFallback();
 runMigrations();
+devWipe();
 checkQuarterlyReset();
 // Auto-protect streaks on US federal holidays
 state.kids.forEach(function(k) { checkHolidayStreakProtection(k.id); });
 applyVacationStreakProtection();
 purgeBonusChallenges();
-purgeOldWritingQueue();
 updateLastSyncedDisplay();
 
 // Init on load
