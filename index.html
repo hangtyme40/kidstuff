@@ -445,6 +445,11 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         <div class="card-title">✍️ Writing to Review</div>
         <div id="writing-approvals-list"></div>
       </div>
+      <div class="card" id="redo-notices-card" style="background:#FFF5F5;box-shadow:none;border:2px solid #FCA5A5;display:none;">
+        <div style="font-weight:800;margin-bottom:6px">🔒 Active Writing Blocks</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">These are blocking a kid from doing today's work. Clear any that shouldn't be there.</div>
+        <div id="redo-notices-list"></div>
+      </div>
       <div class="card">
         <div class="card-title">🎁 Reward Redemptions</div>
         <div id="redemptions-list"></div>
@@ -1097,7 +1102,10 @@ async function pullState() {
     });
 
     // Merge shared queues — deduplicate by id
-    ['writingQueue','redemptionQueue','flaggedReview','redoNotices'].forEach(function(q) {
+    // redoNotices: take remote as authoritative (don't merge with local — avoids resurrection of cleared notices)
+    state.redoNotices = sharedData.redoNotices || [];
+    // Other queues: merge remote + local, deduplicate by id
+    ['writingQueue','redemptionQueue','flaggedReview'].forEach(function(q) {
       const remoteArr = sharedData[q] || [];
       const localArr = state[q] || [];
       const seen = new Set();
@@ -3164,6 +3172,7 @@ function renderParentDashboard() {
     renderParentKidSummary();
     renderCurriculumOverview();
     renderWritingApprovals();
+    renderRedoNotices();
     renderParentRewards();
     renderProgressOverview();
     renderWeeklySummary();
@@ -3291,6 +3300,42 @@ function renderCurriculumOverview() {
         }).join('')
       + '</div>';
   }).join('<hr style="border:none;border-top:1px solid var(--border);margin:8px 0"/>');
+}
+
+function renderRedoNotices() {
+  const card = document.getElementById('redo-notices-card');
+  const list = document.getElementById('redo-notices-list');
+  if (!card || !list) return;
+  const notices = (state.redoNotices || []).filter(function(n) { return n.subject === 'writing'; });
+  if (!notices.length) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  list.innerHTML = notices.map(function(n) {
+    const kid = state.kids.find(function(k) { return k.id === n.kidId; });
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);gap:12px;">'
+      + '<div><div style="font-weight:700">' + (kid ? kid.emoji + ' ' + kid.name : n.kidId) + '</div>'
+      + '<div style="font-size:12px;color:var(--muted);margin-top:2px">' + (n.message || 'Writing redo pending') + '</div></div>'
+      + '<button onclick="clearRedoNotice(\'' + n.kidId + '\')" style="background:#EF4444;color:white;border:none;border-radius:10px;padding:8px 14px;font-family:Nunito,sans-serif;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;">🗑 Clear</button>'
+      + '</div>';
+  }).join('');
+}
+
+function clearRedoNotice(kidId) {
+  // Remove the redo notice
+  state.redoNotices = (state.redoNotices || []).filter(function(n) {
+    return !(n.kidId === kidId && n.subject === 'writing');
+  });
+  // Also clear any stale pending/redo items from writingQueue for this kid
+  state.writingQueue = (state.writingQueue || []).map(function(w) {
+    if (w.kidId === kidId && (w.status === 'pending' || w.status === 'redo')) {
+      return Object.assign({}, w, { status: 'cleared' });
+    }
+    return w;
+  });
+  saveState();
+  showToast('✅ Writing block cleared for ' + ((state.kids.find(k=>k.id===kidId)||{}).name || kidId) + '.');
+  renderRedoNotices();
+  renderWritingApprovals();
+  updateTabBadges();
 }
 
 function renderWritingApprovals() {
@@ -3949,7 +3994,7 @@ function switchTab(tabId, btn) {
     if (btn) btn.classList.add('active');
     // Re-render tab content on switch so data is always fresh
     if (tabId === 'tab-overview') { renderProgressOverview(); renderWeeklySummary(); }
-    if (tabId === 'tab-review') { renderWritingApprovals(); renderRedemptionQueue(); renderFlaggedList(); }
+    if (tabId === 'tab-review') { renderWritingApprovals(); renderRedemptionQueue(); renderFlaggedList(); renderRedoNotices(); }
   } catch(e) {
     showToast('❌ Tab error: ' + e.message);
     console.error('switchTab error:', e);
