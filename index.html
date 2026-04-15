@@ -1115,7 +1115,6 @@ async function pullState() {
 
     localStorage.setItem('kidstuff_cache', JSON.stringify(state));
     runMigrations();
-    purgeOrphanedRedoNotices();
     setSyncBar('✅ Synced', '');
     setTimeout(() => setSyncBar('', 'hide'), 2000);
     document.getElementById('sync-status-landing').textContent = '☁️ Firebase sync active';
@@ -1127,6 +1126,9 @@ async function pullState() {
     state.kids.forEach(function(k) { checkHolidayStreakProtection(k.id); });
     applyVacationStreakProtection();
     loadLocalFallback();
+    // Purge AFTER loadLocalFallback so it operates on final state
+    purgeStaleWritingQueue();
+    purgeOrphanedRedoNotices();
     setSyncBar('⚠️ Using cached data', 'error');
   } finally {
     isSyncing = false;
@@ -4969,19 +4971,39 @@ function purgeOldWritingQueue() {
   });
 }
 
+// Drop pending writing submissions older than today so they don't block the kid.
+// Old pending items stay in the queue for parent review but can't trigger a redo lock.
+function purgeStaleWritingQueue() {
+  if (!state.writingQueue) return;
+  const todayStr = new Date().toLocaleDateString();
+  const todayIso = new Date().toISOString().slice(0,10);
+  let changed = false;
+  state.writingQueue = state.writingQueue.map(function(w) {
+    if (w.status !== 'pending') return w;
+    // If the submission date doesn't match today in either format, mark it reviewed
+    const isToday = (w.date === todayStr || w.date === todayIso);
+    if (!isToday) {
+      changed = true;
+      return Object.assign({}, w, { status: 'stale' });
+    }
+    return w;
+  });
+  if (changed) saveState();
+}
+
 // Remove any redoNotice that has no matching writingQueue item with status 'redo' or 'pending'.
 // This prevents stale Firebase entries from blocking kids indefinitely.
 function purgeOrphanedRedoNotices() {
   if (!state.redoNotices || !state.redoNotices.length) return;
   const before = state.redoNotices.length;
   state.redoNotices = state.redoNotices.filter(function(n) {
-    if (n.subject !== 'writing') return true; // keep non-writing notices as-is
+    if (n.subject !== 'writing') return true;
     return (state.writingQueue || []).some(function(w) {
       return w.kidId === n.kidId && (w.status === 'redo' || w.status === 'pending');
     });
   });
   if (state.redoNotices.length !== before) {
-    saveState(); // push cleaned state back to Firebase so it doesn't come back
+    saveState();
   }
 }
 
@@ -4993,6 +5015,7 @@ state.kids.forEach(function(k) { checkHolidayStreakProtection(k.id); });
 applyVacationStreakProtection();
 purgeBonusChallenges();
 purgeOldWritingQueue();
+purgeStaleWritingQueue();
 purgeOrphanedRedoNotices();
 updateLastSyncedDisplay();
 
