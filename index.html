@@ -3391,17 +3391,14 @@ function approveWriting(id) {
   if (!w) return;
   w.status = 'approved';
   const kid = state.kids.find(k=>k.id===w.kidId);
-  // Award Brain Bucks now — writing coins are held until approval.
-  // Check if coins were already recorded for this writing session today
+  // Award Brain Bucks using the standard formula — approval = 100% score = 2 Brain Bucks.
+  // Coins are only awarded once per submission (not again on re-approval of a redo).
   const writingProg = state.progress[w.kidId] && state.progress[w.kidId]['writing'];
   const alreadyAwarded = writingProg && writingProg.coinsAwarded;
   if (kid && !alreadyAwarded) {
-    // Writing approval = full credit. Award 1 Brain Buck (equivalent to 80%+ score).
-    // If it's a redo approval, check if coins were already partially given.
-    const coinsToAward = 1;
-    kid.coins += coinsToAward;
+    kid.coins += 2;
     stampCoins(w.kidId);
-    if (writingProg) writingProg.coinsAwarded = true;
+    if (writingProg) { writingProg.coins = 2; writingProg.coinsAwarded = true; }
   }
   // Clear redo notice so kid dashboard doesn't stay locked
   if (state.redoNotices) {
@@ -3416,7 +3413,7 @@ function approveWriting(id) {
     return x.status !== 'redo' && x.status !== 'pending';
   });
   saveState();
-  showToast('✅ Approved — ' + (kid?kid.name:'') + ' earned 🧠 1 Brain Buck!');
+  showToast('✅ Approved — ' + (kid ? kid.name : '') + ' earned 🧠 2 Brain Bucks!');
   renderWritingApprovals();
   renderParentKidSummary();
   updateTabBadges();
