@@ -210,8 +210,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .voice-option:hover{border-color:var(--primary);}
 .voice-preview{background:var(--primary);color:white;border:none;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;}
 
-.study-btn{background:linear-gradient(135deg,#F7C948,#FF9500);color:#1A1F36;border:none;padding:14px 20px;border-radius:14px;font-family:'Baloo 2',cursive;font-size:17px;font-weight:800;cursor:pointer;width:100%;margin-bottom:14px;box-shadow:0 4px 16px rgba(247,201,72,0.3);transition:transform 0.15s;}
-.study-btn:hover{transform:translateY(-2px);}
+
 .lesson-timer{font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;color:white;background:rgba(255,255,255,0.18);border-radius:20px;padding:4px 14px;letter-spacing:1px;}
 .lesson-timer.warn{background:#EF4444;color:white;animation:timerPulse 0.8s ease-in-out infinite;}
 @keyframes timerPulse{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.12);opacity:0.75;}}
@@ -311,7 +310,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     </div>
     <div id="no-content-msg" style="display:none"></div>
     <div class="subject-grid" id="subject-grid"></div>
-    <button onclick="startStudyMode()" id="study-mode-btn" style="display:none;width:100%;margin-bottom:18px;padding:14px;border-radius:14px;border:2px solid var(--primary);background:#EEF2FF;color:var(--primary);font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;cursor:pointer;">📖 Study Mode — Practice Missed Questions</button>
+
     <div id="parent-message-banner" style="display:none;background:linear-gradient(135deg,#F59E0B,#F7C948);color:#1A1F36;border-radius:12px;padding:12px 16px;margin-bottom:14px;cursor:pointer;" onclick="dismissParentMessage()">
       <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;opacity:0.7;margin-bottom:4px">Message from Parent 💬</div>
       <div id="parent-message-text" style="font-weight:700;font-size:14px;"></div>
@@ -374,27 +373,6 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <div class="card"><div class="card-title">📊 Results</div><div id="results-breakdown-list"></div>
       <div id="results-wrong-answers" style="display:none;margin-top:16px"></div></div>
     <button class="btn-primary" onclick="showScreen('screen-kid')" style="margin-bottom:30px">Back to Dashboard</button>
-  </div>
-</div>
-
-<!-- STUDY MODE -->
-<div id="screen-study" class="screen">
-  <div class="app-header">
-    <div><div class="logo">Kid<span>Stuff</span></div><div class="header-sub">Study Mode</div></div>
-    <button class="back-btn" onclick="showScreen('screen-kid')">Exit</button>
-  </div>
-  <div class="content">
-    <div style="background:linear-gradient(135deg,#4F6EF7,#7C3AED);border-radius:var(--radius);padding:20px;color:white;margin-bottom:18px;text-align:center">
-      <div style="font-size:36px;margin-bottom:6px">📖</div>
-      <div style="font-family:'Baloo 2',cursive;font-size:22px;font-weight:800">Study Mode</div>
-      <div style="opacity:0.85;font-size:14px;margin-top:4px">No score, no pressure — just practice!</div>
-    </div>
-    <div id="study-content"></div>
-    <div id="study-empty" style="display:none" class="card" style="text-align:center;padding:32px">
-      <div style="font-size:48px;margin-bottom:12px">🎉</div>
-      <div style="font-family:'Baloo 2',cursive;font-size:20px">No missed questions!</div>
-      <div style="color:var(--muted);margin-top:8px">You've been getting everything right. Keep it up!</div>
-    </div>
   </div>
 </div>
 
@@ -1776,14 +1754,6 @@ function renderKidDashboard() {
         + '</button>';
     }).join('');
   }
-  const studyBtn = document.getElementById('study-mode-btn');
-  if (studyBtn) {
-    const hasWrong = ['spelling','math','reading','writing'].some(function(s) {
-      const p = (state.progress[currentKidId]||{})[s];
-      return p && p.wrongAnswers && p.wrongAnswers.length > 0;
-    });
-    studyBtn.style.display = hasWrong ? 'block' : 'none';
-  }
 
   const rewardsEl = document.getElementById('kid-rewards-list');
   const kidRewards2 = getRewardsForKid(currentKidId);
@@ -2147,9 +2117,7 @@ function renderQuestion() {
   // Drill banner
   const bannerArea = document.getElementById('drill-banner-area');
   if (bannerArea) {
-    bannerArea.innerHTML = ls.isStudyMode
-      ? '<div class="drill-banner" style="background:linear-gradient(90deg,#4F6EF7,#7C3AED);color:white;">📖 Study Mode — No pressure, just practice!</div>'
-      : ls.isDrillRound
+    bannerArea.innerHTML = ls.isDrillRound
       ? '<div class="drill-banner">🔄 Drill Round — Practice your missed questions!</div>'
       : '';
   }
@@ -2778,8 +2746,28 @@ function showNextBtn(flagged) {
   const qc = document.querySelector('#lesson-content .question-card');
   if (!qc) return;
 
-  // Flag button — hide during drill round and study mode
-  if (!flagged && !ls.isDrillRound && !ls.isStudyMode) {
+  // Determine if the last answer was correct
+  const lastAnswer = ls.answers && ls.answers.length ? ls.answers[ls.answers.length - 1] : null;
+  const lastWasCorrect = lastAnswer && lastAnswer.correct === true && !flagged;
+
+  // Auto-advance: skip the button entirely, fire after short delay
+  // Only for correct answers, not on writing, not when flagged, not on last question (show results manually)
+  const isWriting = ls.questions[ls.currentQ] && ls.questions[ls.currentQ].type === 'writing';
+  if (state.autoAdvance && lastWasCorrect && !isWriting && !isLast) {
+    // Show a brief "Correct!" countdown indicator but no button
+    const indicator = document.createElement('div');
+    indicator.id = 'auto-advance-indicator';
+    indicator.style.cssText = 'margin-top:12px;text-align:center;font-size:13px;font-weight:700;color:#2ECC71;opacity:0.85;';
+    indicator.textContent = '⚡ Next question in a moment…';
+    qc.appendChild(indicator);
+    setTimeout(function() {
+      if (lessonState && lessonState.currentQ === ls.currentQ) nextQuestion();
+    }, 700);
+    return;
+  }
+
+  // Flag button — hide during drill round
+  if (!flagged && !ls.isDrillRound) {
     const flagBtn = document.createElement('button');
     flagBtn.id = 'flag-btn';
     flagBtn.style.cssText = 'width:100%;margin-top:10px;padding:11px;border-radius:12px;border:2px solid #F7C948;background:#FFFBEA;color:#B45309;font-family:Nunito,sans-serif;font-weight:700;font-size:14px;cursor:pointer;';
@@ -2798,12 +2786,11 @@ function showNextBtn(flagged) {
 
   let btnLabel;
   if (isLast) {
-    if (ls.isStudyMode) btnLabel = '✅ Done Studying!';
-    else if (ls.isDrillRound) btnLabel = '✅ Finish Drill!';
+    if (ls.isDrillRound) btnLabel = '✅ Finish Drill!';
     else if (ls.wrongAnswers && ls.wrongAnswers.length > 0) btnLabel = '🔄 Practice Missed Questions';
     else btnLabel = '🎉 See My Results!';
   } else {
-    btnLabel = ls.isStudyMode ? 'Next →' : 'Next Question →';
+    btnLabel = 'Next Question →';
   }
 
   btn.textContent = btnLabel;
@@ -2892,7 +2879,7 @@ function nextQuestion() {
   lessonState.currentQ++;
   if (lessonState.currentQ >= lessonState.questions.length) {
     // Check if we should go to drill round (not in study mode)
-    if (!lessonState.isDrillRound && !lessonState.isStudyMode && lessonState.wrongAnswers && lessonState.wrongAnswers.length > 0) {
+    if (!lessonState.isDrillRound && lessonState.wrongAnswers && lessonState.wrongAnswers.length > 0) {
       startDrillRound();
     } else {
       finishLesson();
@@ -2931,8 +2918,6 @@ function startDrillRound() {
 function finishLesson() {
   stopLessonTimer();
   const ls = lessonState;
-  // Study mode — no scoring, just return to dashboard
-  if (ls.isStudyMode) { endStudyMode(); return; }
   // Use original question set for scoring (not drill questions)
   const origQuestions = ls._originalQuestions || ls.questions;
   const origTotal = origQuestions.length;
@@ -4278,11 +4263,15 @@ function checkBadges(kidId) {
   }
 }
 
+// Badge IDs that have been retired and should never display
+const RETIRED_BADGE_IDS = ['all_done','all_done_today','today_complete','daily_done','daily_complete','done_today'];
+
 function renderBadges(kidId) {
   const section = document.getElementById('kid-badges-section');
   const grid = document.getElementById('kid-badges-grid');
   if (!section || !grid) return;
-  const badges = (state.badges && state.badges[kidId]) || [];
+  const allBadges = (state.badges && state.badges[kidId]) || [];
+  const badges = allBadges.filter(function(b) { return !RETIRED_BADGE_IDS.includes(b.id); });
   if (!badges.length) { section.style.display = 'none'; return; }
   section.style.display = 'block';
   grid.innerHTML = badges.map(function(b) {
@@ -4339,35 +4328,6 @@ function renderMilestoneBar(kidId) {
     + '</div>';
 }
 
-// ── STUDY MODE ───────────────────────────────────────────
-function startStudyMode() {
-  const allWrong = [];
-  const subjects = ['spelling','math','reading','writing'];
-  subjects.forEach(function(s) {
-    const prog = (state.progress[currentKidId]||{})[s];
-    if (prog && prog.wrongAnswers && prog.wrongAnswers.length) {
-      prog.wrongAnswers.forEach(function(w) {
-        allWrong.push({ type:'typed', question: w.question, answer: w.correctAnswer, _hint: w.hint || '' });
-      });
-    }
-  });
-  if (!allWrong.length) { showToast('🎉 No missed questions — you aced everything!'); return; }
-
-  // Shuffle
-  allWrong.sort(() => Math.random() - 0.5);
-
-  lessonState = {
-    subjectId: 'study', subjectName: 'Study Mode', subjectIcon: '📖', subjectType: 'study',
-    questions: allWrong, _originalQuestions: allWrong.slice(),
-    currentQ: 0, answers: [], correct: 0, streak: 0, missStreak: 0, wrongAnswers: [],
-    diffLevel: 2, startTime: Date.now(), isDrillRound: false, timerSeconds: 0,
-    isStudyMode: true
-  };
-  showScreen('screen-lesson');
-  document.getElementById('lesson-title').textContent = '📖 Study Mode';
-  startLessonTimer();
-  renderQuestion();
-}
 
 function renderTimerInputs() {
   const container = document.getElementById('timer-inputs');
@@ -4699,11 +4659,6 @@ function dismissQuarterNotice() {
   renderKidDashboard();
 }
 
-function endStudyMode() {
-  stopLessonTimer();
-  showScreen('screen-kid');
-  showToast('📖 Study session done! Great work reviewing.');
-}
 
 // ── WIRE INTO finishLesson: level-up celebration ──────────
 // (called from inside finishLesson after advancement logic)
