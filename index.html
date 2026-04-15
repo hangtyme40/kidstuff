@@ -1445,8 +1445,14 @@ function pinKey(d) {
           const cb = document.getElementById('remember-me-checkbox');
           if (cb && cb.checked) localStorage.setItem('kidstuff_rememberedKid', currentKidId);
           else localStorage.removeItem('kidstuff_rememberedKid');
-          checkIncompleteWeekPenalty(currentKidId);
+          // Pull latest state from Firebase first so incompleteWeekPenalized is current,
+          // then check penalty — prevents double-deduction across devices
           showScreen('screen-kid');
+          pullState().then(function() {
+            checkIncompleteWeekPenalty(currentKidId);
+          }).catch(function() {
+            checkIncompleteWeekPenalty(currentKidId);
+          });
         } else {
           document.getElementById('pin-error').textContent = 'Incorrect PIN.';
           pinEntry = ''; updatePinDots();
@@ -1863,6 +1869,9 @@ async function startBonusChallenge(bonusId) {
       timerSeconds: 0, _originalQuestions: questions.slice(),
       isBonusChallenge: true, bonusChallengeId: bonusId, bonusCoins: bc.coins
     };
+    if (!state.liveLesson) state.liveLesson = {};
+    state.liveLesson[currentKidId] = { subject: bc.topic || subjectId, icon: icon };
+    try { fbSet('kids/' + currentKidId + '/liveLesson', state.liveLesson[currentKidId]); } catch(_){}
     showScreen('screen-lesson');
     document.getElementById('lesson-title').textContent = icon + ' Bonus: ' + (bc.topic || subjectId);
     startLessonTimer();
@@ -1913,6 +1922,10 @@ async function startLesson(subjectId) {
       timerSeconds: 0,
       _originalQuestions: type === 'writing' ? [{type:'writing'}] : questions.slice()
     };
+    // Signal to parent dashboard that this kid is actively working
+    if (!state.liveLesson) state.liveLesson = {};
+    state.liveLesson[currentKidId] = { subject: levelData.name, icon: icon };
+    try { fbSet('kids/' + currentKidId + '/liveLesson', state.liveLesson[currentKidId]); } catch(_){}
     showScreen('screen-lesson');
     document.getElementById('lesson-title').textContent = icon + ' ' + levelData.name;
     startLessonTimer();
@@ -2021,10 +2034,11 @@ Rules:
     prompt = `Generate a writing prompt for ${kid.name}, a student practicing "${levelName}" (${levelDesc}).
 Grade level context: ${GRADE_LABELS[getCurrentGradeLevel(kidId,'writing').grade] || 'Grade 3'}.
 Difficulty: ${diffName}.${avoidNote}
-The prompt must be a CLEAR INSTRUCTION — NOT a story starter or opening sentence.
-Good: "Write 3-5 sentences about your favorite animal. Include what it looks like, where it lives, and why you like it."
+The prompt must be a CLEAR, SINGLE INSTRUCTION — NOT a story starter or opening sentence.
+Good: "Write 4-6 sentences about your favorite animal. Include what it looks like, where it lives, and why you like it."
 Bad: "After discovering a mysterious box..." (story starter, not an instruction)
 Personalize it slightly for ${kid.name} — make it feel like it was written just for them.
+IMPORTANT: Return ONE prompt only. Do NOT include any additional instructions, sentence count reminders, or sub-text below the main prompt. The prompt itself should contain all guidance.
 Return ONLY valid JSON, no markdown:
 {"prompt":"WRITING INSTRUCTION HERE"}
 Make it fun, creative, age-appropriate, and specific about what and how much to write.`;
@@ -3456,14 +3470,22 @@ function startWritingRedo() {
     return w.kidId === currentKidId && (w.status === 'redo' || w.status === 'pending');
   });
   const originalPrompt = redoItem ? redoItem.prompt : null;
-  const redoPrompt = originalPrompt
-    ? '🔄 Your parent asked you to try this again:\n\n' + originalPrompt
-    : null;
-  if (!redoPrompt) {
+  const parentFeedback = redoItem ? redoItem.feedback : null;
+
+  // Build the redo prompt — always use the original assignment
+  let redoPrompt;
+  if (originalPrompt) {
+    redoPrompt = originalPrompt;
+    if (parentFeedback) {
+      redoPrompt = '💬 Parent note: ' + parentFeedback + '\n\n' + originalPrompt;
+    }
+  } else {
+    // No original prompt saved — generate a fresh one
     showToast('⏳ Generating your writing assignment...');
     startLesson('writing');
     return;
   }
+
   lessonState = {
     subjectId: 'writing', subjectName: lvlData.name, subjectIcon: '✏️', subjectType: 'writing',
     questions: [{type:'writing', question:'Writing Redo'}],
@@ -3473,6 +3495,9 @@ function startWritingRedo() {
     writingPrompt: redoPrompt,
     isRedo: true
   };
+  if (!state.liveLesson) state.liveLesson = {};
+  state.liveLesson[currentKidId] = { subject: 'Writing Redo', icon: '✏️' };
+  try { fbSet('kids/' + currentKidId + '/liveLesson', state.liveLesson[currentKidId]); } catch(_){}
   showScreen('screen-lesson');
   document.getElementById('lesson-title').textContent = '✏️ Writing Redo';
   startLessonTimer();
@@ -3482,7 +3507,10 @@ function startWritingRedo() {
 function denyWriting(id) {
   const w = (state.writingQueue||[]).find(x=>x.id===id);
   if (!w) return;
+  // Optionally capture a short note for the kid
+  const feedback = (prompt('Optional: Add a short note for ' + ((state.kids.find(k=>k.id===w.kidId)||{}).name||'the kid') + ' (leave blank to skip):') || '').trim();
   w.status = 'redo';
+  if (feedback) w.feedback = feedback;
   const kid = state.kids.find(k=>k.id===w.kidId);
   // Deduct Brain Bucks earned from the writing lesson
   const writingProgress = state.progress[w.kidId] && state.progress[w.kidId]['writing'];
