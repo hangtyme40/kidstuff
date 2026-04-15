@@ -3218,6 +3218,7 @@ function renderParentDashboard() {
     renderWritingApprovals();
     renderParentRewards();
     renderProgressOverview();
+    renderWeeklySummary();
     renderFlaggedList();
     renderRedemptionQueue();
     updateRedemptionBadge();
@@ -3754,6 +3755,65 @@ function renderProgressOverview() {
     }
     container.appendChild(card);
   });
+}
+
+function renderWeeklySummary() {
+  const el = document.getElementById('weekly-summary-content');
+  if (!el) return;
+  const today = new Date();
+  const weekStart = getWeekStart(today);
+  const subjectIcons = {spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'};
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  const rows = state.kids.filter(function(k){ return k.id !== 'tester'; }).map(function(k) {
+    const history = (state.lessonHistory && state.lessonHistory[k.id]) || [];
+    let totalSessions = 0, totalCoins = 0;
+    const dayStatuses = days.map(function(dayLabel, i) {
+      const day = new Date(weekStart);
+      day.setDate(weekStart.getDate() + i);
+      if (day > today) return { dayLabel: dayLabel, status: 'future' };
+      const dateStr = day.toISOString().slice(0,10);
+      const sched = getScheduleForDow(day.getDay());
+      if (sched.isRest) return { dayLabel: dayLabel, status: 'rest' };
+      const excused = isUSFederalHoliday(day) || state.vacationMode || isKidExcused(k.id, dateStr);
+      if (excused) return { dayLabel: dayLabel, status: 'excused' };
+      const dayEntries = history.filter(function(e){ return e.date === dateStr; });
+      totalSessions += dayEntries.length;
+      totalCoins += dayEntries.reduce(function(s,e){ return s+e.coins; }, 0);
+      const complete = sched.subjects.every(function(s){ return dayEntries.some(function(e){ return e.subject===s; }); });
+      const partial = !complete && dayEntries.length > 0;
+      return { dayLabel: dayLabel, status: complete ? 'done' : partial ? 'partial' : 'missed', entries: dayEntries };
+    });
+
+    const dotHtml = dayStatuses.map(function(ds) {
+      const colors = { done:'#2ECC71', partial:'#F59E0B', missed:'#EF4444', rest:'#E2E8F8', future:'#E2E8F8', excused:'#7DD3FC' };
+      const icons  = { done:'✓', partial:'~', missed:'✗', rest:'–', future:'·', excused:'🤒' };
+      const bg = colors[ds.status] || '#E2E8F8';
+      const txt = icons[ds.status] || '·';
+      const textColor = (ds.status === 'rest' || ds.status === 'future') ? '#9CA3AF' : 'white';
+      return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;">'
+        + '<div style="width:32px;height:32px;border-radius:50%;background:' + bg + ';display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:' + textColor + ';">' + txt + '</div>'
+        + '<div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;">' + ds.dayLabel + '</div>'
+        + '</div>';
+    }).join('');
+
+    const claimedPerfect = (state.perfectWeekClaimed||{})[k.id] === weekStart.toISOString().slice(0,10);
+    const bonusBadge = claimedPerfect
+      ? '<span style="background:#F7C948;color:#1A1F36;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:800;margin-left:8px;">🏆 Perfect Week!</span>'
+      : '';
+
+    return '<div style="margin-bottom:18px">'
+      + '<div style="display:flex;align-items:center;margin-bottom:10px">'
+      + '<span style="font-size:22px;margin-right:8px">' + k.emoji + '</span>'
+      + '<span style="font-family:\'Baloo 2\',cursive;font-size:16px;font-weight:700">' + k.name + '</span>'
+      + bonusBadge
+      + '<span style="margin-left:auto;font-size:12px;color:var(--muted);font-weight:700">' + totalSessions + ' lesson' + (totalSessions!==1?'s':'') + ' · 🧠 ' + totalCoins + '</span>'
+      + '</div>'
+      + '<div style="display:flex;gap:6px;justify-content:space-between;">' + dotHtml + '</div>'
+      + '</div>';
+  }).join('<hr style="border:none;border-top:1px solid var(--border);margin:10px 0"/>');
+
+  el.innerHTML = rows || '<div style="color:var(--muted);font-size:14px">No activity this week yet.</div>';
 }
 
 function addReward() {
