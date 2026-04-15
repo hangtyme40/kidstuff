@@ -586,7 +586,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         </div>
         <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
           <div style="font-weight:800;margin-bottom:8px">🧠 Brain Bucks Max per Lesson</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Max Brain Bucks a kid can earn on first attempt (score% × max).</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">100% score = 2 Brain Bucks · 80%+ = 1 Brain Buck · Below 80% = 0. Writing is awarded on approval.</div>
           <div class="form-row"><label>Kid</label><select id="coinmax-kid-select" onchange="renderCoinMaxInputs()"></select></div>
           <div id="coinmax-inputs" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px"></div>
           <button class="btn-primary" style="margin-top:12px" onclick="saveCoinMax()">Save Brain Bucks Limits</button>
@@ -2085,14 +2085,14 @@ function renderQuestion() {
   const ls = lessonState;
   const total = ls.questions.length;
   document.getElementById('lesson-progress').textContent = 'Q ' + (ls.currentQ+1) + ' of ' + total;
-  document.getElementById('lesson-header-sub').textContent = ls.isDrillRound ? '🔄 Drill Round' : 'Question ' + (ls.currentQ+1) + ' of ' + total;
+  document.getElementById('lesson-header-sub').textContent = 'Question ' + (ls.currentQ+1) + ' of ' + total;
   document.getElementById('lesson-progress-bar').style.width = Math.round((ls.currentQ/total)*100) + '%';
 
   // Show reading story panel if this is a reading lesson with a continuous story
   const storyPanel = document.getElementById('reading-story-panel');
   const storyText = document.getElementById('reading-story-text');
   if (storyPanel && storyText) {
-    if (ls.subjectType === 'reading' && ls.readingStory && !ls.isDrillRound) {
+    if (ls.subjectType === 'reading' && ls.readingStory) {
       storyPanel.style.display = 'block';
       storyText.textContent = ls.readingStory;
     } else {
@@ -2100,13 +2100,9 @@ function renderQuestion() {
     }
   }
   
-  // Drill banner
+  // Clear drill banner area
   const bannerArea = document.getElementById('drill-banner-area');
-  if (bannerArea) {
-    bannerArea.innerHTML = ls.isDrillRound
-      ? '<div class="drill-banner">🔄 Drill Round — Practice your missed questions!</div>'
-      : '';
-  }
+  if (bannerArea) bannerArea.innerHTML = '';
 
   const c = document.getElementById('lesson-content');
   const q = ls.questions[ls.currentQ];
@@ -2715,7 +2711,6 @@ function recordAnswer(ok, flagged) {
     ls.correct++;
     ls.streak++;
     ls.missStreak=0;
-    if (ls.isDrillRound) ls.drillCorrect = (ls.drillCorrect||0) + 1;
   } else {
     ls.streak=0;
     ls.missStreak++;
@@ -2752,8 +2747,8 @@ function showNextBtn(flagged) {
     return;
   }
 
-  // Flag button — hide during drill round
-  if (!flagged && !ls.isDrillRound) {
+  // Flag button — not shown when flagged
+  if (!flagged) {
     const flagBtn = document.createElement('button');
     flagBtn.id = 'flag-btn';
     flagBtn.style.cssText = 'width:100%;margin-top:10px;padding:11px;border-radius:12px;border:2px solid #F7C948;background:#FFFBEA;color:#B45309;font-family:Nunito,sans-serif;font-weight:700;font-size:14px;cursor:pointer;';
@@ -2772,9 +2767,7 @@ function showNextBtn(flagged) {
 
   let btnLabel;
   if (isLast) {
-    if (ls.isDrillRound) btnLabel = '✅ Finish Drill!';
-    else if (ls.wrongAnswers && ls.wrongAnswers.length > 0) btnLabel = '🔄 Practice Missed Questions';
-    else btnLabel = '🎉 See My Results!';
+    btnLabel = '🎉 See My Results!';
   } else {
     btnLabel = 'Next Question →';
   }
@@ -2864,58 +2857,36 @@ function showLockedModal(subj, prog) {
 function nextQuestion() {
   lessonState.currentQ++;
   if (lessonState.currentQ >= lessonState.questions.length) {
-    // Check if we should go to drill round (not in study mode)
-    if (!lessonState.isDrillRound && lessonState.wrongAnswers && lessonState.wrongAnswers.length > 0) {
-      startDrillRound();
-    } else {
-      finishLesson();
-    }
+    finishLesson();
   } else {
     renderQuestion();
     window.scrollTo(0,0);
   }
 }
 
-function startDrillRound() {
-  const ls = lessonState;
-  // Build drill questions from wrong answers
-  const drillQs = ls.wrongAnswers.map(function(w) {
-    // Find the original question object
-    const orig = ls._originalQuestions && ls._originalQuestions.find(function(q) {
-      return (q.question === w.question || q.word === w.question);
-    });
-    if (orig) return orig;
-    // Fallback: rebuild a typed question
-    return { type:'typed', question: w.question, answer: w.correctAnswer };
-  }).filter(Boolean);
-
-  if (!drillQs.length) { finishLesson(); return; }
-
-  ls._originalQuestions = ls._originalQuestions || ls.questions.slice();
-  ls.isDrillRound = true;
-  ls.questions = drillQs;
-  ls.currentQ = 0;
-  ls.drillCorrect = 0;
-  ls.drillTotal = drillQs.length;
-  window.scrollTo(0,0);
-  renderQuestion();
-}
 
 function finishLesson() {
   stopLessonTimer();
   const ls = lessonState;
-  // Use original question set for scoring (not drill questions)
-  const origQuestions = ls._originalQuestions || ls.questions;
-  const origTotal = origQuestions.length;
-  // correct = answers on original questions only (subtract drill answers from total correct)
-  const drillCorrect = ls.isDrillRound ? (ls.drillCorrect || 0) : 0;
-  const origCorrect = ls.correct - drillCorrect;
+  // Clear live lesson indicator in parent dashboard
+  if (state.liveLesson) state.liveLesson[currentKidId] = null;
+  try { fbSet('kids/' + currentKidId + '/liveLesson', null); } catch(_){}
+  const origTotal = ls.questions.length;
+  const origCorrect = ls.correct;
   const total = origTotal;
-  const pct = Math.round((origCorrect / total) * 100);
+  const pct = total > 0 ? Math.round((origCorrect / total) * 100) : 0;
   if (!state.progress[currentKidId]) state.progress[currentKidId]={};
   const alreadyDone = state.progress[currentKidId][ls.subjectId] && state.progress[currentKidId][ls.subjectId].date === getTodayKey();
-  const maxCoins = (state.coinMax && state.coinMax[currentKidId] && state.coinMax[currentKidId][ls.subjectId]) || 2;
-  const originalCoins = alreadyDone ? (state.progress[currentKidId][ls.subjectId].coins || 0) : Math.round(pct * (maxCoins / 100));
+  // New Brain Bucks formula: 2 for 100%, 1 for 80%+, 0 otherwise
+  // Writing is pending parent approval — coins awarded at approval instead
+  const isWriting = ls.subjectType === 'writing';
+  function calcCoins(score) {
+    if (isWriting) return 0; // held until approval
+    if (score === 100) return 2;
+    if (score >= 80) return 1;
+    return 0;
+  }
+  const originalCoins = alreadyDone ? (state.progress[currentKidId][ls.subjectId].coins || 0) : calcCoins(pct);
   const coins = alreadyDone ? 0 : originalCoins;
   const flaggedCount = ls.flagged || 0;
   const flaggedQuestions = ls.flaggedQuestions || [];
@@ -3021,17 +2992,21 @@ function finishLesson() {
   });
   resScore.textContent = pct+'%';
   document.getElementById('results-label').textContent = pct>=90?'🎉 Outstanding!':pct>=70?'😊 Great job!':pct>=50?'💪 Good effort!':'📚 Keep practicing!';
-  document.getElementById('results-coins').textContent = alreadyDone ? '🧠 No Brain Bucks — already done today' : '+'+coins+' 🧠 Brain Bucks earned!';
+  const isWritingLesson = ls.subjectType === 'writing';
+  document.getElementById('results-coins').textContent = alreadyDone
+    ? '🧠 No Brain Bucks — already done today'
+    : isWritingLesson
+      ? '⏳ Brain Bucks awarded after parent review'
+      : '+' + coins + ' 🧠 Brain Bucks earned!';
   const flagCount = ls.flagged || 0;
   const flagRow = flagCount > 0 ? '<div class="breakdown-row"><span>🚩 Flagged</span><strong style="color:#B45309">' + flagCount + ' question' + (flagCount>1?'s':'') + ' for review</strong></div>' : '';
   const timeRow = '<div class="breakdown-row"><span>⏱ Time</span><strong>' + elapsedStr + '</strong></div>';
-  const drillRow = ls.isDrillRound ? '<div class="breakdown-row"><span>🔄 Drill Round</span><strong>' + (ls.drillCorrect||0) + ' / ' + (ls.drillTotal||0) + ' corrected</strong></div>' : '';
   document.getElementById('results-breakdown-list').innerHTML =
     '<div class="breakdown-row"><span>Subject</span><strong>' + ls.subjectIcon + ' ' + ls.subjectName + '</strong></div>'
     + '<div class="breakdown-row"><span>Correct</span><strong>' + origCorrect + ' / ' + total + '</strong></div>'
     + '<div class="breakdown-row"><span>Score</span><strong>' + pct + '%</strong></div>'
-    + '<div class="breakdown-row"><span>Brain Bucks Earned</span><strong>' + (alreadyDone ? '0 (replay)' : '🧠 ' + coins) + '</strong></div>'
-    + timeRow + drillRow + flagRow;
+    + '<div class="breakdown-row"><span>Brain Bucks Earned</span><strong>' + (alreadyDone ? '0 (replay)' : isWritingLesson ? '⏳ Pending review' : '🧠 ' + coins) + '</strong></div>'
+    + timeRow + flagRow;
   // Wrong answers section on results
   const wrongList = ls.wrongAnswers || [];
   const wrongSection = document.getElementById('results-wrong-answers');
@@ -3416,6 +3391,18 @@ function approveWriting(id) {
   if (!w) return;
   w.status = 'approved';
   const kid = state.kids.find(k=>k.id===w.kidId);
+  // Award Brain Bucks now — writing coins are held until approval.
+  // Check if coins were already recorded for this writing session today
+  const writingProg = state.progress[w.kidId] && state.progress[w.kidId]['writing'];
+  const alreadyAwarded = writingProg && writingProg.coinsAwarded;
+  if (kid && !alreadyAwarded) {
+    // Writing approval = full credit. Award 1 Brain Buck (equivalent to 80%+ score).
+    // If it's a redo approval, check if coins were already partially given.
+    const coinsToAward = 1;
+    kid.coins += coinsToAward;
+    stampCoins(w.kidId);
+    if (writingProg) writingProg.coinsAwarded = true;
+  }
   // Clear redo notice so kid dashboard doesn't stay locked
   if (state.redoNotices) {
     state.redoNotices = state.redoNotices.filter(function(n) {
@@ -3429,7 +3416,7 @@ function approveWriting(id) {
     return x.status !== 'redo' && x.status !== 'pending';
   });
   saveState();
-  showToast('✅ Approved — ' + (kid?kid.name:'') + '\'s writing looks great!');
+  showToast('✅ Approved — ' + (kid?kid.name:'') + ' earned 🧠 1 Brain Buck!');
   renderWritingApprovals();
   renderParentKidSummary();
   updateTabBadges();
@@ -3483,11 +3470,7 @@ function denyWriting(id) {
   w.status = 'redo';
   if (feedback) w.feedback = feedback;
   const kid = state.kids.find(k=>k.id===w.kidId);
-  // Deduct Brain Bucks earned from the writing lesson
-  const writingProgress = state.progress[w.kidId] && state.progress[w.kidId]['writing'];
-  if (kid && writingProgress && writingProgress.coins) {
-    kid.coins = Math.max(0, kid.coins - writingProgress.coins);
-  }
+  // No coin deduction needed — writing coins are only awarded on approval, not on submission
   // Clear progress so they can redo it today
   if (state.progress[w.kidId]) delete state.progress[w.kidId]['writing'];
   // Pop the last streak entry so level meter reflects the redo
@@ -3499,7 +3482,7 @@ function denyWriting(id) {
   state.redoNotices = state.redoNotices.filter(function(n){ return !(n.kidId === w.kidId && n.subject === 'writing'); });
   state.redoNotices.push({ kidId: w.kidId, subject: 'writing', message: 'Your parent asked you to redo your writing. Give it another try!', date: new Date().toLocaleDateString() });
   saveState();
-  showToast('🔄 Marked for redo — Brain Bucks deducted, writing unlocked.');
+  showToast('🔄 Marked for redo — writing unlocked.');
   renderWritingApprovals();
   renderParentKidSummary();
   updateTabBadges();
