@@ -949,7 +949,16 @@ function updatePaceData(kidId, elapsedMin) {
 function getAvgDailyMinutes(kidId) {
   if (!state.paceData || !state.paceData[kidId]) return 0;
   const entries = Object.values(state.paceData[kidId]);
-  if (!entries.length) return 0;
+  if (!entries.length) {
+    // Fall back to lessonHistory if paceData not yet seeded
+    const history = (state.lessonHistory && state.lessonHistory[kidId]) || [];
+    const withDuration = history.filter(e => e.duration > 0);
+    if (!withDuration.length) return 0;
+    const byDay = {};
+    withDuration.forEach(function(e) { byDay[e.date] = (byDay[e.date]||0) + e.duration; });
+    const dayVals = Object.values(byDay);
+    return dayVals.reduce(function(s,v){return s+v;},0) / dayVals.length;
+  }
   return entries.reduce(function(s, v) { return s + v; }, 0) / entries.length;
 }
 
@@ -3202,18 +3211,41 @@ function renderParentDashboard() {
 }
 
 function renderParentKidSummary() {
+  // Writing pending alert
+  const pendingW = (state.writingQueue||[]).filter(function(w){ return w.status==='pending'; });
+  const alertEl = document.getElementById('writing-pending-alert');
+  const alertText = document.getElementById('writing-pending-alert-text');
+  if (alertEl) {
+    if (pendingW.length) {
+      alertEl.style.display = 'block';
+      const names = pendingW.map(function(w){
+        const k = state.kids.find(function(k){ return k.id===w.kidId; });
+        return k ? k.name : w.kidId;
+      });
+      if (alertText) alertText.textContent = names.join(', ') + ' submitted writing — tap to review';
+    } else {
+      alertEl.style.display = 'none';
+    }
+  }
   document.getElementById('parent-kid-summary').innerHTML = state.kids.map(k => {
     const qCount = getAdaptiveQuestionCount(k.id);
     const avgMin = Math.round(getAvgDailyMinutes(k.id));
     const dayCount = state.paceData && state.paceData[k.id] ? Object.keys(state.paceData[k.id]).length : 0;
-    const paceLabel = dayCount < 3
+    const historyCount = (state.lessonHistory && state.lessonHistory[k.id]) ? state.lessonHistory[k.id].length : 0;
+    const calibrated = dayCount >= 3 || historyCount >= 3;
+    const paceLabel = !calibrated
       ? '<div style="font-size:11px;color:var(--muted);margin-top:4px">⏱ Pace calibrating…</div>'
       : '<div style="font-size:11px;color:var(--muted);margin-top:4px">⏱ ~' + avgMin + ' min/day · ' + qCount + ' q/lesson</div>';
+    const live = state.liveLesson && state.liveLesson[k.id];
+    const liveLabel = live
+      ? '<div style="font-size:11px;color:#2ECC71;font-weight:800;margin-top:4px;animation:pulse 1.5s infinite">🟢 Working on ' + live.icon + ' ' + live.subject + ' now</div>'
+      : '';
     return `<div class="kid-summary-card">
       <div class="ks-emoji">${k.emoji}</div>
       <div class="ks-name">${k.name}</div>
       <div class="ks-coins">${k.coins}</div>
       <div style="font-size:12px;color:var(--muted)">🧠 Brain Bucks</div>
+      ${liveLabel}
       ${paceLabel}
     </div>`;
   }).join('');
@@ -3639,17 +3671,19 @@ function renderProgressOverview() {
       // Recent history table
       const recentDiv = document.createElement('div');
       recentDiv.innerHTML = '<div style="font-weight:800;font-size:14px;margin-bottom:8px;color:var(--muted)">RECENT SESSIONS</div>';
-      const recent = history.slice(0, 30);
+      const recent = history.slice().sort((a,b) => b.date.localeCompare(a.date)).slice(0, 30);
       recent.forEach(function(e) {
         const scoreColor = e.score >= 90 ? '#2ECC71' : e.score >= 70 ? 'var(--primary)' : '#EF4444';
         const row = document.createElement('div');
-        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;';
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;cursor:pointer;';
         row.innerHTML = '<span>' + subjectIcons[e.subject] + '</span>'
-          + '<span style="flex:1;color:var(--muted)">' + e.dateDisplay + '</span>'
+          + '<span style="flex:1;color:var(--muted)">' + (e.dateDisplay||e.date) + '</span>'
           + '<span style="font-weight:800;color:' + scoreColor + '">' + e.score + '%</span>'
           + '<span style="color:var(--muted);font-size:11px">' + e.correct + '/' + e.total + '</span>'
           + '<span style="background:#EEF2FF;color:var(--primary);border-radius:8px;padding:2px 7px;font-size:11px;font-weight:700">Lv ' + e.level + '</span>'
-          + '<span style="color:#F59E0B;font-size:11px;font-weight:700">🧠 ' + e.coins + '</span>';
+          + '<span style="color:#F59E0B;font-size:11px;font-weight:700">🧠 ' + e.coins + '</span>'
+          + '<span style="color:var(--muted);font-size:13px;margin-left:2px">›</span>';
+        row.onclick = (function(entry){ return function(){ showSessionDetail(entry); }; })(e);
         recentDiv.appendChild(row);
       });
       card.appendChild(recentDiv);
