@@ -1009,9 +1009,15 @@ function fbUrl(path, token) {
 
 async function fbGet(path) {
   const token = await getFirebaseToken();
-  const res = await fetch(fbUrl(path, token));
-  if (!res.ok) throw new Error('Firebase GET failed: ' + res.status);
-  return await res.json();
+  const controller = new AbortController();
+  const timeout = setTimeout(function() { controller.abort(); }, 10000); // 10s timeout
+  try {
+    const res = await fetch(fbUrl(path, token), { signal: controller.signal });
+    if (!res.ok) throw new Error('Firebase GET failed: ' + res.status);
+    return await res.json();
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function fbSet(path, data) {
@@ -1119,19 +1125,22 @@ async function pullState() {
     setSyncBar('✅ Synced', '');
     setTimeout(() => setSyncBar('', 'hide'), 2000);
     document.getElementById('sync-status-landing').textContent = '☁️ Firebase sync active';
-    // Record last-synced time
     state.lastSynced = new Date().toISOString();
     localStorage.setItem('kidstuff_cache', JSON.stringify(state));
     updateLastSyncedDisplay();
-    // Re-run holiday protection after sync in case state was overwritten
     state.kids.forEach(function(k) { checkHolidayStreakProtection(k.id); });
     applyVacationStreakProtection();
-    loadLocalFallback();
-    // Purge AFTER loadLocalFallback so it operates on final state
+    // Purge stale data after successful sync
     purgeStaleWritingQueue();
     purgeOrphanedRedoNotices();
     clearStaleLiveLessons();
-    setSyncBar('⚠️ Using cached data', 'error');
+
+  } catch(syncErr) {
+    // Firebase unreachable — fall back to local cache silently
+    console.warn('Sync failed, using local cache:', syncErr.message || syncErr);
+    loadLocalFallback();
+    setSyncBar('⚠️ Offline — using cached data', 'error');
+    setTimeout(() => setSyncBar('', 'hide'), 3000);
   } finally {
     isSyncing = false;
   }
@@ -1564,6 +1573,24 @@ function setRewardsForKid(kidId, arr) {
 }
 // ── KID DASHBOARD ────────────────────────────────────────
 function renderKidDashboard() {
+  try {
+    _renderKidDashboardInner();
+  } catch(e) {
+    console.error('renderKidDashboard error:', e);
+    const content = document.querySelector('#screen-kid .content');
+    if (content) {
+      content.innerHTML = '<div class="card" style="text-align:center;padding:40px 20px;margin-top:20px">'
+        + '<div style="font-size:48px;margin-bottom:12px">😕</div>'
+        + '<div style="font-family:\'Baloo 2\',cursive;font-size:20px;font-weight:800;margin-bottom:8px">Something went wrong</div>'
+        + '<div style="color:var(--muted);font-size:14px;margin-bottom:20px">Try refreshing the page or logging out and back in.</div>'
+        + '<button class="btn-primary" onclick="location.reload()" style="margin-bottom:10px">🔄 Reload App</button>'
+        + '<button class="btn-primary" style="background:#7A859E" onclick="showScreen(\'screen-landing\')">← Back to Home</button>'
+        + '</div>';
+    }
+  }
+}
+
+function _renderKidDashboardInner() {
   const kid = state.kids.find(k => k.id === currentKidId);
   if (!kid) return;
   document.getElementById('kid-header-sub').textContent = kid.name + "'s Lessons";
@@ -1761,7 +1788,7 @@ function renderKidDashboard() {
   renderKidHistory(currentKidId);
   renderBrainBucksHistory(currentKidId);
   renderKidProgressSummary(currentKidId);
-}
+} // end _renderKidDashboardInner
 
 function renderKidHistory(kidId) {
   const card = document.getElementById('kid-history-card');
@@ -1855,7 +1882,10 @@ async function startBonusChallenge(bonusId) {
     renderQuestion();
   } catch(e) {
     document.getElementById('generating-overlay').style.display = 'none';
-    showToast('❌ ' + (e.message || String(e)));
+    console.error('Bonus challenge load error:', e);
+    if (state.liveLesson) state.liveLesson[currentKidId] = null;
+    try { fbSet('kids/' + currentKidId + '/liveLesson', null); } catch(_){}
+    showToast('😴 Couldn\'t load challenge — try again in a moment.');
   }
 }
 
@@ -1910,15 +1940,27 @@ async function startLesson(subjectId) {
   } catch(e) {
     document.getElementById('generating-overlay').style.display='none';
     console.error('Lesson load error:', e);
-    console.error('Lesson load error:', e);
     if (state.liveLesson) state.liveLesson[currentKidId] = null;
     try { fbSet('kids/' + currentKidId + '/liveLesson', null); } catch(_){}
     const isOffline = !navigator.onLine;
     const msg = isOffline
       ? "Looks like you're offline. Connect to the internet and try again! 🌐"
-      : "Couldn't load the lesson right now — the AI might be taking a quick nap. Try again in a moment! 😴";
-    if (confirm('⚠️ ' + msg + '\n\nTap OK to try again, or Cancel to go back.')) {
-      startLesson(subjectId);
+      : "Couldn't load the lesson right now — try again in a moment 😴";
+    // Show inline error card instead of confirm() dialog (blocked on iOS PWA)
+    const grid = document.getElementById('subject-grid');
+    if (grid) {
+      const errCard = document.createElement('div');
+      errCard.className = 'card';
+      errCard.style.cssText = 'text-align:center;padding:28px 20px;margin-top:8px;';
+      errCard.innerHTML = '<div style="font-size:40px;margin-bottom:10px">' + (isOffline ? '🌐' : '😴') + '</div>'
+        + '<div style="font-family:\'Baloo 2\',cursive;font-size:17px;font-weight:800;margin-bottom:8px">Lesson couldn\'t load</div>'
+        + '<div style="color:var(--muted);font-size:14px;margin-bottom:18px">' + msg + '</div>'
+        + '<button class="btn-primary" id="lesson-retry-btn" style="margin-bottom:10px">🔄 Try Again</button>'
+        + '<button class="btn-primary" style="background:#7A859E">← Back to Dashboard</button>';
+      grid.innerHTML = '';
+      grid.appendChild(errCard);
+      document.getElementById('lesson-retry-btn').onclick = function() { startLesson(subjectId); };
+      errCard.querySelectorAll('.btn-primary')[1].onclick = function() { renderKidDashboard(); };
     }
   }
 }
