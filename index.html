@@ -224,7 +224,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .next-level-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#2ECC71,#00f2fe);transition:width 0.5s ease;}
 </style>
 
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
 </head>
 <body>
 
@@ -588,13 +588,6 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
           <div style="font-weight:800;margin-bottom:10px">⏱ Lesson Time Limits</div>
           <div id="timer-inputs" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px"></div>
           <button class="btn-primary" onclick="saveTimerSettings()">Save Time Limits</button>
-        </div>
-        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
-          <div style="font-weight:800;margin-bottom:8px">🧠 Brain Bucks Max per Lesson</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">100% score = 2 Brain Bucks · 80%+ = 1 Brain Buck · Below 80% = 0. Writing is awarded on approval.</div>
-          <div class="form-row"><label>Kid</label><select id="coinmax-kid-select" onchange="renderCoinMaxInputs()"></select></div>
-          <div id="coinmax-inputs" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px"></div>
-          <button class="btn-primary" style="margin-top:12px" onclick="saveCoinMax()">Save Brain Bucks Limits</button>
         </div>
       </div>
     </div>
@@ -1082,7 +1075,7 @@ async function pullState() {
       }
       // Per-kid data fields
       const kidFields = ['progress','streaks','levels','dailyStreak',
-                         'brainBucksMilestones','skipDay','unlockedToday','lessonHistory'];
+                         'brainBucksMilestones','skipDay','unlockedToday','lessonHistory','liveLesson'];
       kidFields.forEach(function(f) {
         if (remote[f] !== undefined) {
           if (!state[f]) state[f] = {};
@@ -1137,6 +1130,7 @@ async function pullState() {
     // Purge AFTER loadLocalFallback so it operates on final state
     purgeStaleWritingQueue();
     purgeOrphanedRedoNotices();
+    clearStaleLiveLessons();
     setSyncBar('⚠️ Using cached data', 'error');
   } finally {
     isSyncing = false;
@@ -1232,15 +1226,17 @@ function saveState() {
   updateParentBadge();
   clearTimeout(syncTimer);
   if (!isOnline) {
-    // Queue a push to run when we come back online
     offlineQueue.push(pushState);
     return;
   }
+  // Suppress realtime listener for 5s after our push so it doesn't re-pull our own changes
+  _suppressRealtimeUntil = Date.now() + 5000;
   syncTimer = setTimeout(pushState, 800);
 }
 
 let _realtimeES = null;
 let _realtimeRetryTimer = null;
+let _suppressRealtimeUntil = 0; // epoch ms — suppress pulls triggered right after our own push
 
 function startRealtimeListener() {
   if (_realtimeES) { _realtimeES.close(); _realtimeES = null; }
@@ -1249,22 +1245,21 @@ function startRealtimeListener() {
     const url = FIREBASE_URL + '/.json?accept=text/event-stream&auth=' + token;
     _realtimeES = new EventSource(url);
     _realtimeES.addEventListener('put', function(e) {
-      // Ignore our own pushes (they arrive ~800ms after saveState debounce)
-      // Only pull if we're not currently pushing
       if (isSyncing) return;
+      if (Date.now() < _suppressRealtimeUntil) return; // our own push, skip
       clearTimeout(_realtimeRetryTimer);
       _realtimeRetryTimer = setTimeout(function() {
         pullState().then(function() {
-          // Re-render whichever screen is active
           const parent = document.getElementById('screen-parent');
           const kid = document.getElementById('screen-kid');
           if (parent && parent.classList.contains('active')) renderParentDashboard();
           if (kid && kid.classList.contains('active')) renderKidDashboard();
         }).catch(e => console.warn('Realtime pull error:', e));
-      }, 1200); // small debounce so rapid changes don't flood pulls
+      }, 1200);
     });
     _realtimeES.addEventListener('patch', function() {
       if (isSyncing) return;
+      if (Date.now() < _suppressRealtimeUntil) return;
       clearTimeout(_realtimeRetryTimer);
       _realtimeRetryTimer = setTimeout(function() {
         pullState().then(function() {
@@ -1274,7 +1269,6 @@ function startRealtimeListener() {
       }, 1200);
     });
     _realtimeES.onerror = function() {
-      // Token may have expired — reconnect after 30s
       _realtimeES.close();
       _realtimeES = null;
       setTimeout(startRealtimeListener, 30000);
@@ -1853,7 +1847,7 @@ async function startBonusChallenge(bonusId) {
       isBonusChallenge: true, bonusChallengeId: bonusId, bonusCoins: bc.coins
     };
     if (!state.liveLesson) state.liveLesson = {};
-    state.liveLesson[currentKidId] = { subject: bc.topic || subjectId, icon: icon };
+    state.liveLesson[currentKidId] = { subject: bc.topic || subjectId, icon: icon, startedAt: Date.now() };
     try { fbSet('kids/' + currentKidId + '/liveLesson', state.liveLesson[currentKidId]); } catch(_){}
     showScreen('screen-lesson');
     document.getElementById('lesson-title').textContent = icon + ' Bonus: ' + (bc.topic || subjectId);
@@ -1907,7 +1901,7 @@ async function startLesson(subjectId) {
     };
     // Signal to parent dashboard that this kid is actively working
     if (!state.liveLesson) state.liveLesson = {};
-    state.liveLesson[currentKidId] = { subject: levelData.name, icon: icon };
+    state.liveLesson[currentKidId] = { subject: levelData.name, icon: icon, startedAt: Date.now() };
     try { fbSet('kids/' + currentKidId + '/liveLesson', state.liveLesson[currentKidId]); } catch(_){}
     showScreen('screen-lesson');
     document.getElementById('lesson-title').textContent = icon + ' ' + levelData.name;
@@ -3046,7 +3040,14 @@ function finishLesson() {
   }
 }
 
-function exitLesson() { if(confirm('Exit lesson? Progress won\'t be saved.')) { stopLessonTimer(); showScreen('screen-kid'); } }
+function exitLesson() {
+  if (confirm('Exit lesson? Progress won\'t be saved.')) {
+    stopLessonTimer();
+    if (state.liveLesson) state.liveLesson[currentKidId] = null;
+    try { fbSet('kids/' + currentKidId + '/liveLesson', null); } catch(_){}
+    showScreen('screen-kid');
+  }
+}
 
 // ── LESSON TIMER ─────────────────────────────────────────
 let _timerInterval = null;
@@ -3218,9 +3219,6 @@ function renderParentDashboard() {
       }
       renderExcuseStatus();
     }
-    const coinmaxSel = document.getElementById('coinmax-kid-select');
-    if (coinmaxSel) coinmaxSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.name}</option>`).join('');
-    renderCoinMaxInputs();
     renderTimerInputs();
     renderApiKeyStatus();
     renderVacationBtn();
@@ -3401,31 +3399,20 @@ function resolveFlag(id, award) {
   f.status = award ? 'accepted' : 'incorrect';
   if (award) {
     const kid = state.kids.find(function(k){ return k.id===f.kidId; });
-    // Recalculate what they should have earned without this question counting against them
-    // Find their progress for this subject
-    const prog = state.progress[f.kidId] && Object.entries(state.progress[f.kidId]).find(function(e){
-      return e[1].subject === f.subject || (state.curriculum[f.kidId] && state.curriculum[f.kidId].subjects &&
-        state.curriculum[f.kidId].subjects.find(function(s){ return s.name === f.subject && e[0] === s.id; }));
-    });
-    let bonusCoins = 1; // fallback
-    if (prog) {
-      const p = prog[1];
-      const total = p.total || 1;
-      const maxCoins = (state.coinMax && state.coinMax[f.kidId]) || {};
-      // Find subject id from subject name
-      const subj = state.curriculum[f.kidId] && state.curriculum[f.kidId].subjects &&
-        state.curriculum[f.kidId].subjects.find(function(s){ return s.name === f.subject; });
-      const subjId = subj ? subj.id : null;
-      const max = (subjId && maxCoins[subjId]) || 2;
-      // Score without flagged question: (correct + 1) / (total - 1)
-      const newCorrect = Math.min(p.correct + 1, total - 1);
-      const newTotal = total - 1;
-      const newPct = newTotal > 0 ? Math.round((newCorrect / newTotal) * 100) : 100;
-      const newCoins = Math.round(newPct * (max / 100));
-      bonusCoins = Math.max(0, newCoins - p.coins);
+    // Recalculate score as if this question was correct, then apply the 2/1/0 formula
+    const prog = state.progress[f.kidId] && state.progress[f.kidId][f.subjectId || f.subject];
+    let bonusCoins = 0;
+    if (prog && prog.total > 0) {
+      const newCorrect = Math.min((prog.correct || 0) + 1, prog.total);
+      const newPct = Math.round((newCorrect / prog.total) * 100);
+      const newCoins = newPct === 100 ? 2 : newPct >= 80 ? 1 : 0;
+      bonusCoins = Math.max(0, newCoins - (prog.coins || 0));
+      if (bonusCoins > 0) { prog.correct = newCorrect; prog.score = newPct; prog.coins = newCoins; }
+    } else {
+      bonusCoins = 1; // fallback if progress not found
     }
-    if (kid && bonusCoins > 0) kid.coins += bonusCoins;
-    showToast('✅ Accepted — ' + bonusCoins + ' Brain Buck' + (bonusCoins !== 1 ? 's' : '') + ' awarded to ' + (kid ? kid.name : 'kid') + '!');
+    if (kid && bonusCoins > 0) { kid.coins += bonusCoins; stampCoins(f.kidId); }
+    showToast('✅ Accepted — ' + (bonusCoins > 0 ? bonusCoins + ' 🧠 Brain Buck' + (bonusCoins !== 1 ? 's' : '') + ' awarded to ' : 'no extra coins for ') + (kid ? kid.name : 'kid') + '!');
   } else {
     showToast('❌ Marked incorrect — noted for review.');
   }
@@ -3499,7 +3486,7 @@ function startWritingRedo() {
     isRedo: true
   };
   if (!state.liveLesson) state.liveLesson = {};
-  state.liveLesson[currentKidId] = { subject: 'Writing Redo', icon: '✏️' };
+  state.liveLesson[currentKidId] = { subject: 'Writing Redo', icon: '✏️', startedAt: Date.now() };
   try { fbSet('kids/' + currentKidId + '/liveLesson', state.liveLesson[currentKidId]); } catch(_){}
   showScreen('screen-lesson');
   document.getElementById('lesson-title').textContent = '✏️ Writing Redo';
@@ -3880,35 +3867,6 @@ function deleteReward(kidId, id) {
   const arr = getRewardsForKid(kidId).filter(r=>r.id!==id);
   setRewardsForKid(kidId, arr);
   saveState(); showToast('🗑️ Deleted.'); renderParentRewards();
-}
-
-function renderCoinMaxInputs() {
-  const kidId = document.getElementById('coinmax-kid-select').value;
-  if (!kidId) return;
-  if (!state.coinMax) state.coinMax = {};
-  if (!state.coinMax[kidId]) state.coinMax[kidId] = {spelling:2,math:2,reading:2,writing:2};
-  const subjects = [{id:'spelling',label:'🔤 Spelling'},{id:'math',label:'🧮 Math'},{id:'reading',label:'📖 Reading'},{id:'writing',label:'✏️ Writing'}];
-  const container = document.getElementById('coinmax-inputs');
-  container.innerHTML = '';
-  subjects.forEach(function(s) {
-    const wrap = document.createElement('div');
-    wrap.innerHTML = '<label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">' + s.label + '</label>'
-      + '<input type="number" min="0" max="100" style="width:100%;padding:8px;border:2px solid var(--border);border-radius:8px;font-size:14px;font-weight:700" id="coinmax-' + s.id + '" value="' + (state.coinMax[kidId][s.id] || 2) + '">';
-    container.appendChild(wrap);
-  });
-}
-
-function saveCoinMax() {
-  const kidId = document.getElementById('coinmax-kid-select').value;
-  if (!kidId) return;
-  if (!state.coinMax) state.coinMax = {};
-  if (!state.coinMax[kidId]) state.coinMax[kidId] = {};
-  ['spelling','math','reading','writing'].forEach(function(s) {
-    const el = document.getElementById('coinmax-' + s);
-    if (el) state.coinMax[kidId][s] = Math.max(0, parseInt(el.value) || 0);
-  });
-  saveState();
-  showToast('✅ Coin limits saved!');
 }
 
 function adjustCoins() {
@@ -4864,52 +4822,6 @@ function grantSkipDay(kidId) {
   renderParentDashboard();
 }
 
-// ── WEEKLY EMAIL ─────────────────────────────────────────
-const EMAILJS_SERVICE_ID  = 'YOUR_SERVICE_ID';
-const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';
-const EMAILJS_PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';
-const REPORT_EMAIL        = 'YOUR_EMAIL@example.com';
-
-function generateWeeklyReport() {
-  const lines = [];
-  lines.push('Weekly KidStuff Summary — ' + new Date().toLocaleDateString());
-  lines.push('');
-  state.kids.forEach(function(k) {
-    lines.push('── ' + k.name + ' ──────────────');
-    lines.push('🧠 Brain Bucks: ' + k.coins);
-    const ds = (state.dailyStreak && state.dailyStreak[k.id]) || {};
-    lines.push('🔥 Streak: ' + (ds.count || 0) + ' day(s)');
-    const prog = state.progress[k.id] || {};
-    const subjects = ['spelling','math','reading','writing'];
-    subjects.forEach(function(s) {
-      const p = prog[s];
-      if (p) {
-        lines.push('  ' + ({spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'}[s]) + ' ' + s.charAt(0).toUpperCase()+s.slice(1) + ': ' + p.score + '% — Level ' + ((state.levels[k.id]||{})[s]||0+1));
-      }
-    });
-    lines.push('');
-  });
-  return lines.join('\n');
-}
-
-async function sendWeeklyEmail() {
-  if (EMAILJS_SERVICE_ID === 'YOUR_SERVICE_ID') {
-    showToast('⚠️ EmailJS not configured yet — add credentials in Settings.');
-    return;
-  }
-  try {
-    if (typeof emailjs === 'undefined') throw new Error('EmailJS not loaded');
-    const report = generateWeeklyReport();
-    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-      to_name: 'Marc',
-      report_body: report
-    }, EMAILJS_PUBLIC_KEY);
-    showToast('📧 Weekly report sent!');
-  } catch(e) {
-    showToast('❌ Email failed: ' + e.message);
-  }
-}
-
 // ── INIT ────────────────────────────────────────────────
 // ── DEV MODE: wipe progress on every load ───────────────
 // Set DEV_MODE = false when going to production
@@ -5006,6 +4918,26 @@ function triggerLevelUpCelebration(kidId, subjectId) {
   setTimeout(function() { showLevelUp(subjectId.charAt(0).toUpperCase()+subjectId.slice(1), lvlData.name); }, 800);
 }
 
+// Auto-clear liveLesson entries that are stale (kid closed app without finishing).
+// A liveLesson with a timestamp older than the max lesson time + buffer is cleared.
+function clearStaleLiveLessons() {
+  if (!state.liveLesson) return;
+  const maxMs = 90 * 60 * 1000; // 90 minutes max before auto-clear
+  const now = Date.now();
+  let changed = false;
+  state.kids.forEach(function(k) {
+    const live = state.liveLesson[k.id];
+    if (!live) return;
+    // If it has a timestamp, check staleness
+    if (live.startedAt && (now - live.startedAt) > maxMs) {
+      state.liveLesson[k.id] = null;
+      try { fbSet('kids/' + k.id + '/liveLesson', null); } catch(_){}
+      changed = true;
+    }
+  });
+  if (changed) localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+}
+
 function purgeOldWritingQueue() {
   if (!state.writingQueue) return;
   const cutoff = new Date();
@@ -5062,6 +4994,7 @@ purgeBonusChallenges();
 purgeOldWritingQueue();
 purgeStaleWritingQueue();
 purgeOrphanedRedoNotices();
+clearStaleLiveLessons();
 updateLastSyncedDisplay();
 
 // Init on load
