@@ -2364,9 +2364,8 @@ function renderMCQ(c, q) {
   const cleanAns = sanitizeUnicode(q.answer);
   const resolvedAns = resolveAnswer(cleanAns, cleanOpts);
   const drillBadge = (lessonState && lessonState.isDrillRound) ? '<div class="drill-badge">DRILL</div>' : '';
+  const isMath = lessonState && lessonState.subjectType === 'math';
 
-  // For reading with continuous story: no hint shown upfront
-  // For other subjects or old-format reading: show passage as before
   const isReadingWithStory = lessonState && lessonState.subjectType === 'reading' && lessonState.readingStory;
   const passageLine = !isReadingWithStory && q.passage
     ? `<div class="passage-box">${sanitizeUnicode(q.passage)}</div>`
@@ -2381,7 +2380,9 @@ function renderMCQ(c, q) {
       `<button class="option-btn" onclick="selectOption(this,'${escQ(o)}','${escQ(resolvedAns)}')">${o}</button>`).join('')}
     </div>
     <div class="feedback-box" id="feedback"></div>
+    ${isMath ? buildMathScratchPad() : ''}
   </div>`;
+  if (isMath) initMathScratchPad();
 }
 
 function renderShortQ(c, q) {
@@ -2402,6 +2403,7 @@ function renderTypedQ(c, q) {
   const cleanQ = sanitizeUnicode(q.question);
   const cleanSub = q.sub ? sanitizeUnicode(q.sub) : null;
   const drillBadge = (lessonState && lessonState.isDrillRound) ? '<div class="drill-badge">DRILL</div>' : '';
+  const isMath = lessonState && lessonState.subjectType === 'math';
   c.innerHTML = `<div class="question-card">
     ${drillBadge}
     <div class="kumon-q-num">Question ${lessonState?lessonState.currentQ+1:1}</div>
@@ -2410,8 +2412,10 @@ function renderTypedQ(c, q) {
     <input class="answer-input" id="typed-input" type="text" placeholder="Your answer..." autocomplete="off"/>
     <div class="feedback-box" id="feedback"></div>
     <button class="btn-primary" id="check-btn" onclick="checkTyped('${escQ(q.answer)}')">Check Answer</button>
+    ${isMath ? buildMathScratchPad() : ''}
   </div>`;
   setTimeout(() => { const el=document.getElementById('typed-input'); if(el) el.focus(); }, 200);
+  if (isMath) initMathScratchPad();
 }
 
 function renderWritingLesson(c) {
@@ -2606,6 +2610,157 @@ function clearCanvas() {
   const ctx = canvas.getContext('2d');
   if (canvas._drawLines) canvas._drawLines();
   else { ctx.clearRect(0,0,canvas.width,canvas.height); }
+}
+
+// ── MATH SCRATCH PAD ─────────────────────────────────────
+let _mathTool = 'pen';
+let _mathEraserSize = 'md';
+
+function buildMathScratchPad() {
+  return '<div style="margin-top:20px;border-top:2px dashed var(--border);padding-top:14px;">'
+    + '<div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">✏️ Scratch Paper</div>'
+    + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">'
+    + '<button id="math-tool-pen" onclick="setMathTool(\'pen\')" style="padding:7px 14px;border-radius:8px;border:2px solid var(--primary);background:var(--primary);color:white;font-family:Nunito,sans-serif;font-weight:700;font-size:13px;cursor:pointer;">✏️ Pen</button>'
+    + '<button id="math-tool-eraser" onclick="setMathTool(\'eraser\')" style="padding:7px 14px;border-radius:8px;border:2px solid var(--border);background:white;color:var(--text);font-family:Nunito,sans-serif;font-weight:700;font-size:13px;cursor:pointer;">🧹 Eraser</button>'
+    + '<div style="display:flex;align-items:center;gap:4px;margin-left:6px;">'
+    + '<span style="font-size:12px;color:var(--muted);font-weight:700">Size:</span>'
+    + '<button id="math-erase-sm" onclick="setMathEraserSize(\'sm\')" style="width:24px;height:24px;border-radius:50%;border:2px solid var(--border);background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;"><span style="width:6px;height:6px;border-radius:50%;background:#888;display:block"></span></button>'
+    + '<button id="math-erase-md" onclick="setMathEraserSize(\'md\')" style="width:24px;height:24px;border-radius:50%;border:2px solid var(--border);background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;"><span style="width:12px;height:12px;border-radius:50%;background:#888;display:block"></span></button>'
+    + '<button id="math-erase-lg" onclick="setMathEraserSize(\'lg\')" style="width:24px;height:24px;border-radius:50%;border:2px solid var(--border);background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;"><span style="width:18px;height:18px;border-radius:50%;background:#888;display:block"></span></button>'
+    + '</div>'
+    + '<button onclick="clearMathCanvas()" style="margin-left:auto;background:rgba(255,255,255,0.9);border:1.5px solid var(--border);border-radius:8px;padding:5px 12px;font-family:Nunito,sans-serif;font-weight:700;font-size:12px;cursor:pointer;color:var(--muted);">🗑 Clear</button>'
+    + '</div>'
+    + '<canvas id="math-scratch-canvas" width="700" height="300"'
+    + ' style="width:100%;height:300px;border:2px solid var(--border);border-radius:12px;background:white;touch-action:none;cursor:crosshair;display:block;"></canvas>'
+    + '</div>';
+}
+
+function initMathScratchPad() {
+  const canvas = document.getElementById('math-scratch-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  // Plain white background
+  function drawBackground() {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  drawBackground();
+
+  // Scale for high-DPI / CSS scaling
+  function resizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    canvas._scaleX = canvas.width / rect.width;
+    canvas._scaleY = canvas.height / rect.height;
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  let drawing = false;
+  let lastX = 0, lastY = 0;
+
+  function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const sx = canvas._scaleX || 1;
+    const sy = canvas._scaleY || 1;
+    if (e.touches) {
+      return [(e.touches[0].clientX - rect.left) * sx,
+              (e.touches[0].clientY - rect.top) * sy];
+    }
+    return [(e.clientX - rect.left) * sx,
+            (e.clientY - rect.top) * sy];
+  }
+
+  function startDraw(e) {
+    e.preventDefault();
+    drawing = true;
+    [lastX, lastY] = getPos(e);
+    if (_mathTool === 'eraser') return;
+    ctx.beginPath();
+    ctx.arc(lastX, lastY, 1, 0, Math.PI * 2);
+    ctx.fillStyle = '#1A1F36';
+    ctx.fill();
+  }
+
+  function draw(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    const [x, y] = getPos(e);
+    if (_mathTool === 'eraser') {
+      const sz = _eraserSizes[_mathEraserSize] || 24;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(x, y, sz / 2, 0, Math.PI * 2);
+      ctx.fill();
+      [lastX, lastY] = [x, y];
+      return;
+    }
+    // Pen — support Apple Pencil pressure via touch force
+    const pressure = e.touches && e.touches[0] && e.touches[0].force ? e.touches[0].force : 0.5;
+    const lineWidth = Math.max(1.5, pressure * 4);
+    ctx.strokeStyle = '#1A1F36';
+    ctx.lineWidth = lineWidth;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    [lastX, lastY] = [x, y];
+  }
+
+  function endDraw() { drawing = false; }
+
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', endDraw);
+  canvas.addEventListener('mouseleave', endDraw);
+  canvas.addEventListener('touchstart', startDraw, {passive:false});
+  canvas.addEventListener('touchmove', draw, {passive:false});
+  canvas.addEventListener('touchend', endDraw);
+
+  canvas._drawBackground = drawBackground;
+
+  // Reset tool state to pen on each new question
+  _mathTool = 'pen';
+  _mathEraserSize = 'md';
+}
+
+function setMathTool(tool) {
+  _mathTool = tool;
+  const penBtn = document.getElementById('math-tool-pen');
+  const eraserBtn = document.getElementById('math-tool-eraser');
+  if (penBtn) {
+    penBtn.style.background = tool === 'pen' ? 'var(--primary)' : 'white';
+    penBtn.style.color = tool === 'pen' ? 'white' : 'var(--text)';
+    penBtn.style.borderColor = tool === 'pen' ? 'var(--primary)' : 'var(--border)';
+  }
+  if (eraserBtn) {
+    eraserBtn.style.background = tool === 'eraser' ? '#EF4444' : 'white';
+    eraserBtn.style.color = tool === 'eraser' ? 'white' : 'var(--text)';
+    eraserBtn.style.borderColor = tool === 'eraser' ? '#EF4444' : 'var(--border)';
+  }
+  const canvas = document.getElementById('math-scratch-canvas');
+  if (canvas) canvas.style.cursor = tool === 'eraser' ? 'cell' : 'crosshair';
+}
+
+function setMathEraserSize(size) {
+  _mathEraserSize = size;
+  ['sm','md','lg'].forEach(function(s) {
+    const btn = document.getElementById('math-erase-' + s);
+    if (btn) btn.style.borderColor = s === size ? '#EF4444' : 'var(--border)';
+  });
+}
+
+function clearMathCanvas() {
+  const canvas = document.getElementById('math-scratch-canvas');
+  if (!canvas) return;
+  if (canvas._drawBackground) canvas._drawBackground();
+  else {
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
 }
 
 function submitWriting() {
