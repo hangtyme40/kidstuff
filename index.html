@@ -937,6 +937,37 @@ function recordLessonHistory(kidId, subjectId, pct, coins, correct, total, elaps
 // ── PACE TRACKING ────────────────────────────────────────
 const PACE_TARGET_MIN = 30;
 const PACE_WINDOW_DAYS = 7;
+const ADAPTIVE_Q_MIN = 5;
+const ADAPTIVE_Q_MAX = 50; // raise ceiling so the system can actually reach 30 min
+
+function getAdaptiveQuestionCount(kidId) {
+  if (!state.adaptiveQ) state.adaptiveQ = {};
+  if (!state.adaptiveQ[kidId]) state.adaptiveQ[kidId] = 10;
+  return state.adaptiveQ[kidId];
+}
+
+function updateAdaptiveQuestionCount(kidId) {
+  if (!state.adaptiveQ) state.adaptiveQ = {};
+  if (!state.adaptiveQ[kidId]) state.adaptiveQ[kidId] = 10;
+  const avg = getAvgDailyMinutes(kidId);
+  if (avg === 0) return; // no usable data yet
+  // Need at least 3 days of data before adjusting
+  const dayCount = state.paceData && state.paceData[kidId] ? Object.keys(state.paceData[kidId]).length : 0;
+  const historyDays = (function() {
+    const h = (state.lessonHistory && state.lessonHistory[kidId]) || [];
+    return new Set(h.map(function(e){ return e.date; })).size;
+  })();
+  if (dayCount < 3 && historyDays < 3) return;
+  const diff = PACE_TARGET_MIN - avg; // positive = under target (need more Qs), negative = over
+  let delta = 0;
+  const absDiff = Math.abs(diff);
+  // Aggressive scaling — the further from 30 min, the bigger the jump
+  if (absDiff <= 3)       delta = diff > 0 ? 1 : -1;   // within 3 min — nudge ±1
+  else if (absDiff <= 8)  delta = diff > 0 ? 3 : -2;   // 3-8 min off — ±2-3
+  else if (absDiff <= 15) delta = diff > 0 ? 6 : -4;   // 8-15 min off — bigger jump
+  else                    delta = diff > 0 ? 10 : -6;   // >15 min off — aggressive
+  state.adaptiveQ[kidId] = Math.max(ADAPTIVE_Q_MIN, Math.min(ADAPTIVE_Q_MAX, state.adaptiveQ[kidId] + delta));
+}
 
 function updatePaceData(kidId, elapsedMin) {
   if (!state.paceData) state.paceData = {};
@@ -953,46 +984,26 @@ function updatePaceData(kidId, elapsedMin) {
 }
 
 function getAvgDailyMinutes(kidId) {
-  if (!state.paceData || !state.paceData[kidId]) return 0;
-  const entries = Object.values(state.paceData[kidId]);
-  if (!entries.length) {
-    // Fall back to lessonHistory if paceData not yet seeded
-    const history = (state.lessonHistory && state.lessonHistory[kidId]) || [];
-    const withDuration = history.filter(e => e.duration > 0);
-    if (!withDuration.length) return 0;
-    const byDay = {};
-    withDuration.forEach(function(e) { byDay[e.date] = (byDay[e.date]||0) + e.duration; });
-    const dayVals = Object.values(byDay);
-    return dayVals.reduce(function(s,v){return s+v;},0) / dayVals.length;
+  if (!state.paceData || !state.paceData[kidId]) {
+    return _avgFromHistory(kidId);
   }
-  return entries.reduce(function(s, v) { return s + v; }, 0) / entries.length;
+  const entries = Object.values(state.paceData[kidId]);
+  // Fall back to history if paceData is empty OR all entries are zero (stale/unrecorded)
+  const totalPaceMin = entries.reduce(function(s, v) { return s + v; }, 0);
+  if (!entries.length || totalPaceMin === 0) {
+    return _avgFromHistory(kidId);
+  }
+  return totalPaceMin / entries.length;
 }
 
-function getAdaptiveQuestionCount(kidId) {
-  if (!state.paceData || !state.paceData[kidId]) return 10;
-  if (!state.adaptiveQ) state.adaptiveQ = {};
-  if (!state.adaptiveQ[kidId]) state.adaptiveQ[kidId] = 10;
-  return state.adaptiveQ[kidId];
-}
-
-function updateAdaptiveQuestionCount(kidId) {
-  if (!state.adaptiveQ) state.adaptiveQ = {};
-  if (!state.adaptiveQ[kidId]) state.adaptiveQ[kidId] = 10;
-  const avg = getAvgDailyMinutes(kidId);
-  // Need at least 3 days of data before adjusting — use lessonHistory as fallback
-  const dayCount = state.paceData && state.paceData[kidId] ? Object.keys(state.paceData[kidId]).length : 0;
-  const historyDays = (function() {
-    const h = (state.lessonHistory && state.lessonHistory[kidId]) || [];
-    return new Set(h.map(function(e){ return e.date; })).size;
-  })();
-  if (dayCount < 3 && historyDays < 3) return;
-  const diff = PACE_TARGET_MIN - avg; // positive = under target, negative = over
-  let delta = 0;
-  const absDiff = Math.abs(diff);
-  if (absDiff <= 5) delta = diff > 0 ? 1 : -1;        // close — nudge ±1
-  else if (absDiff <= 10) delta = diff > 0 ? 2 : -2;  // moderate — ±2
-  else delta = diff > 0 ? 4 : -4;                      // way off — aggressive ±4
-  state.adaptiveQ[kidId] = Math.max(5, Math.min(25, state.adaptiveQ[kidId] + delta));
+function _avgFromHistory(kidId) {
+  const history = (state.lessonHistory && state.lessonHistory[kidId]) || [];
+  const withDuration = history.filter(function(e) { return e.duration > 0; });
+  if (!withDuration.length) return 0;
+  const byDay = {};
+  withDuration.forEach(function(e) { byDay[e.date] = (byDay[e.date]||0) + e.duration; });
+  const dayVals = Object.values(byDay);
+  return dayVals.reduce(function(s,v){return s+v;},0) / dayVals.length;
 }
 
 // ── FIREBASE SYNC ────────────────────────────────────────
