@@ -1812,7 +1812,7 @@ function renderKidHistory(kidId) {
       return '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)">'
         + '<span style="font-size:20px">' + (subjectIcons[e.subject]||'📚') + '</span>'
         + '<div style="flex:1">'
-        + '<div style="font-weight:700;font-size:14px;text-transform:capitalize">' + e.subject + ' — Level ' + e.level + '</div>'
+        + '<div style="font-weight:700;font-size:14px;text-transform:capitalize">' + e.subject + ' — Level ' + (typeof e.level === 'object' ? (e.level && e.level.name ? e.level.name : '?') : (e.level || '?')) + '</div>'
         + '<div style="font-size:12px;color:var(--muted)">' + (e.duration||0) + ' min · ' + e.correct + '/' + e.total + ' correct</div>'
         + '</div>'
         + '<div style="font-weight:800;font-size:15px;color:' + scoreColor + '">' + e.score + '%</div>'
@@ -3941,7 +3941,7 @@ function renderProgressOverview() {
           + '<span style="flex:1;color:var(--muted)">' + (e.dateDisplay||e.date) + '</span>'
           + '<span style="font-weight:800;color:' + scoreColor + '">' + e.score + '%</span>'
           + '<span style="color:var(--muted);font-size:11px">' + e.correct + '/' + e.total + '</span>'
-          + '<span style="background:#EEF2FF;color:var(--primary);border-radius:8px;padding:2px 7px;font-size:11px;font-weight:700">Lv ' + e.level + '</span>'
+          + '<span style="background:#EEF2FF;color:var(--primary);border-radius:8px;padding:2px 7px;font-size:11px;font-weight:700">Lv ' + (typeof e.level === 'object' ? (e.level && e.level.name ? e.level.name : '?') : (e.level || '?')) + '</span>'
           + '<span style="color:#F59E0B;font-size:11px;font-weight:700">🧠 ' + e.coins + '</span>'
           + '<span style="color:var(--muted);font-size:13px;margin-left:2px">›</span>';
         row.onclick = (function(entry){ return function(){ showSessionDetail(entry); }; })(e);
@@ -5125,8 +5125,9 @@ function clearStaleLiveLessons() {
   state.kids.forEach(function(k) {
     const live = state.liveLesson[k.id];
     if (!live) return;
-    // If it has a timestamp, check staleness
-    if (live.startedAt && (now - live.startedAt) > maxMs) {
+    // Clear if no timestamp (pre-dates the startedAt field) or if older than 90 min
+    const isStale = !live.startedAt || (now - live.startedAt) > maxMs;
+    if (isStale) {
       state.liveLesson[k.id] = null;
       try { fbSet('kids/' + k.id + '/liveLesson', null); } catch(_){}
       changed = true;
