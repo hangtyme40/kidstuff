@@ -3378,6 +3378,8 @@ function parentUnlockLesson() {
 
 function renderParentDashboard() {
   try {
+    // Check incomplete week penalty for all kids whenever parent opens dashboard
+    state.kids.forEach(function(k) { checkIncompleteWeekPenalty(k.id); });
     renderParentKidSummary();
     renderCurriculumOverview();
     renderWritingApprovals();
@@ -4983,40 +4985,67 @@ function checkPerfectWeek(kidId) {
 function checkIncompleteWeekPenalty(kidId) {
   if (kidId === 'tester') return;
   const today = new Date();
-  const dow = today.getDay();
-  const isSaturday = dow === 6 && today.getHours() >= 20;
-  const isSunday = dow === 0;
-  if (!isSaturday && !isSunday) return;
+  const dow = today.getDay(); // 0=Sun, 1=Mon, ...6=Sat
+
+  // Determine which week to evaluate:
+  // - Sunday or Monday: check the week that just ended (Mon-Sat)
+  // - Saturday after 8pm: check the current week (may be incomplete)
+  // - Any other day: nothing to evaluate yet
+  let checkDate;
+  if (dow === 0) {
+    // Sunday — check Mon-Sat of the week that just ended
+    checkDate = new Date(today.getTime() - 86400000); // yesterday = Saturday
+  } else if (dow === 1) {
+    // Monday — catch anyone who didn't log in over the weekend
+    checkDate = new Date(today.getTime() - 2 * 86400000); // Saturday
+  } else if (dow === 6 && today.getHours() >= 20) {
+    // Saturday after 8pm — week is effectively done
+    checkDate = today;
+  } else {
+    return; // too early in the week to evaluate
+  }
+
   if (!state.incompleteWeekPenalized) state.incompleteWeekPenalized = {};
-  let checkDate = today;
-  if (isSunday) checkDate = new Date(today.getTime() - 86400000);
   const weekStart = getWeekStart(checkDate);
   const weekKey = weekStart.toISOString().slice(0,10);
+
+  // Already handled this week
   if (state.incompleteWeekPenalized[kidId] === weekKey) return;
+  // Perfect week already claimed — mark as handled, no penalty
   if ((state.perfectWeekClaimed||{})[kidId] === weekKey) {
     state.incompleteWeekPenalized[kidId] = weekKey; saveState(); return;
   }
+
   const history = (state.lessonHistory && state.lessonHistory[kidId]) || [];
   let requiredDays = 0, completedDays = 0;
   for (let i = 0; i < 6; i++) {
     const day = new Date(weekStart);
     day.setDate(weekStart.getDate() + i);
+    if (day > today) break; // don't evaluate future days
     const dateStr = day.toISOString().slice(0,10);
     const excused = isUSFederalHoliday(day) || state.vacationMode || isKidExcused(kidId, dateStr);
     if (excused) { requiredDays++; completedDays++; continue; }
     requiredDays++;
     const sched = getScheduleForDow(day.getDay());
     if (sched.isRest) { completedDays++; continue; }
-    const dayEntries = history.filter(e => e.date === dateStr);
-    if (sched.subjects.every(function(s){ return dayEntries.some(e=>e.subject===s); })) completedDays++;
+    const dayEntries = history.filter(function(e) { return e.date === dateStr; });
+    if (sched.subjects.every(function(s){ return dayEntries.some(function(e){ return e.subject===s; }); })) completedDays++;
   }
+
+  // Mark as evaluated regardless of outcome (prevents re-running)
   state.incompleteWeekPenalized[kidId] = weekKey;
-  if (requiredDays > 0 && completedDays >= requiredDays) { saveState(); return; }
-  const kid = state.kids.find(k=>k.id===kidId);
+
+  if (requiredDays > 0 && completedDays >= requiredDays) {
+    saveState(); return; // completed the week — no penalty
+  }
+
+  const kid = state.kids.find(function(k){ return k.id===kidId; });
   if (kid) {
     kid.coins -= INCOMPLETE_WEEK_PENALTY;
     stampCoins(kidId); saveState();
-    setTimeout(function() { showToast('📉 Incomplete week — ' + INCOMPLETE_WEEK_PENALTY + ' 🧠 Brain Bucks deducted for ' + (kid.name||kidId) + '.'); }, 1200);
+    setTimeout(function() {
+      showToast('📉 Incomplete week — ' + INCOMPLETE_WEEK_PENALTY + ' 🧠 Brain Bucks deducted for ' + (kid.name||kidId) + '.');
+    }, 1200);
   }
 }
 
