@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="KidStuff">
   <meta name="theme-color" content="#4F6EF7">
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" id="viewport-meta"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="KidStuff"/>
@@ -1394,9 +1394,19 @@ function updateLastSyncedDisplay() {
 }
 
 // ── SCREENS ─────────────────────────────────────────────
+function _setZoom(allow) {
+  const vp = document.getElementById('viewport-meta');
+  if (!vp) return;
+  vp.content = allow
+    ? 'width=device-width,initial-scale=1'
+    : 'width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no';
+}
+
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  // Enable zoom on parent dashboard only
+  _setZoom(id === 'screen-parent');
   updateLastSyncedDisplay();
   if (id === 'screen-kid-select') {
     pullState().then(() => {
@@ -1823,7 +1833,7 @@ function renderKidHistory(kidId) {
       return '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)">'
         + '<span style="font-size:20px">' + (subjectIcons[e.subject]||'📚') + '</span>'
         + '<div style="flex:1">'
-        + '<div style="font-weight:700;font-size:14px;text-transform:capitalize">' + e.subject + ' — Level ' + (typeof e.level === 'object' ? (e.level && e.level.name ? e.level.name : '?') : (e.level || '?')) + '</div>'
+        + '<div style="font-weight:700;font-size:14px;text-transform:capitalize">' + e.subject + ' — Level ' + _safeLevelDisplay(e.level) + '</div>'
         + '<div style="font-size:12px;color:var(--muted)">' + (e.duration||0) + ' min · ' + e.correct + '/' + e.total + ' correct</div>'
         + '</div>'
         + '<div style="font-weight:800;font-size:15px;color:' + scoreColor + '">' + e.score + '%</div>'
@@ -3954,7 +3964,7 @@ function renderProgressOverview() {
           + '<span style="flex:1;color:var(--muted)">' + (e.dateDisplay||e.date) + '</span>'
           + '<span style="font-weight:800;color:' + scoreColor + '">' + e.score + '%</span>'
           + '<span style="color:var(--muted);font-size:11px">' + e.correct + '/' + e.total + '</span>'
-          + '<span style="background:#EEF2FF;color:var(--primary);border-radius:8px;padding:2px 7px;font-size:11px;font-weight:700">Lv ' + (typeof e.level === 'object' ? (e.level && e.level.name ? e.level.name : '?') : (e.level || '?')) + '</span>'
+          + '<span style="background:#EEF2FF;color:var(--primary);border-radius:8px;padding:2px 7px;font-size:11px;font-weight:700">Lv ' + _safeLevelDisplay(e.level) + '</span>'
           + '<span style="color:#F59E0B;font-size:11px;font-weight:700">🧠 ' + e.coins + '</span>'
           + '<span style="color:var(--muted);font-size:13px;margin-left:2px">›</span>';
         row.onclick = (function(entry){ return function(){ showSessionDetail(entry); }; })(e);
@@ -4173,6 +4183,17 @@ function showToast(msg) {
   const t=document.getElementById('toast');
   t.textContent=msg; t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// Safely display a level value from lessonHistory — handles numbers, objects,
+// and the legacy "[object Object]1" string produced by old code
+function _safeLevelDisplay(level) {
+  if (level === null || level === undefined) return '?';
+  if (typeof level === 'number') return level;
+  if (typeof level === 'object') return level.name || '?';
+  // String — strip "[object Object]" prefix if present (legacy bad data)
+  const s = String(level).replace(/\[object Object\]/g, '').trim();
+  return s || '?';
 }
 
 function sanitizeUnicode(s) {
@@ -5042,7 +5063,10 @@ function checkIncompleteWeekPenalty(kidId) {
   const kid = state.kids.find(function(k){ return k.id===kidId; });
   if (kid) {
     kid.coins -= INCOMPLETE_WEEK_PENALTY;
-    stampCoins(kidId); saveState();
+    stampCoins(kidId);
+    saveState();
+    // Force-push kid data immediately so the deduction reaches all devices
+    pushKidData(kidId).catch(function(e){ console.warn('Penalty push error:', e); });
     setTimeout(function() {
       showToast('📉 Incomplete week — ' + INCOMPLETE_WEEK_PENALTY + ' 🧠 Brain Bucks deducted for ' + (kid.name||kidId) + '.');
     }, 1200);
@@ -5109,6 +5133,26 @@ function runMigrations() {
   }
 
   if (changed) localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+
+  // One-time fix: clear incompleteWeekPenalized for recent weeks so penalty
+  // re-evaluates for kids whose guard was set without coins actually being deducted
+  if (!state._penaltyGuardFixed) {
+    const _today = new Date();
+    const _thisWeekStart = getWeekStart(_today);
+    const _lastWeekStart = new Date(_thisWeekStart.getTime() - 7 * 86400000);
+    const _thisKey = _thisWeekStart.toISOString().slice(0,10);
+    const _lastKey = _lastWeekStart.toISOString().slice(0,10);
+    if (state.incompleteWeekPenalized) {
+      state.kids.forEach(function(k) {
+        if (state.incompleteWeekPenalized[k.id] === _thisKey ||
+            state.incompleteWeekPenalized[k.id] === _lastKey) {
+          state.incompleteWeekPenalized[k.id] = '';
+        }
+      });
+    }
+    state._penaltyGuardFixed = true;
+    localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+  }
 }
 
 // Load local cache immediately so UI is always responsive
