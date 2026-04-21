@@ -1557,7 +1557,7 @@ async function pullState() {
 
     // Merge parent settings into state (non-destructive)
     const parentFields = ['pin','kidPins','rewards','rewardsUpdatedAt','coinMax','lessonTimers','selectedVoice',
-                          'difficultyLevel','bonusChallenges','vacationMode','paceData','adaptiveQ',
+                          'difficultyLevel','vacationMode','paceData','adaptiveQ',
                           'perfectWeekClaimed','levelsUpdatedAt','incompleteWeekPenalized','soundsOff','autoAdvance',
                           'excusedToday','excusedDays','parentMessages'];
     parentFields.forEach(function(f) {
@@ -1603,6 +1603,8 @@ async function pullState() {
     // Merge shared queues — deduplicate by id
     // redoNotices: take remote as authoritative (don't merge with local — avoids resurrection of cleared notices)
     state.redoNotices = sharedData.redoNotices || [];
+    // bonusChallenges: take remote as authoritative so kid devices see parent-assigned challenges
+    state.bonusChallenges = sharedData.bonusChallenges || state.bonusChallenges || [];
     // Other queues: merge remote + local, deduplicate by id
     ['writingQueue','redemptionQueue','flaggedReview'].forEach(function(q) {
       const remoteArr = sharedData[q] || [];
@@ -1705,7 +1707,8 @@ async function pushSharedData() {
       writingQueue: state.writingQueue || [],
       redemptionQueue: state.redemptionQueue || [],
       flaggedReview: state.flaggedReview || [],
-      redoNotices: state.redoNotices || []
+      redoNotices: state.redoNotices || [],
+      bonusChallenges: state.bonusChallenges || []
     });
   } catch(e) {
     console.warn('pushSharedData error:', e);
