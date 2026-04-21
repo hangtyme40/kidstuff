@@ -1951,27 +1951,50 @@ async function afterParentLogin() {
   const token = await getFirebaseToken();
   const res = await fetch(FIREBASE_URL + '/users/' + _currentUser.uid + '.json?auth=' + token);
   const userData = await res.json();
+
+  // Check admin first — admin email always bypasses pending and gets auto-approved
+  const isAdmin = !!(userData && userData.role === 'admin') || _currentUser.email === 'humphrey11715@gmail.com';
+
   if (!userData) {
-    // Brand new user with no record yet — send to onboarding
-    showScreen('screen-onboarding');
-    initOnboarding();
+    // Brand new user with no record yet
+    if (isAdmin) {
+      // Auto-create admin record so they never get stuck
+      await fetch(FIREBASE_URL + '/users/' + _currentUser.uid + '.json?auth=' + token, {
+        method: 'PUT', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ email: _currentUser.email, displayName: _currentUser.displayName || 'Admin', role: 'admin', status: 'active', createdAt: Date.now() })
+      });
+      _currentUser.isAdmin = true;
+      _currentUser.familyCode = '';
+      localStorage.setItem('kidstuff_user', JSON.stringify(_currentUser));
+      await migrateDataIfNeeded(token);
+      await initSync();
+      showScreen('screen-parent');
+      renderParentDashboard();
+    } else {
+      showScreen('screen-onboarding');
+      initOnboarding();
+    }
     return;
   }
-  // Check admin
-  const isAdmin = userData.role === 'admin' || _currentUser.email === 'humphrey11715@gmail.com';
+
   _currentUser.isAdmin = isAdmin;
   _currentUser.familyCode = userData.familyCode || '';
-  _currentUser.features = userData.features || null; // null = all on
+  _currentUser.features = userData.features || null;
   localStorage.setItem('kidstuff_user', JSON.stringify(_currentUser));
 
-  if (userData.status === 'pending') {
+  // Admin always gets through — auto-fix status if still pending
+  if (isAdmin && userData.status === 'pending') {
+    await fetch(FIREBASE_URL + '/users/' + _currentUser.uid + '.json?auth=' + token, {
+      method: 'PATCH', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ status: 'active', role: 'admin' })
+    });
+  } else if (!isAdmin && userData.status === 'pending') {
     document.getElementById('pending-email').textContent = _currentUser.email;
     showScreen('screen-pending');
     return;
   }
-  // Check if this is first login (no kids set up)
+
   if (isAdmin) {
-    // Check if migration needed (flat data exists)
     await migrateDataIfNeeded(token);
   }
   await initSync();
