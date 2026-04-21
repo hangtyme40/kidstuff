@@ -1236,7 +1236,27 @@ function getStartingLevelIndex(grade, subjectId, timeOfYear) {
 
 function getCurrentLevelIndex(kidId, subjectId) {
   if (!state.levels || !state.levels[kidId]) return 0;
-  return state.levels[kidId][subjectId] || 0;
+  const stored = state.levels[kidId][subjectId];
+  if (stored === undefined || stored === null) return 0;
+  // If stored as a number (correct format), use it directly
+  if (typeof stored === 'number') return Math.max(0, stored);
+  // If stored as a string number, parse it
+  if (typeof stored === 'string') return Math.max(0, parseInt(stored, 10) || 0);
+  // If stored as a level data object (old format) — look up its index in GRADE_CURRICULUM
+  if (typeof stored === 'object') {
+    const kid = state.kids.find(function(k){ return k.id === kidId; });
+    const grade = kid && kid.grade !== undefined ? kid.grade : 3;
+    const levels = (GRADE_CURRICULUM[subjectId] || {})[_gradeKey(grade)] || [];
+    // Try to match by name
+    const storedName = stored.name || '';
+    const idx = levels.findIndex(function(l){ return l.name === storedName; });
+    if (idx >= 0) return idx;
+    // Fall back to the numeric 'level' field as an approximate index
+    const levelNum = parseInt(stored.level, 10);
+    if (!isNaN(levelNum)) return Math.max(0, Math.min(levelNum - 1, levels.length - 1));
+    return 0;
+  }
+  return 0;
 }
 
 function getCurrentLevelData(kidId, subjectId) {
@@ -6272,6 +6292,25 @@ function runMigrations() {
     }
     state._penaltyGuardFixed = true;
     localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+  }
+
+  // One-time fix: normalize levels stored as objects to proper integer indexes
+  if (!state._levelsNormalized) {
+    const subjects = ['spelling','math','reading','writing'];
+    let changed2 = false;
+    state.kids.forEach(function(k) {
+      if (!state.levels || !state.levels[k.id]) return;
+      subjects.forEach(function(s) {
+        const stored = state.levels[k.id][s];
+        if (stored !== null && typeof stored === 'object') {
+          // Convert object to proper index
+          state.levels[k.id][s] = getCurrentLevelIndex(k.id, s);
+          changed2 = true;
+        }
+      });
+    });
+    state._levelsNormalized = true;
+    if (changed2) localStorage.setItem('kidstuff_cache', JSON.stringify(state));
   }
 
   // One-time fix: recalculate total from score+correct for history entries
