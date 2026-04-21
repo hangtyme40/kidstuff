@@ -604,28 +604,61 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   </div>
 
   <!-- Kid summary strip -->
-  <div style="background:var(--primary);padding:12px 16px 0;">
+  <div style="background:var(--primary);padding:12px 16px 14px;">
     <div class="kid-summary-cards" id="parent-kid-summary"></div>
   </div>
 
   <!-- Tab content area -->
-  <div class="content" id="parent-tab-content" style="padding-bottom:80px;">
+  <div class="content" id="parent-tab-content" style="padding-bottom:80px;padding-top:8px;">
 
     <!-- OVERVIEW TAB -->
     <div class="tab-panel active" id="tab-overview">
+      <!-- Week day tracker per kid -->
       <div class="card" id="weekly-summary-card">
         <div class="card-title">📅 This Week</div>
         <div id="weekly-summary-content"></div>
       </div>
+      <!-- Recent sessions -->
       <div id="progress-overview"></div>
+      <!-- Writing to Review -->
+      <div class="card">
+        <div class="card-title">✍️ Writing to Review</div>
+        <div id="writing-approvals-list"></div>
+      </div>
+      <!-- Writing blocks -->
+      <div class="card" id="redo-notices-card" style="background:#FFF5F5;box-shadow:none;border:2px solid #FCA5A5;display:none;">
+        <div style="font-weight:800;margin-bottom:6px">🔒 Active Writing Blocks</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">These are blocking a kid from doing today's work.</div>
+        <div id="redo-notices-list"></div>
+      </div>
+      <!-- Reward Redemptions -->
+      <div class="card">
+        <div class="card-title">🎁 Reward Redemptions</div>
+        <div id="redemptions-list"></div>
+      </div>
+      <!-- Flagged Questions -->
+      <div class="card">
+        <div class="card-title">🚩 Flagged Questions</div>
+        <div id="flagged-list"></div>
+      </div>
     </div>
 
     <!-- KIDS TAB -->
     <div class="tab-panel" id="tab-kids">
+      <!-- Send Message -->
+      <div class="card" style="background:#FFFBEA;box-shadow:none;border:2px solid #F7C948">
+        <div style="font-weight:800;margin-bottom:8px">💬 Send Message to Kid</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">A banner will appear on their dashboard when they next log in.</div>
+        <div class="form-row" style="margin-bottom:10px"><label>Kid</label><select id="msg-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
+        <div class="form-row" style="margin-bottom:10px"><label>Message</label><input type="text" id="msg-text-input" placeholder="Nice work today! 🎉" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"/></div>
+        <button class="btn-primary" style="background:#F59E0B;color:#1A1F36" onclick="sendParentMessage()">💬 Send Message</button>
+      </div>
+      <!-- Curriculum Overview -->
       <div class="card">
         <div class="card-title">📊 Curriculum Overview</div>
         <div id="curriculum-overview"></div>
       </div>
+      <!-- Adjust Level -->
       <div class="card" style="background:#FFF5F5;box-shadow:none;border:2px solid #FCA5A5">
         <div style="font-weight:800;margin-bottom:8px">🎚️ Adjust Level</div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Select a kid and subject, then choose a grade and level.</div>
@@ -647,6 +680,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         </div>
         <div id="level-adj-preview" style="font-size:13px;color:var(--muted);margin-top:10px;text-align:center;font-weight:700"></div>
       </div>
+      <!-- Unlock Lessons -->
       <div class="card" style="background:#F0FBF4;box-shadow:none;border:2px solid #86EFAC">
         <div style="font-weight:800;margin-bottom:8px">🔓 Unlock Lessons</div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Allow a kid to redo a completed lesson today.</div>
@@ -660,6 +694,16 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         </div>
         <button class="btn-primary" onclick="parentUnlockLesson()" style="background:#2ECC71">🔓 Unlock for Today</button>
       </div>
+      <!-- Adjust Brain Bucks -->
+      <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
+        <div style="font-weight:800;margin-bottom:8px">🧠 Adjust Brain Bucks</div>
+        <div class="form-grid">
+          <div class="form-row"><label>Kid</label><select id="coin-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
+          <div class="form-row"><label>Amount</label><input id="coin-adjust" type="number" placeholder="+10 or -5" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"/></div>
+        </div>
+        <button class="btn-primary" onclick="adjustCoins()">Adjust Brain Bucks</button>
+      </div>
+      <!-- Manage Rewards -->
       <div class="card">
         <div class="card-title">🎁 Manage Rewards</div>
         <div id="parent-rewards-list"></div>
@@ -667,12 +711,26 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
           <div style="font-weight:800;margin-bottom:8px">Add Reward</div>
           <div class="form-row"><label>Kid</label><select id="r-kid" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
-          <div class="form-row"><label>Emoji</label><input id="r-emoji" type="text" placeholder="📺" maxlength="2"/></div>
-          <div class="form-row"><label>Name</label><input id="r-name" type="text" placeholder="e.g. 30 min extra screen time"/></div>
-          <div class="form-row"><label>Coin Cost</label><input id="r-cost" type="number" placeholder="50"/></div>
+          <div class="form-row"><label>Emoji</label><input id="r-emoji" type="text" placeholder="📺" maxlength="2" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"/></div>
+          <div class="form-row"><label>Name</label><input id="r-name" type="text" placeholder="e.g. 30 min extra screen time" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"/></div>
+          <div class="form-row"><label>Coin Cost</label><input id="r-cost" type="number" placeholder="50" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"/></div>
           <button class="btn-primary" style="background:#2ECC71" onclick="addReward()">➕ Add Reward</button>
         </div>
       </div>
+    </div>
+
+    <!-- MANAGE TAB -->
+    <div class="tab-panel" id="tab-manage">
+      <!-- Family Link -->
+      <div class="card">
+        <div style="font-weight:800;font-size:16px;margin-bottom:4px">🔗 Your Family Link</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:10px">Share this with your kids to set up on new devices.</div>
+        <div style="display:flex;align-items:center;gap:8px;background:#F8F9FF;border:2px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;">
+          <div id="family-url-display" style="flex:1;font-size:14px;font-weight:700;word-break:break-all;"></div>
+          <button onclick="copyFamilyUrl()" style="background:var(--primary);color:white;border:none;border-radius:8px;padding:8px 14px;font-family:Nunito,sans-serif;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;">📋 Copy</button>
+        </div>
+      </div>
+      <!-- Add a Child -->
       <div class="card">
         <div class="card-title">➕ Add a Child</div>
         <div class="form-row"><label>Name</label><input id="addkid-name" type="text" placeholder="Child's name" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"/></div>
@@ -688,88 +746,8 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         <div id="addkid-error" style="color:var(--red);font-size:13px;font-weight:700;min-height:18px;margin-bottom:8px;"></div>
         <button class="btn-primary" style="background:#4F6EF7" onclick="addKidFromDashboard()">➕ Add Child</button>
       </div>
-    </div>
-
-    <!-- REVIEW TAB -->
-    <div class="tab-panel" id="tab-review">
-      <div class="card">
-        <div class="card-title">✍️ Writing to Review</div>
-        <div id="writing-approvals-list"></div>
-      </div>
-      <div class="card" id="redo-notices-card" style="background:#FFF5F5;box-shadow:none;border:2px solid #FCA5A5;display:none;">
-        <div style="font-weight:800;margin-bottom:6px">🔒 Active Writing Blocks</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">These are blocking a kid from doing today's work. Clear any that shouldn't be there.</div>
-        <div id="redo-notices-list"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">🎁 Reward Redemptions</div>
-        <div id="redemptions-list"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">🚩 Flagged Questions</div>
-        <div id="flagged-list"></div>
-      </div>
-    </div>
-
-    <!-- MANAGE TAB -->
-    <div class="tab-panel" id="tab-manage">
-      <div class="card" style="background:#FFFBEA;box-shadow:none;border:2px solid #F7C948">
-        <div style="font-weight:800;margin-bottom:8px">💬 Send Message to Kid</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">A banner will appear on their dashboard when they next log in.</div>
-        <div class="form-row" style="margin-bottom:10px"><label>Kid</label><select id="msg-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
-        <div class="form-row" style="margin-bottom:10px"><label>Message</label><input type="text" id="msg-text-input" placeholder="Nice work today! 🎉" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"/></div>
-        <button class="btn-primary" style="background:#F59E0B;color:#1A1F36" onclick="sendParentMessage()">💬 Send Message</button>
-      </div>
-      <div class="card" style="background:#FFFBEA;box-shadow:none;border:2px solid #F7C948">
-        <div style="font-weight:800;margin-bottom:8px">⭐ Assign Bonus Challenge</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Give a kid extra practice on a specific topic.</div>
-        <div class="form-grid">
-          <div class="form-row"><label>Kid</label><select id="bonus-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
-          <div class="form-row"><label>Subject</label><select id="bonus-subject-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;">
-            <option value="spelling">🔤 Spelling</option><option value="math">🧮 Math</option>
-            <option value="reading">📖 Reading</option><option value="writing">✏️ Writing</option>
-          </select></div>
-        </div>
-        <div class="form-row"><label>Focus Topic (optional)</label><input id="bonus-topic" type="text" placeholder="e.g. fractions with unlike denominators"/></div>
-        <div class="form-row"><label>Bonus Brain Bucks</label><input id="bonus-coins" type="number" placeholder="10" value="10" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"/></div>
-        <button class="btn-primary" style="background:#F59E0B;color:#1A1F36" onclick="assignBonusChallenge()">⭐ Assign Challenge</button>
-        <div id="bonus-challenges-list" style="margin-top:14px"></div>
-      </div>
-      <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
-        <div style="font-weight:800;margin-bottom:8px">🧠 Adjust Brain Bucks</div>
-        <div class="form-grid">
-          <div class="form-row"><label>Kid</label><select id="coin-kid-select"></select></div>
-          <div class="form-row"><label>Amount</label><input id="coin-adjust" type="number" placeholder="+10 or -5"/></div>
-        </div>
-        <button class="btn-primary" onclick="adjustCoins()">Adjust Brain Bucks</button>
-      </div>
-    </div>
-
-    <!-- SETTINGS TAB -->
-    <div class="tab-panel" id="tab-settings">
-      <div class="card">
-        <div style="font-weight:800;font-size:16px;margin-bottom:4px">🔗 Your Family Link</div>
-        <div style="font-size:13px;color:var(--muted);margin-bottom:10px">Share this with your kids to set up on new devices.</div>
-        <div style="display:flex;align-items:center;gap:8px;background:#F8F9FF;border:2px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;">
-          <div id="family-url-display" style="flex:1;font-size:14px;font-weight:700;word-break:break-all;"></div>
-          <button onclick="copyFamilyUrl()" style="background:var(--primary);color:white;border:none;border-radius:8px;padding:8px 14px;font-family:Nunito,sans-serif;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;">📋 Copy</button>
-        </div>
-      </div>
-      <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
-        <div style="font-weight:800;margin-bottom:10px">🔊 Spelling Voice</div>
-        <div id="voice-selector-wrap">Loading voices...</div>
-      </div>
-      <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
-        <div style="font-weight:800;margin-bottom:8px">⚡ Auto-Advance</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Automatically move to the next question after a correct answer.</div>
-        <button id="autoadvance-toggle-btn" class="btn-primary" onclick="toggleAutoAdvance()">Loading...</button>
-      </div>
-      <div class="card" style="background:#EEF9FF;box-shadow:none;border:2px solid #7DD3FC;margin-bottom:14px">
-        <div style="font-weight:800;margin-bottom:8px">✈️ Vacation Mode</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Protects all streaks daily. Turn off when you return home.</div>
-        <button id="vacation-toggle-btn" class="btn-primary" onclick="toggleVacationMode()" style="background:#0EA5E9">Loading...</button>
-      </div>
-      <div class="card" style="background:#FFF0F9;box-shadow:none;border:2px solid #F9A8D4;margin-bottom:14px">
+      <!-- Excuse a Kid -->
+      <div class="card" style="background:#FFF0F9;box-shadow:none;border:2px solid #F9A8D4">
         <div style="font-weight:800;margin-bottom:8px">🤒 Excuse a Kid</div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Excuse a kid for any day — protects streak and won't count as incomplete week.</div>
         <div class="form-row" style="margin-bottom:10px"><label>Kid</label><select id="excuse-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
@@ -777,7 +755,8 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         <div id="excuse-status" style="font-size:13px;color:var(--muted);margin-bottom:10px;font-weight:600;"></div>
         <button class="btn-primary" style="background:#EC4899" onclick="excuseKidDay()">🤒 Excuse This Day</button>
       </div>
-      <div class="card" style="background:#F0FBF4;box-shadow:none;border:2px solid #86EFAC;margin-bottom:14px">
+      <!-- Skip Days -->
+      <div class="card" style="background:#F0FBF4;box-shadow:none;border:2px solid #86EFAC">
         <div style="font-weight:800;margin-bottom:8px">🛡️ Skip Days</div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Grant a skip day to protect a streak for a future missed day.</div>
         <div class="form-grid">
@@ -786,20 +765,27 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         </div>
         <button class="btn-primary" style="background:#2ECC71;width:100%" onclick="grantSkipDay(document.getElementById('skipday-kid-select').value)">➕ Grant Skip Day</button>
       </div>
-      <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
+      <!-- Vacation Mode -->
+      <div class="card" style="background:#EEF9FF;box-shadow:none;border:2px solid #7DD3FC">
+        <div style="font-weight:800;margin-bottom:8px">✈️ Vacation Mode</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Protects all streaks daily. Turn off when you return home.</div>
+        <button id="vacation-toggle-btn" class="btn-primary" onclick="toggleVacationMode()" style="background:#0EA5E9">Loading...</button>
+      </div>
+      <!-- Lesson Time Limits -->
+      <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
         <div style="font-weight:800;margin-bottom:10px">⏱ Lesson Time Limits</div>
         <div id="timer-inputs" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px"></div>
         <button class="btn-primary" onclick="saveTimerSettings()">Save Time Limits</button>
       </div>
-      <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
+      <!-- Change Kid PIN -->
+      <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
         <div style="font-weight:800;margin-bottom:8px">🔑 Change Kid PIN</div>
         <div id="pin-change-list"></div>
       </div>
-      <div class="card" style="background:#FFF5F5;box-shadow:none;border:2px solid #FCA5A5;margin-bottom:14px">
+      <!-- Reset Tools -->
+      <div class="card" style="background:#FFF5F5;box-shadow:none;border:2px solid #FCA5A5">
         <div style="font-weight:800;margin-bottom:8px">🗑️ Reset Tools</div>
-        <div class="form-row"><label>Kid</label><select id="reset-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;">
-          <option value="both">Both Kids</option>
-        </select></div>
+        <div class="form-row"><label>Kid</label><select id="reset-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
         <div style="display:flex;gap:8px;margin-top:10px">
           <button class="btn-primary" style="background:#EF4444;flex:1" onclick="resetDayProgress(document.getElementById('reset-kid-select').value)">Reset Today</button>
           <button class="btn-primary" style="background:#7A859E;flex:1" onclick="resetAllData()">Reset All</button>
@@ -809,27 +795,45 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 
     <!-- ADMIN TAB (visible to admin only) -->
     <div class="tab-panel" id="tab-admin" style="display:none;">
+      <!-- Auto-Advance (admin only) -->
+      <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
+        <div style="font-weight:800;margin-bottom:8px">⚡ Auto-Advance</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Automatically move to the next question after a correct answer.</div>
+        <button id="autoadvance-toggle-btn" class="btn-primary" onclick="toggleAutoAdvance()">Loading...</button>
+      </div>
+      <!-- Bonus Challenges -->
+      <div class="card" style="background:#FFFBEA;box-shadow:none;border:2px solid #F7C948;margin-bottom:14px">
+        <div style="font-weight:800;margin-bottom:8px">⭐ Assign Bonus Challenge</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Give a kid extra practice on a specific topic.</div>
+        <div class="form-grid">
+          <div class="form-row"><label>Kid</label><select id="bonus-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
+          <div class="form-row"><label>Subject</label><select id="bonus-subject-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;">
+            <option value="spelling">🔤 Spelling</option><option value="math">🧮 Math</option>
+            <option value="reading">📖 Reading</option><option value="writing">✏️ Writing</option>
+          </select></div>
+        </div>
+        <div class="form-row"><label>Focus Topic (optional)</label><input id="bonus-topic" type="text" placeholder="e.g. fractions with unlike denominators" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"/></div>
+        <div class="form-row"><label>Bonus Brain Bucks</label><input id="bonus-coins" type="number" placeholder="10" value="10" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"/></div>
+        <button class="btn-primary" style="background:#F59E0B;color:#1A1F36" onclick="assignBonusChallenge()">⭐ Assign Challenge</button>
+        <div id="bonus-challenges-list" style="margin-top:14px"></div>
+      </div>
+      <!-- Admin families panel -->
       <div id="admin-panel-content"></div>
     </div>
 
   </div>
 
-  <!-- BOTTOM NAV BAR -->
+  <!-- BOTTOM NAV BAR — 3 tabs for parents, 4 for admin -->
   <nav id="parent-bottom-nav" style="position:fixed;bottom:0;left:0;right:0;background:white;border-top:2px solid var(--border);display:flex;z-index:200;box-shadow:0 -2px 12px rgba(0,0,0,0.08);">
-    <button class="bnav-btn active" id="bnav-overview" onclick="switchParentTab('tab-overview',this)">
+    <button class="bnav-btn active" id="bnav-overview" onclick="switchParentTab('tab-overview',this)" style="position:relative;">
       <span style="font-size:20px">📊</span><span class="bnav-label">Overview</span>
+      <span id="bnav-overview-badge" style="display:none;position:absolute;top:6px;right:10px;background:#EF4444;color:white;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:800;align-items:center;justify-content:center;"></span>
     </button>
     <button class="bnav-btn" id="bnav-kids" onclick="switchParentTab('tab-kids',this)">
       <span style="font-size:20px">👧</span><span class="bnav-label">Kids</span>
     </button>
-    <button class="bnav-btn" id="bnav-review" onclick="switchParentTab('tab-review',this)">
-      <span style="font-size:20px">✍️</span><span class="bnav-label">Review</span><span id="bnav-review-badge" style="display:none;position:absolute;top:8px;right:calc(50% - 22px);background:#EF4444;color:white;border-radius:50%;width:16px;height:16px;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;"></span>
-    </button>
     <button class="bnav-btn" id="bnav-manage" onclick="switchParentTab('tab-manage',this)">
-      <span style="font-size:20px">⚙️</span><span class="bnav-label">Manage</span>
-    </button>
-    <button class="bnav-btn" id="bnav-settings" onclick="switchParentTab('tab-settings',this)">
-      <span style="font-size:20px">🔧</span><span class="bnav-label">Settings</span>
+      <span style="font-size:20px">🔧</span><span class="bnav-label">Manage</span>
     </button>
     <button class="bnav-btn" id="bnav-admin" style="display:none;" onclick="switchParentTab('tab-admin',this)">
       <span style="font-size:20px">👑</span><span class="bnav-label">Admin</span>
@@ -1220,6 +1224,38 @@ function getStartingLevelIndex(grade, subjectId, timeOfYear) {
   if (timeOfYear === 'end') return Math.max(0, total - 1);
   return Math.floor(total / 2); // middle of year
 }
+
+// ── COMPATIBILITY WRAPPERS ───────────────────────────────
+// These bridge the old per-kid API to the new grade-based system
+
+function getCurrentLevelIndex(kidId, subjectId) {
+  if (!state.levels || !state.levels[kidId]) return 0;
+  return state.levels[kidId][subjectId] || 0;
+}
+
+function getCurrentLevelData(kidId, subjectId) {
+  const lvls = getSubjectProgression(kidId, subjectId);
+  const idx = getCurrentLevelIndex(kidId, subjectId);
+  return lvls[Math.min(idx, lvls.length - 1)] || {name:'Complete', desc:'All levels mastered!'};
+}
+
+function getCurrentGradeLevel(kidId, subjectId) {
+  const kid = state.kids.find(function(k){ return k.id === kidId; });
+  const grade = kid && kid.grade !== undefined ? kid.grade : 3;
+  const levelIdx = getCurrentLevelIndex(kidId, subjectId);
+  return { grade: grade, levelIdx: levelIdx };
+}
+
+function getGradeLevels(grade, subjectId) {
+  const key = _gradeKey(grade);
+  return (GRADE_CURRICULUM[subjectId] || {})[key] || [];
+}
+
+const GRADE_LABELS = {
+  0:'Kindergarten', 1:'Grade 1', 2:'Grade 2', 3:'Grade 3',
+  4:'Grade 4', 5:'Grade 5', 6:'Grade 6', 7:'Grade 7',
+  8:'Grade 8', 9:'Grade 9', 10:'Grade 10', 11:'Grade 11', 12:'Grade 12'
+};
 
 function getStreakScores(kidId, subjectId) {
   if (!state.streaks || !state.streaks[kidId]) return [];
@@ -1992,6 +2028,11 @@ async function afterParentLogin() {
     document.getElementById('pending-email').textContent = _currentUser.email;
     showScreen('screen-pending');
     return;
+  } else if (!isAdmin && userData.status === 'deactivated') {
+    authSignOut();
+    showScreen('screen-login');
+    document.getElementById('login-error').textContent = 'Your account has been deactivated. Please contact support.';
+    return;
   }
 
   if (isAdmin) {
@@ -2125,24 +2166,87 @@ async function addKidFromDashboard() {
   renderParentDashboard();
 }
 
-// ── BOTTOM NAV ───────────────────────────────────────────
-function switchParentTab(tabId, btn) {
-  document.querySelectorAll('#parent-tab-content .tab-panel').forEach(function(p) { p.classList.remove('active'); });
-  const panel = document.getElementById(tabId);
-  if (panel) panel.classList.add('active');
-  document.querySelectorAll('.bnav-btn').forEach(function(b) { b.classList.remove('active'); });
-  if (btn) btn.classList.add('active');
-  // Render tab content
-  if (tabId === 'tab-overview') { renderProgressOverview(); renderWeeklySummary(); }
-  if (tabId === 'tab-kids') { renderCurriculumOverview(); renderLevelAdjSelects(); _renderEmojiPicker('addkid-emoji-picker','addkid-emoji'); }
-  if (tabId === 'tab-review') { renderWritingApprovals(); renderRedemptionQueue(); renderFlaggedList(); renderRedoNotices(); }
-  if (tabId === 'tab-manage') { renderBonusChallengesList(); }
-  if (tabId === 'tab-settings') { renderFamilyUrl(); renderPinChangeList(); renderTimerInputs(); renderApiKeyStatus(); renderVacationBtn(); renderAutoAdvanceToggle(); }
-  if (tabId === 'tab-admin') { renderAdminPanel(); }
+// ── POPULATE KID DROPDOWNS ───────────────────────────────
+function populateKidDropdowns() {
+  const kids = state.kids || [];
+  const noTester = kids.filter(function(k){ return k.id !== 'tester'; });
+  const opts = kids.map(function(k){ return '<option value="' + k.id + '">' + k.emoji + ' ' + k.name + '</option>'; }).join('');
+  const optsNoTester = noTester.map(function(k){ return '<option value="' + k.id + '">' + k.emoji + ' ' + k.name + '</option>'; }).join('');
+  const optsWithBoth = optsNoTester + '<option value="both">👨‍👩‍👧 Both</option>';
+
+  const ids = ['coin-kid-select','unlock-kid-select','bonus-kid-select','level-adj-kid','msg-kid-select','skipday-kid-select','excuse-kid-select'];
+  ids.forEach(function(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const useNoTester = ['msg-kid-select','excuse-kid-select','skipday-kid-select'].includes(id);
+    el.innerHTML = useNoTester ? optsNoTester : opts;
+  });
+  // r-kid gets both option
+  const rkid = document.getElementById('r-kid');
+  if (rkid) rkid.innerHTML = optsWithBoth;
+  // reset-kid-select gets individual kids + both
+  const resetSel = document.getElementById('reset-kid-select');
+  if (resetSel) resetSel.innerHTML = optsNoTester + '<option value="both">Both</option>';
 }
 
-// Legacy switchTab alias so existing code still works
+// ── BOTTOM NAV ───────────────────────────────────────────
+function switchParentTab(tabId, btn) {
+  document.querySelectorAll('#parent-tab-content .tab-panel').forEach(function(p) {
+    p.classList.remove('active');
+    if (p.id !== 'tab-admin') p.style.display = '';
+  });
+  const panel = document.getElementById(tabId);
+  if (panel) { panel.classList.add('active'); panel.style.display = ''; }
+  document.querySelectorAll('.bnav-btn').forEach(function(b) { b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  // Always ensure dropdowns are fresh
+  populateKidDropdowns();
+  // Tab-specific rendering
+  if (tabId === 'tab-overview') {
+    renderProgressOverview(); renderWeeklySummary();
+    renderWritingApprovals(); renderRedemptionQueue(); renderFlaggedList(); renderRedoNotices();
+  }
+  if (tabId === 'tab-kids') {
+    renderCurriculumOverview(); renderLevelAdjSelects(); renderParentRewards();
+    _renderEmojiPicker('addkid-emoji-picker','addkid-emoji');
+  }
+  if (tabId === 'tab-manage') {
+    renderFamilyUrl(); renderPinChangeList(); renderTimerInputs();
+    renderVacationBtn();
+    const skipSel = document.getElementById('skipday-kid-select');
+    if (skipSel) { skipSel.onchange = function(){ updateSkipDayBalance(skipSel.value); }; updateSkipDayBalance(skipSel.value); }
+    const excuseSel = document.getElementById('excuse-kid-select');
+    if (excuseSel) {
+      excuseSel.onchange = renderExcuseStatus;
+      const inp = document.getElementById('excuse-date-input');
+      if (inp && !inp.value) inp.value = new Date().toISOString().slice(0,10);
+      if (inp) inp.onchange = renderExcuseStatus;
+      renderExcuseStatus();
+    }
+  }
+  if (tabId === 'tab-admin') {
+    renderAutoAdvanceToggle(); renderBonusChallengesList(); renderAdminPanel();
+  }
+}
+
+// Legacy switchTab alias
 function switchTab(tabId, btn) { switchParentTab(tabId, btn); }
+
+// ── REVIEW BADGE ─────────────────────────────────────────
+function updateTabBadges() {
+  const pendingW = (state.writingQueue||[]).filter(function(w){ return w.status==='pending'; }).length;
+  const pendingR = (state.redemptionQueue||[]).filter(function(r){ return r.status==='pending'; }).length;
+  const pendingF = (state.flaggedReview||[]).filter(function(f){ return f.status==='pending'; }).length;
+  const total = pendingW + pendingR + pendingF;
+  // Show badge on overview nav since review items are in overview now
+  const badge = document.getElementById('bnav-overview-badge');
+  if (badge) {
+    badge.style.display = total > 0 ? 'flex' : 'none';
+    badge.textContent = total > 0 ? total : '';
+  }
+  // Parent badge (kid screen)
+  updateParentBadge();
+}
 
 function renderFamilyUrl() {
   const el = document.getElementById('family-url-display');
@@ -2220,18 +2324,22 @@ async function renderAdminPanel() {
     const familiesCard = document.createElement('div');
     familiesCard.className = 'card';
     familiesCard.innerHTML = '<div style="font-weight:800;margin-bottom:12px">👨‍👩‍👧 All Families (' + Object.keys(users).length + ')</div>'
-      + Object.values(users).map(function(u) {
+      + Object.entries(users).map(function(entry) {
+        const uid = entry[0], u = entry[1];
         const fUrl = u.familyCode ? 'kidstuff.singlesourcecg.com/?f=' + u.familyCode : '—';
-        const statusColor = u.status === 'active' ? '#2ECC71' : u.status === 'pending' ? '#F59E0B' : '#7A859E';
+        const statusColor = u.status === 'active' ? '#2ECC71' : u.status === 'pending' ? '#F59E0B' : '#EF4444';
+        const isActive = u.status === 'active' || (!u.status && u.role);
         return '<div style="padding:10px 0;border-bottom:1px solid var(--border);">'
           + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'
           + '<div style="width:8px;height:8px;border-radius:50%;background:' + statusColor + ';flex-shrink:0;"></div>'
           + '<div style="font-weight:700;flex:1">' + (u.displayName||u.email) + '</div>'
-          + '<div style="font-size:11px;color:var(--muted)">' + (u.status||'active') + '</div>'
+          + (isActive && u.email !== 'humphrey11715@gmail.com'
+            ? '<button onclick="adminDeactivate(\'' + uid + '\',\'' + (u.email||'') + '\')" style="background:#EF4444;color:white;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;">Deactivate</button>'
+            : (u.status === 'deactivated' ? '<button onclick="adminReactivate(\'' + uid + '\')" style="background:#2ECC71;color:white;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;">Reactivate</button>' : ''))
           + '</div>'
-          + '<div style="font-size:12px;color:var(--muted);padding-left:16px">' + u.email + '</div>'
-          + '<div style="font-size:12px;color:var(--primary);padding-left:16px;font-weight:700;cursor:pointer;" onclick="navigator.clipboard.writeText(\'https://' + fUrl + '\')">'
-          + '🔗 ' + fUrl + ' (tap to copy)</div>'
+          + '<div style="font-size:12px;color:var(--muted);padding-left:16px">' + u.email + ' · <b>' + (u.status||'active') + '</b></div>'
+          + '<div style="font-size:12px;color:var(--primary);padding-left:16px;font-weight:700;cursor:pointer;" onclick="navigator.clipboard.writeText(\'https://' + fUrl + '\').then(function(){showToast(\'📋 Copied!\');})">'
+          + '🔗 ' + fUrl + '</div>'
           + '</div>';
       }).join('');
     el.appendChild(familiesCard);
@@ -2269,6 +2377,31 @@ async function adminDeny(email) {
       body: JSON.stringify({ status: 'denied' })
     });
     showToast('❌ ' + email + ' denied.');
+    renderAdminPanel();
+  } catch(e) { showToast('Error: ' + e.message); }
+}
+
+async function adminDeactivate(uid, email) {
+  if (!confirm('Deactivate account for ' + email + '? They will not be able to log in until reactivated.')) return;
+  try {
+    const token = await getFirebaseToken();
+    await fetch(FIREBASE_URL + '/users/' + uid + '.json?auth=' + token, {
+      method: 'PATCH', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ status: 'deactivated', deactivatedAt: Date.now() })
+    });
+    showToast('⏸️ ' + email + ' deactivated.');
+    renderAdminPanel();
+  } catch(e) { showToast('Error: ' + e.message); }
+}
+
+async function adminReactivate(uid) {
+  try {
+    const token = await getFirebaseToken();
+    await fetch(FIREBASE_URL + '/users/' + uid + '.json?auth=' + token, {
+      method: 'PATCH', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ status: 'active', reactivatedAt: Date.now() })
+    });
+    showToast('✅ Account reactivated.');
     renderAdminPanel();
   } catch(e) { showToast('Error: ' + e.message); }
 }
@@ -4277,72 +4410,41 @@ function parentUnlockLesson() {
 
 function renderParentDashboard() {
   try {
-    // Show admin tab if admin
+    // Show admin tab/nav if admin
     const adminNav = document.getElementById('bnav-admin');
     const adminPanel = document.getElementById('tab-admin');
     if (_currentUser && _currentUser.isAdmin) {
       if (adminNav) adminNav.style.display = '';
       if (adminPanel) adminPanel.style.display = '';
     }
-    // Update header with user name
+    // Update header
     const sub = document.getElementById('parent-header-sub');
     if (sub && _currentUser) sub.textContent = (_currentUser.displayName || 'Parent') + "'s Dashboard";
-    // Check incomplete week penalty for all kids whenever parent opens dashboard
+    // Check incomplete week penalty
     state.kids.forEach(function(k) { checkIncompleteWeekPenalty(k.id); });
+    // Populate all dropdowns
+    populateKidDropdowns();
+    // Render kid summary strip
     renderParentKidSummary();
-    renderCurriculumOverview();
-    renderWritingApprovals();
-    renderRedoNotices();
-    renderParentRewards();
+    // Render overview tab content (default tab)
     renderProgressOverview();
     renderWeeklySummary();
-    renderFlaggedList();
+    renderWritingApprovals();
     renderRedemptionQueue();
-    updateRedemptionBadge();
+    renderFlaggedList();
+    renderRedoNotices();
+    // Update badges
     updateTabBadges();
-    renderVoiceSelector();
-    setTimeout(renderVoiceSelector, 300);
-    const coinKidSel = document.getElementById('coin-kid-select');
-    if (coinKidSel) coinKidSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.name}</option>`).join('');
-    const unlockSel = document.getElementById('unlock-kid-select');
-    if (unlockSel) unlockSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
-    const bonusKidSel = document.getElementById('bonus-kid-select');
-    if (bonusKidSel) bonusKidSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
-    renderBonusChallengesList();
+    // Level adj wiring
     const levelAdjKid = document.getElementById('level-adj-kid');
     if (levelAdjKid) {
-      levelAdjKid.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
       levelAdjKid.onchange = updateLevelAdjPreview;
       const levelAdjSubj = document.getElementById('level-adj-subject');
       if (levelAdjSubj) levelAdjSubj.onchange = updateLevelAdjPreview;
-      updateLevelAdjPreview();
     }
-    const skipSel = document.getElementById('skipday-kid-select');
-    if (skipSel) {
-      skipSel.innerHTML = state.kids.map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
-      skipSel.onchange = function() { updateSkipDayBalance(skipSel.value); };
-      updateSkipDayBalance(skipSel.value);
-    }
-    const msgKidSel = document.getElementById('msg-kid-select');
-    if (msgKidSel) {
-      msgKidSel.innerHTML = state.kids.filter(k=>k.id!=='tester').map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
-    }
-    const excuseSel = document.getElementById('excuse-kid-select');
-    if (excuseSel) {
-      excuseSel.innerHTML = state.kids.filter(k=>k.id!=='tester').map(k=>`<option value="${k.id}">${k.emoji} ${k.name}</option>`).join('');
-      excuseSel.onchange = renderExcuseStatus;
-      const excuseDateInp = document.getElementById('excuse-date-input');
-      if (excuseDateInp) {
-        if (!excuseDateInp.value) excuseDateInp.value = new Date().toISOString().slice(0,10);
-        excuseDateInp.onchange = renderExcuseStatus;
-      }
-      renderExcuseStatus();
-    }
-    renderTimerInputs();
-    renderApiKeyStatus();
-    renderVacationBtn();
-    renderAutoAdvanceToggle();
-    updateBinIdDisplay();
+    // Voice selector
+    renderVoiceSelector();
+    setTimeout(renderVoiceSelector, 300);
   } catch(e) {
     console.error('renderParentDashboard error:', e);
     showToast('❌ Dashboard error: ' + e.message);
