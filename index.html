@@ -4511,21 +4511,22 @@ function renderCurriculumOverview() {
   const icons = {spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'};
   document.getElementById('curriculum-overview').innerHTML = state.kids.map(k => {
     return '<div style="margin-bottom:18px">'
-      + '<div style="font-family:\"Baloo 2\",cursive;font-size:17px;font-weight:700;margin-bottom:10px">' + k.emoji + ' ' + k.name + '</div>'
+      + '<div style="font-family:\'Baloo 2\',cursive;font-size:17px;font-weight:700;margin-bottom:10px">' + k.emoji + ' ' + k.name + '</div>'
       + subjects.map(function(s) {
           const lvlData = getCurrentLevelData(k.id, s);
           const streakArr = getStreakScores(k.id, s);
           const lvlIdx = getCurrentLevelIndex(k.id, s);
           const totalLvls = getSubjectProgression(k.id, s).length;
-          const streakToAdvance = 3;
           const goodScores = streakArr.filter(function(sc){ return sc >= 90; }).length;
           const badScores = streakArr.filter(function(sc){ return sc < 70; }).length;
           let statusColor = '#6B7280';
           let statusTxt = streakArr.length ? 'Last: ' + streakArr.slice(-1)[0] + '%' : 'Not started';
           if (goodScores >= 2) { statusColor = '#2ECC71'; statusTxt = '🔥 ' + goodScores + '/3 toward level up'; }
           if (badScores >= 1) { statusColor = '#EF4444'; statusTxt = '⚠️ ' + badScores + ' low score(s)'; }
+          // Safe level name — handle objects and legacy bad strings
+          const levelName = lvlData ? _safeLevelDisplay(lvlData.name) || lvlData.name || s : s;
           return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px">'
-            + '<span>' + icons[s] + ' ' + (lvlData ? lvlData.name : s) + '</span>'
+            + '<span>' + icons[s] + ' ' + levelName + '</span>'
             + '<span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">'
             + '<span style="font-weight:700;color:var(--primary)">Level ' + (lvlIdx+1) + ' / ' + totalLvls + '</span>'
             + '<span style="font-size:11px;color:' + statusColor + '">' + statusTxt + '</span>'
@@ -4533,6 +4534,86 @@ function renderCurriculumOverview() {
         }).join('')
       + '</div>';
   }).join('<hr style="border:none;border-top:1px solid var(--border);margin:8px 0"/>');
+}
+
+// Populate grade and level-within-grade dropdowns in the level adjustment card
+function renderLevelAdjSelects() {
+  const kidSel = document.getElementById('level-adj-kid');
+  const subjSel = document.getElementById('level-adj-subject');
+  const gradeSel = document.getElementById('level-adj-grade');
+  const levelSel = document.getElementById('level-adj-level');
+  if (!gradeSel || !levelSel) return;
+
+  // Wire up kid/subject change to refresh grade+level dropdowns
+  function refreshGradeLevels() {
+    const kidId = kidSel ? kidSel.value : '';
+    const subjectId = subjSel ? subjSel.value : 'spelling';
+    // Populate grade dropdown from GRADE_CURRICULUM
+    const gradeKeys = Object.keys(GRADE_CURRICULUM[subjectId] || {});
+    gradeSel.innerHTML = gradeKeys.map(function(g) {
+      const label = g === 'K' ? 'Kindergarten' : 'Grade ' + g;
+      return '<option value="' + g + '">' + label + '</option>';
+    }).join('');
+    // Pre-select current kid's grade
+    if (kidId) {
+      const kid = state.kids.find(function(k){ return k.id === kidId; });
+      const kidGrade = kid && kid.grade !== undefined ? _gradeKey(kid.grade) : 3;
+      gradeSel.value = String(kidGrade);
+    }
+    refreshLevelList();
+  }
+
+  function refreshLevelList() {
+    const subjectId = subjSel ? subjSel.value : 'spelling';
+    const gradeKey = gradeSel.value;
+    const levels = (GRADE_CURRICULUM[subjectId] || {})[gradeKey] || [];
+    levelSel.innerHTML = levels.map(function(l, i) {
+      return '<option value="' + i + '">' + (i+1) + '. ' + l.name + '</option>';
+    }).join('');
+    // Pre-select current kid's level if grade matches
+    const kidId = kidSel ? kidSel.value : '';
+    if (kidId) {
+      const kid = state.kids.find(function(k){ return k.id === kidId; });
+      const kidGrade = kid && kid.grade !== undefined ? String(_gradeKey(kid.grade)) : '3';
+      if (String(gradeKey) === kidGrade) {
+        const curIdx = getCurrentLevelIndex(kidId, subjectId);
+        levelSel.value = String(curIdx);
+      }
+    }
+    updateLevelAdjPreview();
+  }
+
+  if (kidSel) kidSel.onchange = refreshGradeLevels;
+  if (subjSel) subjSel.onchange = refreshGradeLevels;
+  if (gradeSel) gradeSel.onchange = refreshLevelList;
+  refreshGradeLevels();
+}
+
+function applyLevelSelection() {
+  const kidSel = document.getElementById('level-adj-kid');
+  const subjSel = document.getElementById('level-adj-subject');
+  const levelSel = document.getElementById('level-adj-level');
+  if (!kidSel || !subjSel || !levelSel) return;
+  const kidId = kidSel.value;
+  const subjectId = subjSel.value;
+  const newIdx = parseInt(levelSel.value);
+  if (!kidId || isNaN(newIdx)) return;
+  if (!state.levels) state.levels = {};
+  if (!state.levels[kidId]) state.levels[kidId] = {};
+  state.levels[kidId][subjectId] = newIdx;
+  // Update kid grade to match selected grade
+  const gradeSel = document.getElementById('level-adj-grade');
+  if (gradeSel) {
+    const gradeKey = gradeSel.value;
+    const kid = state.kids.find(function(k){ return k.id === kidId; });
+    if (kid) kid.grade = gradeKey === 'K' ? 0 : parseInt(gradeKey);
+  }
+  saveState();
+  const lvls = getSubjectProgression(kidId, subjectId);
+  const lvl = lvls[newIdx];
+  showToast('✅ Level set to ' + (newIdx+1) + ': ' + (lvl ? lvl.name : '') + ' for ' + (state.kids.find(function(k){return k.id===kidId;})||{}).name);
+  updateLevelAdjPreview();
+  renderCurriculumOverview();
 }
 
 function renderRedoNotices() {
