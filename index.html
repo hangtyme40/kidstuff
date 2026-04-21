@@ -2741,7 +2741,7 @@ function _renderKidDashboardInner() {
       const curIdx = gl.levelIdx || 0;
       const gradeLabel = GRADE_LABELS[gl.grade] || ('Grade ' + gl.grade);
       const lvl = gradeLevels[curIdx];
-      const lvlName = lvl ? lvl.name : subjectId;
+      const lvlName = lvl ? _safeName(lvl.name) || subjectId : subjectId;
       const streakScores = getStreakScores(currentKidId, subjectId);
       const mins = timerMins[subjectId] || 15;
 
@@ -2946,7 +2946,7 @@ async function startLesson(subjectId) {
   const prog = (state.progress[currentKidId]||{})[subjectId];
   const doneToday = prog && prog.date === getTodayKey();
   if (doneToday && !isUnlockedToday(currentKidId, subjectId)) {
-    showLockedModal({id:subjectId,name:levelData.name,icon}, prog);
+    showLockedModal({id:subjectId,name:_safeName(levelData.name),icon}, prog);
     return;
   }
 
@@ -2964,7 +2964,7 @@ async function startLesson(subjectId) {
     if (!questions || !questions.length) throw new Error('Empty question list returned');
 
     lessonState = {
-      subjectId, subjectName: levelData.name, subjectIcon: icon, subjectType: type,
+      subjectId, subjectName: _safeName(levelData.name), subjectIcon: icon, subjectType: type,
       questions: type === 'writing' ? [{type:'writing'}] : questions,
       writingPrompt,
       readingStory,
@@ -2977,10 +2977,10 @@ async function startLesson(subjectId) {
     };
     // Signal to parent dashboard that this kid is actively working
     if (!state.liveLesson) state.liveLesson = {};
-    state.liveLesson[currentKidId] = { subject: levelData.name, icon: icon, startedAt: Date.now() };
+    state.liveLesson[currentKidId] = { subject: _safeName(levelData.name), icon: icon, startedAt: Date.now() };
     try { fbSet(getFamilyPath('kids/' + currentKidId + '/liveLesson'), state.liveLesson[currentKidId]); } catch(_){}
     showScreen('screen-lesson');
-    document.getElementById('lesson-title').textContent = icon + ' ' + levelData.name;
+    document.getElementById('lesson-title').textContent = icon + ' ' + _safeName(levelData.name);
     startLessonTimer();
     renderQuestion();
   } catch(e) {
@@ -3015,7 +3015,7 @@ async function generateLessonQuestions(kidId, subjectId, type, levelData, bonusT
   const kid = state.kids.find(k=>k.id===kidId) || {name:'Student'};
   const diffName = ['','easy','medium','hard'][state.difficultyLevel[kidId]||2];
   const levelDesc = levelData ? levelData.desc : '';
-  const levelName = bonusTopic ? bonusTopic : (levelData ? levelData.name : subjectId);
+  const levelName = bonusTopic ? bonusTopic : (levelData ? _safeName(levelData.name) || subjectId : subjectId);
   const topicNote = bonusTopic ? '\nThis is a BONUS CHALLENGE specifically focused on: "' + bonusTopic + '". Prioritize this topic above all else.' : '';
 
   // Build wrong answer context from recent history — focus on recurring mistakes
@@ -4119,9 +4119,9 @@ function finishLesson() {
   // Clear live lesson indicator in parent dashboard
   if (state.liveLesson) state.liveLesson[currentKidId] = null;
   try { fbSet(getFamilyPath('kids/' + currentKidId + '/liveLesson'), null); } catch(_){}
-  const origTotal = ls.questions.length;
+  const origTotal = Math.max(ls.answers ? ls.answers.length : 0, ls.currentQ + 1);
   const origCorrect = ls.correct;
-  const total = origTotal;
+  const total = origTotal || ls.questions.length;
   const pct = total > 0 ? Math.round((origCorrect / total) * 100) : 0;
   if (!state.progress[currentKidId]) state.progress[currentKidId]={};
 
@@ -4212,7 +4212,7 @@ function finishLesson() {
         state.streaks[currentKidId][ls.subjectId] = [];
         setTimeout(function() {
           const prevLevel = subjLevels[curIdx-1];
-          showToast('📚 Let\'s practice: ' + (prevLevel ? prevLevel.name : 'previous level') + ' a bit more.');
+          showToast('📚 Let\'s practice: ' + (prevLevel ? _safeName(prevLevel.name) || 'previous level' : 'previous level') + ' a bit more.');
         }, 1500);
       }
     }
@@ -4389,7 +4389,7 @@ function adjustLevel(delta) {
   saveState();
   const kid = state.kids.find(k => k.id === kidId);
   const newLevel = subjLevels[newIdx];
-  showToast((delta > 0 ? '⬆️' : '⬇️') + ' ' + (kid ? kid.name : kidId) + ' → ' + (newLevel ? newLevel.name : 'Level ' + (newIdx+1)));
+  showToast((delta > 0 ? '⬆️' : '⬇️') + ' ' + (kid ? kid.name : kidId) + ' → ' + (newLevel ? _safeName(newLevel.name) || 'Level ' + (newIdx+1) : 'Level ' + (newIdx+1)));
   updateLevelAdjPreview();
   renderCurriculumOverview();
 }
@@ -4405,7 +4405,7 @@ function updateLevelAdjPreview() {
   const subjLevels = getSubjectProgression(kidId, subjectId);
   const curIdx = getCurrentLevelIndex(kidId, subjectId);
   const lvl = subjLevels[curIdx];
-  el.textContent = 'Current: Level ' + (curIdx + 1) + ' — ' + (lvl ? lvl.name : '');
+  el.textContent = 'Current: Level ' + (curIdx + 1) + ' — ' + (lvl ? _safeName(lvl.name) : '');
 }
 
 function parentUnlockLesson() {
@@ -4524,7 +4524,7 @@ function renderCurriculumOverview() {
           if (goodScores >= 2) { statusColor = '#2ECC71'; statusTxt = '🔥 ' + goodScores + '/3 toward level up'; }
           if (badScores >= 1) { statusColor = '#EF4444'; statusTxt = '⚠️ ' + badScores + ' low score(s)'; }
           // Safe level name — handle objects and legacy bad strings
-          const levelName = lvlData ? _safeLevelDisplay(lvlData.name) || lvlData.name || s : s;
+          const levelName = lvlData ? _safeName(lvlData.name) || s : s;
           return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px">'
             + '<span>' + icons[s] + ' ' + levelName + '</span>'
             + '<span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">'
@@ -4611,7 +4611,7 @@ function applyLevelSelection() {
   saveState();
   const lvls = getSubjectProgression(kidId, subjectId);
   const lvl = lvls[newIdx];
-  showToast('✅ Level set to ' + (newIdx+1) + ': ' + (lvl ? lvl.name : '') + ' for ' + (state.kids.find(function(k){return k.id===kidId;})||{}).name);
+  showToast('✅ Level set to ' + (newIdx+1) + ': ' + (lvl ? _safeName(lvl.name) : '') + ' for ' + (state.kids.find(function(k){return k.id===kidId;})||{}).name);
   updateLevelAdjPreview();
   renderCurriculumOverview();
 }
@@ -4793,7 +4793,7 @@ function startWritingRedo() {
   }
 
   lessonState = {
-    subjectId: 'writing', subjectName: lvlData.name, subjectIcon: '✏️', subjectType: 'writing',
+    subjectId: 'writing', subjectName: _safeName(lvlData.name), subjectIcon: '✏️', subjectType: 'writing',
     questions: [{type:'writing', question:'Writing Redo'}],
     _originalQuestions: [{type:'writing', question:'Writing Redo'}],
     currentQ: 0, answers: [], correct: 0, streak: 0, missStreak: 0, wrongAnswers: [],
@@ -5040,7 +5040,7 @@ function renderProgressOverview() {
             const lvlData = getCurrentLevelData(k.id, s);
             return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">'
               + '<span style="font-size:18px">' + subjectIcons[s] + '</span>'
-              + '<div style="flex:1"><div style="font-weight:700;font-size:13px">' + (lvlData ? lvlData.name : s) + '</div>'
+              + '<div style="flex:1"><div style="font-weight:700;font-size:13px">' + (lvlData ? _safeName(lvlData.name) || s : s) + '</div>'
               + '<div style="font-size:11px;color:var(--muted)">' + entries.length + ' session' + (entries.length!==1?'s':'') + '</div></div>'
               + '<div style="text-align:right"><div style="font-weight:800;color:var(--primary)">' + avg + '% avg</div>'
               + '<div style="font-size:11px;color:#2ECC71">Best: ' + best + '%</div></div>'
@@ -5286,10 +5286,20 @@ function showToast(msg) {
 function _safeLevelDisplay(level) {
   if (level === null || level === undefined) return '?';
   if (typeof level === 'number') return level;
-  if (typeof level === 'object') return level.name || '?';
-  // String — strip "[object Object]" prefix if present (legacy bad data)
+  if (typeof level === 'object') return _safeName(level.name) || '?';
   const s = String(level).replace(/\[object Object\]/g, '').trim();
   return s || '?';
+}
+
+// Safely convert any level .name value to a readable string
+function _safeName(val) {
+  if (val === null || val === undefined) return '';
+  if (typeof val === 'string') return val.replace(/\[object Object\]/g, '').trim();
+  if (typeof val === 'object') {
+    // Could be a level data object itself — try common fields
+    return (val.name && typeof val.name === 'string') ? val.name : (val.desc && typeof val.desc === 'string') ? val.desc : '';
+  }
+  return String(val).replace(/\[object Object\]/g, '').trim();
 }
 
 function sanitizeUnicode(s) {
@@ -5908,7 +5918,7 @@ function triggerLevelUpIfNeeded(kidId, subjectId, prevIdx, newIdx, subjLevels) {
   if (newIdx > prevIdx && newIdx < subjLevels.length) {
     const nextLevel = subjLevels[newIdx];
     setTimeout(function() {
-      showLevelUp(subjectId.charAt(0).toUpperCase() + subjectId.slice(1), nextLevel.name);
+      showLevelUp(subjectId.charAt(0).toUpperCase() + subjectId.slice(1), _safeName(nextLevel.name));
     }, 800);
   }
 }
@@ -6309,7 +6319,7 @@ function toggleDarkMode() {
 
 function triggerLevelUpCelebration(kidId, subjectId) {
   const lvlData = getCurrentLevelData(kidId, subjectId);
-  setTimeout(function() { showLevelUp(subjectId.charAt(0).toUpperCase()+subjectId.slice(1), lvlData.name); }, 800);
+  setTimeout(function() { showLevelUp(subjectId.charAt(0).toUpperCase()+subjectId.slice(1), _safeName(lvlData.name)); }, 800);
 }
 
 // Auto-clear liveLesson entries that are stale (kid closed app without finishing).
