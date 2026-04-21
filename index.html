@@ -1192,12 +1192,9 @@ const GRADE_CURRICULUM = {
 // Grade key mapping — grade number to curriculum key
 // Grades 7-12 fall back to grade 6 content for now
 function _gradeKey(grade) {
-  if (grade <= 0) return 'K';
-  if (grade === 1) return 1;
-  if (grade === 2) return 2;
-  if (grade === 3) return 3;
-  if (grade === 4) return 4;
-  if (grade === 5) return 5;
+  const g = parseInt(grade, 10); // coerce string grades from Firebase
+  if (isNaN(g) || g <= 0) return 'K';
+  if (g <= 5) return g;
   return 6; // 6+
 }
 
@@ -4568,7 +4565,7 @@ function renderLevelAdjSelects() {
     const gradeKey = gradeSel.value;
     const levels = (GRADE_CURRICULUM[subjectId] || {})[gradeKey] || [];
     levelSel.innerHTML = levels.map(function(l, i) {
-      return '<option value="' + i + '">' + (i+1) + '. ' + l.name + '</option>';
+      return '<option value="' + i + '">' + (i+1) + '. ' + _safeName(l.name) + '</option>';
     }).join('');
     // Pre-select current kid's level if grade matches
     const kidId = kidSel ? kidSel.value : '';
@@ -6275,6 +6272,30 @@ function runMigrations() {
     }
     state._penaltyGuardFixed = true;
     localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+  }
+
+  // One-time fix: recalculate total from score+correct for history entries
+  // where total was incorrectly set to the full generated question array length
+  if (!state._totalFixed) {
+    let fixCount = 0;
+    Object.keys(state.lessonHistory || {}).forEach(function(kidId) {
+      (state.lessonHistory[kidId] || []).forEach(function(e) {
+        if (e.score > 0 && e.correct > 0 && e.total > 0) {
+          const expectedTotal = Math.round(e.correct / (e.score / 100));
+          // Only fix if the stored total is more than double the expected total
+          // (avoids touching entries that are just slightly off due to rounding)
+          if (e.total > expectedTotal * 1.5 && expectedTotal >= 1 && expectedTotal <= 50) {
+            e.total = expectedTotal;
+            fixCount++;
+          }
+        }
+      });
+    });
+    state._totalFixed = true;
+    if (fixCount > 0) {
+      localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+      console.log('Migrated ' + fixCount + ' lesson history total(s).');
+    }
   }
 }
 
