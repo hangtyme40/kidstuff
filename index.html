@@ -2876,9 +2876,9 @@ function renderKidHistory(kidId) {
     const rows = entries.map(function(e) {
       const scoreColor = e.score >= 90 ? '#2ECC71' : e.score >= 70 ? '#F59E0B' : '#EF4444';
       return '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)">'
-        + '<span style="font-size:20px">' + (subjectIcons[e.subject]||'📚') + '</span>'
+        + '<span style="font-size:20px">' + _subjectIcon(e.subject) + '</span>'
         + '<div style="flex:1">'
-        + '<div style="font-weight:700;font-size:14px;text-transform:capitalize">' + e.subject + ' — Level ' + _safeLevelDisplay(e.level) + '</div>'
+        + '<div style="font-weight:700;font-size:14px">' + _subjectLabel(e.subject) + (e.subject && !e.subject.endsWith('_bonus') ? ' — Level ' + _safeLevelDisplay(e.level) : '') + '</div>'
         + '<div style="font-size:12px;color:var(--muted)">' + (e.duration||0) + ' min · ' + e.correct + '/' + e.total + ' correct</div>'
         + '</div>'
         + '<div style="font-weight:800;font-size:15px;color:' + scoreColor + '">' + e.score + '%</div>'
@@ -4147,16 +4147,22 @@ function finishLesson() {
 
   // Bonus challenges are completely separate from daily progress
   // They never write to state.progress, never block the daily lesson
+  // Coins = the flat amount set by parent — no score-based adjustment
   if (ls.isBonusChallenge) {
-    const isWriting = ls.subjectType === 'writing';
-    const bonusCoinsEarned = isWriting ? 0 : (pct === 100 ? 2 : pct >= 80 ? 1 : 0);
+    const bonusCoinsEarned = ls.bonusCoins || 0; // parent-specified flat amount only
     const kid = state.kids.find(function(k){ return k.id === currentKidId; });
     if (kid && bonusCoinsEarned > 0) { kid.coins += bonusCoinsEarned; stampCoins(currentKidId); }
     const timerSec = Math.min(ls.timerSeconds || 0, ls.timerTotal || 9999);
     const elapsedMin = Math.floor(timerSec / 60);
     recordLessonHistory(currentKidId, ls.subjectId + '_bonus', pct, bonusCoinsEarned, origCorrect, total, elapsedMin, getCurrentLevelIndex(currentKidId, ls.subjectId));
     saveState();
-    completeBonusChallenge(ls.bonusChallengeId);
+    // Mark challenge complete without awarding extra coins (already awarded above)
+    const bc = (state.bonusChallenges || []).find(function(b){ return b.id === ls.bonusChallengeId; });
+    if (bc) { bc.status = 'completed'; saveState(); }
+    showToast('⭐ Bonus complete! +' + bonusCoinsEarned + ' 🧠 Brain Bucks!');
+    launchConfetti(2500);
+    playSound('epic');
+    showScreen('screen-kid');
     return;
   }
 
@@ -5076,11 +5082,11 @@ function renderProgressOverview() {
         const scoreColor = e.score >= 90 ? '#2ECC71' : e.score >= 70 ? 'var(--primary)' : '#EF4444';
         const row = document.createElement('div');
         row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;cursor:pointer;';
-        row.innerHTML = '<span>' + subjectIcons[e.subject] + '</span>'
+        row.innerHTML = '<span>' + _subjectIcon(e.subject) + '</span>'
           + '<span style="flex:1;color:var(--muted)">' + (e.dateDisplay||e.date) + '</span>'
           + '<span style="font-weight:800;color:' + scoreColor + '">' + e.score + '%</span>'
           + '<span style="color:var(--muted);font-size:11px">' + e.correct + '/' + e.total + '</span>'
-          + '<span style="background:#EEF2FF;color:var(--primary);border-radius:8px;padding:2px 7px;font-size:11px;font-weight:700">Lv ' + _safeLevelDisplay(e.level) + '</span>'
+          + '<span style="background:#EEF2FF;color:var(--primary);border-radius:8px;padding:2px 7px;font-size:11px;font-weight:700">' + _subjectLabel(e.subject) + '</span>'
           + '<span style="color:#F59E0B;font-size:11px;font-weight:700">🧠 ' + e.coins + '</span>'
           + '<span style="color:var(--muted);font-size:13px;margin-left:2px">›</span>';
         row.onclick = (function(entry){ return function(){ showSessionDetail(entry); }; })(e);
@@ -5320,6 +5326,23 @@ function _safeName(val) {
     return (val.name && typeof val.name === 'string') ? val.name : (val.desc && typeof val.desc === 'string') ? val.desc : '';
   }
   return String(val).replace(/\[object Object\]/g, '').trim();
+}
+
+// Safely get a display label and icon for a subject string, handling _bonus suffix
+function _subjectLabel(subject) {
+  if (!subject) return 'Lesson';
+  const isBonus = subject.endsWith('_bonus');
+  const base = isBonus ? subject.replace('_bonus', '') : subject;
+  const labels = {spelling:'Spelling', math:'Math', reading:'Reading', writing:'Writing'};
+  const label = labels[base] || (base.charAt(0).toUpperCase() + base.slice(1));
+  return isBonus ? '⭐ Bonus — ' + label : label;
+}
+
+function _subjectIcon(subject) {
+  if (!subject) return '📚';
+  const base = subject.replace('_bonus', '');
+  const icons = {spelling:'🔤', math:'🧮', reading:'📖', writing:'✏️'};
+  return icons[base] || '📚';
 }
 
 function sanitizeUnicode(s) {
@@ -5913,12 +5936,7 @@ function completeBonusChallenge(id) {
   const bc = (state.bonusChallenges || []).find(b => b.id === id);
   if (!bc) return;
   bc.status = 'completed';
-  const kid = state.kids.find(k => k.id === bc.kidId);
-  if (kid) kid.coins += bc.coins;
   saveState();
-  showToast('⭐ Bonus challenge complete! +' + bc.coins + ' 🧠 Brain Bucks!');
-  launchConfetti(2500);
-  playSound('epic');
   showScreen('screen-kid');
 }
 
@@ -6083,7 +6101,7 @@ function renderBrainBucksHistory(kidId) {
   history.forEach(function(e) {
     if (e.coins > 0) entries.push({
       date: e.date, type: 'earn',
-      desc: ({spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'}[e.subject]||'📚') + ' ' + e.subject.charAt(0).toUpperCase()+e.subject.slice(1) + ' lesson',
+      desc: _subjectIcon(e.subject) + ' ' + _subjectLabel(e.subject),
       amount: +e.coins
     });
   });
