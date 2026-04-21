@@ -1,6 +1,6 @@
 // KidStuff Service Worker
 // Bump CACHE_VERSION with every deployment to force all devices to reload
-const CACHE_VERSION = '202604201544';
+const CACHE_VERSION = '202604202253';
 const CACHE_NAME = 'kidstuff-' + CACHE_VERSION;
 
 // Handle skip waiting message from the page

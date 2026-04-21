@@ -30,8 +30,8 @@
 body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
 .screen{display:none!important;}
 .screen.active{display:block!important;}
-#screen-landing.active,#screen-kid-select.active,#screen-pin.active{display:flex!important;}
-#screen-landing,#screen-kid-select,#screen-pin{min-height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;}
+#screen-landing.active,#screen-kid-select.active,#screen-pin.active,#screen-login.active,#screen-signup.active,#screen-pending.active,#screen-family-code.active{display:flex!important;}
+#screen-landing,#screen-kid-select,#screen-pin,#screen-login,#screen-signup,#screen-pending,#screen-family-code{min-height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;}
 #screen-landing{background:linear-gradient(135deg,#4F6EF7 0%,#7C3AED 100%);}
 #screen-kid-select{background:linear-gradient(135deg,#4F6EF7 0%,#7C3AED 100%);}
 #screen-pin{background:linear-gradient(135deg,#1A1F36,#2D3561);}
@@ -126,7 +126,12 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 .parent-header h2{font-family:'Baloo 2',cursive;font-size:24px;margin-bottom:4px;}
 .parent-header p{opacity:0.7;font-size:14px;}
 .tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
-.tab-btn{padding:9px 18px;border:2px solid var(--border);background:white;border-radius:20px;font-family:'Nunito',sans-serif;font-weight:700;font-size:14px;cursor:pointer;color:var(--muted);transition:all 0.2s;position:relative;}
+.bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px 10px;background:none;border:none;cursor:pointer;position:relative;gap:2px;font-family:Nunito,sans-serif;}
+.bnav-label{font-size:10px;font-weight:700;color:var(--muted);}
+.bnav-btn.active .bnav-label{color:var(--primary);}
+.bnav-btn.active span:first-child{filter:drop-shadow(0 0 4px rgba(79,110,247,0.5));}
+#screen-parent .content{padding-bottom:80px;}
+.tab-panel{display:none;}.tab-panel.active{display:block;}
 .tab-btn.active{background:var(--primary);border-color:var(--primary);color:white;}
 .tab-dot{position:absolute;top:-5px;right:-5px;width:10px;height:10px;border-radius:50%;background:#EF4444;border:2px solid white;}
 .tab-panel{display:none;}
@@ -273,14 +278,159 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   <div class="landing-logo">Kid<span>Stuff</span> 🧠</div>
   <div class="landing-tagline">Learn. Earn. Grow.</div>
   <div class="landing-cards">
-    <div class="landing-card" onclick="showScreen('screen-kid-select')">
+    <div class="landing-card" onclick="goStudents()">
       <div class="icon">🎒</div><h2>Students</h2><p>Do my lessons &amp; earn rewards</p>
     </div>
-    <div class="landing-card" onclick="showPinScreen('parent')" id="parent-landing-btn">
+    <div class="landing-card" onclick="showScreen('screen-login')" id="parent-landing-btn">
       <div class="icon">🔐</div><h2>Parents</h2><p>Manage lessons &amp; rewards</p>
     </div>
   </div>
   <div id="sync-status-landing" style="color:rgba(255,255,255,0.6);font-size:12px;margin-top:20px;text-align:center;"></div>
+</div>
+
+<!-- FAMILY CODE ENTRY (for students on shared/new device) -->
+<div id="screen-family-code" class="screen">
+  <div class="landing-logo" style="font-size:40px;">Kid<span>Stuff</span> 🧠</div>
+  <div class="landing-tagline" style="margin-bottom:32px;">Enter your family code</div>
+  <div class="pin-box" style="max-width:360px;width:100%;">
+    <div style="font-size:36px;margin-bottom:10px">🏠</div>
+    <h2 style="font-family:'Baloo 2',cursive;font-size:22px;margin-bottom:6px;">Family Code</h2>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:20px;">Ask your parent for your family code (e.g. HMPH)</p>
+    <input id="family-code-input" type="text" maxlength="8"
+      style="width:100%;padding:14px;border:2px solid var(--border);border-radius:12px;font-family:'Baloo 2',cursive;font-size:24px;font-weight:800;text-align:center;text-transform:uppercase;letter-spacing:4px;margin-bottom:16px;"
+      placeholder="ABCD" oninput="this.value=this.value.toUpperCase()"/>
+    <div id="family-code-error" style="color:var(--red);font-size:13px;font-weight:700;min-height:18px;margin-bottom:12px;"></div>
+    <button class="btn-primary" onclick="submitFamilyCode()">Let's Go! 🚀</button>
+    <div class="back-link" style="margin-top:16px;" onclick="showScreen('screen-landing')">← Back</div>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="screen-login" class="screen">
+  <div class="landing-logo" style="font-size:40px;">Kid<span>Stuff</span> 🧠</div>
+  <div class="landing-tagline" style="margin-bottom:32px;">Parent Login</div>
+  <div class="pin-box" style="max-width:400px;width:100%;">
+    <div style="font-size:36px;margin-bottom:10px">👋</div>
+    <h2 style="font-family:'Baloo 2',cursive;font-size:22px;margin-bottom:20px;">Welcome back!</h2>
+    <div class="form-row">
+      <label>Email</label>
+      <input id="login-email" type="email" placeholder="you@example.com" style="width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"/>
+    </div>
+    <div class="form-row">
+      <label>Password</label>
+      <input id="login-password" type="password" placeholder="Your password" style="width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"/>
+    </div>
+    <div id="login-error" style="color:var(--red);font-size:13px;font-weight:700;min-height:18px;margin-bottom:8px;"></div>
+    <button class="btn-primary" id="login-btn" onclick="doLogin()">Log In</button>
+    <div style="text-align:center;margin-top:16px;font-size:14px;color:var(--muted);">
+      Don't have an account? <span style="color:var(--primary);font-weight:700;cursor:pointer;" onclick="showScreen('screen-signup')">Sign up</span>
+    </div>
+    <div class="back-link" style="margin-top:12px;" onclick="showScreen('screen-landing')">← Back</div>
+  </div>
+</div>
+
+<!-- SIGNUP -->
+<div id="screen-signup" class="screen">
+  <div class="landing-logo" style="font-size:40px;">Kid<span>Stuff</span> 🧠</div>
+  <div class="landing-tagline" style="margin-bottom:24px;">Create Account</div>
+  <div class="pin-box" style="max-width:400px;width:100%;max-height:90vh;overflow-y:auto;">
+    <div style="font-size:36px;margin-bottom:10px">✨</div>
+    <h2 style="font-family:'Baloo 2',cursive;font-size:22px;margin-bottom:20px;">Join KidStuff!</h2>
+    <div class="form-row">
+      <label>Your Name</label>
+      <input id="signup-name" type="text" placeholder="First and last name" style="width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"/>
+    </div>
+    <div class="form-row">
+      <label>Email</label>
+      <input id="signup-email" type="email" placeholder="you@example.com" style="width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"/>
+    </div>
+    <div class="form-row">
+      <label>Password</label>
+      <input id="signup-password" type="password" placeholder="Min 6 characters" style="width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"/>
+    </div>
+    <div class="form-row">
+      <label>Last Name (for your family code)</label>
+      <input id="signup-lastname" type="text" placeholder="e.g. Smith" style="width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;"/>
+    </div>
+    <div id="signup-error" style="color:var(--red);font-size:13px;font-weight:700;min-height:18px;margin-bottom:8px;"></div>
+    <button class="btn-primary" id="signup-btn" onclick="doSignup()">Create Account</button>
+    <div style="text-align:center;margin-top:16px;font-size:14px;color:var(--muted);">
+      Already have an account? <span style="color:var(--primary);font-weight:700;cursor:pointer;" onclick="showScreen('screen-login')">Log in</span>
+    </div>
+    <div class="back-link" style="margin-top:12px;" onclick="showScreen('screen-landing')">← Back</div>
+  </div>
+</div>
+
+<!-- PENDING APPROVAL -->
+<div id="screen-pending" class="screen">
+  <div style="max-width:400px;width:100%;text-align:center;padding:40px 20px;">
+    <div style="font-size:64px;margin-bottom:20px;">⏳</div>
+    <div style="font-family:'Baloo 2',cursive;font-size:28px;font-weight:800;color:white;margin-bottom:12px;">Almost there!</div>
+    <div style="color:rgba(255,255,255,0.85);font-size:16px;line-height:1.6;margin-bottom:32px;">
+      Thanks for signing up for KidStuff! We're reviewing your account and will notify you by email once you're approved. This usually takes 1 business day.
+    </div>
+    <div style="background:rgba(255,255,255,0.15);border-radius:16px;padding:16px 20px;margin-bottom:24px;">
+      <div style="font-size:13px;color:rgba(255,255,255,0.7);margin-bottom:4px;">Signed in as</div>
+      <div id="pending-email" style="font-weight:800;color:white;font-size:15px;"></div>
+    </div>
+    <button onclick="doLogout()" style="background:rgba(255,255,255,0.2);border:none;color:white;padding:12px 28px;border-radius:12px;font-family:Nunito,sans-serif;font-weight:700;font-size:15px;cursor:pointer;">Sign Out</button>
+  </div>
+</div>
+
+<!-- ONBOARDING — ADD FIRST KID -->
+<div id="screen-onboarding" class="screen">
+  <div class="app-header dark">
+    <div><div class="logo">Kid<span>Stuff</span></div><div class="header-sub">Setup — Add Your Kids</div></div>
+  </div>
+  <div class="content">
+    <div class="card" style="background:linear-gradient(135deg,#4F6EF7,#7C3AED);color:white;margin-bottom:18px;">
+      <div style="font-family:'Baloo 2',cursive;font-size:22px;font-weight:800;margin-bottom:8px;">Welcome to KidStuff! 🎉</div>
+      <div style="opacity:0.9;font-size:15px;line-height:1.5;">Let's add your first child. You can add more from your dashboard later.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">👧 Add a Child</div>
+      <div class="form-row">
+        <label>Child's Name</label>
+        <input id="ob-name" type="text" placeholder="e.g. Emma" style="width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"/>
+      </div>
+      <div class="form-row">
+        <label>Avatar</label>
+        <div id="ob-emoji-picker" style="display:flex;gap:10px;flex-wrap:wrap;padding:4px 0;">
+          <!-- populated by JS -->
+        </div>
+        <input type="hidden" id="ob-emoji" value="👧"/>
+      </div>
+      <div class="form-row">
+        <label>Grade Level</label>
+        <select id="ob-grade" style="width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;">
+          <option value="0">Kindergarten</option>
+          <option value="1">Grade 1</option>
+          <option value="2">Grade 2</option>
+          <option value="3" selected>Grade 3</option>
+          <option value="4">Grade 4</option>
+          <option value="5">Grade 5</option>
+          <option value="6">Grade 6</option>
+          <option value="7">Grade 7</option>
+          <option value="8">Grade 8</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Where in the school year?</label>
+        <select id="ob-time" style="width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;">
+          <option value="beginning">Beginning of year</option>
+          <option value="middle" selected>Middle of year</option>
+          <option value="end">End of year</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>4-Digit PIN (for this child)</label>
+        <input id="ob-pin" type="password" maxlength="4" placeholder="e.g. 1234"
+          style="width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:20px;font-weight:800;letter-spacing:6px;text-align:center;"/>
+      </div>
+      <div id="ob-error" style="color:var(--red);font-size:13px;font-weight:700;min-height:18px;margin-bottom:8px;"></div>
+      <button class="btn-primary" onclick="saveOnboardingKid()">Add Child &amp; Go to Dashboard →</button>
+    </div>
+  </div>
 </div>
 
 <!-- KID SELECT -->
@@ -442,24 +592,24 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 <!-- PARENT -->
 <div id="screen-parent" class="screen">
   <div class="app-header dark">
-    <div><div class="logo">Kid<span>Stuff</span></div><div class="header-sub">Parent Dashboard</div></div>
+    <div><div class="logo">Kid<span>Stuff</span></div><div class="header-sub" id="parent-header-sub">Parent Dashboard</div></div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
       <div style="display:flex;gap:8px;align-items:center;">
-        <button class="back-btn" style="background:rgba(255,255,255,0.15);" onclick="forceSyncAndRefresh()">🔄 Sync</button>
-        <button class="back-btn" onclick="showScreen('screen-landing')">Sign Out</button>
+        <div id="firebase-status-dot" style="width:8px;height:8px;border-radius:50%;background:#2ECC71;margin-right:2px;" title="Sync status"></div>
+        <button class="back-btn" style="background:rgba(255,255,255,0.15);" onclick="forceSyncAndRefresh()">🔄</button>
+        <button class="back-btn" onclick="doLogout()">Sign Out</button>
       </div>
       <div style="font-size:11px;color:rgba(255,255,255,0.55);font-weight:600;" class="last-synced-ts"></div>
     </div>
   </div>
-  <div class="content">
-    <div class="parent-header"><h2>👋 Parent Dashboard</h2></div>
+
+  <!-- Kid summary strip -->
+  <div style="background:var(--primary);padding:12px 16px 0;">
     <div class="kid-summary-cards" id="parent-kid-summary"></div>
-    <div class="tabs">
-      <button class="tab-btn active" id="tab-btn-overview" onclick="switchTab('tab-overview',this)">📊 Overview</button>
-      <button class="tab-btn" id="tab-btn-review" onclick="switchTab('tab-review',this)">✍️ Review</button>
-      <button class="tab-btn" id="tab-btn-manage" onclick="switchTab('tab-manage',this)">📚 Manage</button>
-      <button class="tab-btn" id="tab-btn-settings" onclick="switchTab('tab-settings',this)">⚙️ Settings</button>
-    </div>
+  </div>
+
+  <!-- Tab content area -->
+  <div class="content" id="parent-tab-content" style="padding-bottom:80px;">
 
     <!-- OVERVIEW TAB -->
     <div class="tab-panel active" id="tab-overview">
@@ -470,38 +620,10 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
       <div id="progress-overview"></div>
     </div>
 
-    <!-- REVIEW TAB -->
-    <div class="tab-panel" id="tab-review">
+    <!-- KIDS TAB -->
+    <div class="tab-panel" id="tab-kids">
       <div class="card">
-        <div class="card-title">✍️ Writing to Review</div>
-        <div id="writing-approvals-list"></div>
-      </div>
-      <div class="card" id="redo-notices-card" style="background:#FFF5F5;box-shadow:none;border:2px solid #FCA5A5;display:none;">
-        <div style="font-weight:800;margin-bottom:6px">🔒 Active Writing Blocks</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">These are blocking a kid from doing today's work. Clear any that shouldn't be there.</div>
-        <div id="redo-notices-list"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">🎁 Reward Redemptions</div>
-        <div id="redemptions-list"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">🚩 Flagged Questions</div>
-        <div id="flagged-list"></div>
-      </div>
-    </div>
-
-    <!-- MANAGE TAB -->
-    <div class="tab-panel" id="tab-manage">
-      <div class="card" style="background:#FFFBEA;box-shadow:none;border:2px solid #F7C948">
-        <div style="font-weight:800;margin-bottom:8px">💬 Send Message to Kid</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">A banner will appear on their dashboard when they next log in. Tap to dismiss.</div>
-        <div class="form-row" style="margin-bottom:10px"><label>Kid</label><select id="msg-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
-        <div class="form-row" style="margin-bottom:10px"><label>Message</label><input type="text" id="msg-text-input" placeholder="Nice work today! 🎉" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"/></div>
-        <button class="btn-primary" style="background:#F59E0B;color:#1A1F36" onclick="sendParentMessage()">💬 Send Message</button>
-      </div>
-      <div class="card">
-        <div class="card-title">📊 Level Overview</div>
+        <div class="card-title">📊 Curriculum Overview</div>
         <div id="curriculum-overview"></div>
       </div>
       <div class="card" style="background:#FFF5F5;box-shadow:none;border:2px solid #FCA5A5">
@@ -538,6 +660,66 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         </div>
         <button class="btn-primary" onclick="parentUnlockLesson()" style="background:#2ECC71">🔓 Unlock for Today</button>
       </div>
+      <div class="card">
+        <div class="card-title">🎁 Manage Rewards</div>
+        <div id="parent-rewards-list"></div>
+        <div style="height:14px"></div>
+        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
+          <div style="font-weight:800;margin-bottom:8px">Add Reward</div>
+          <div class="form-row"><label>Kid</label><select id="r-kid" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
+          <div class="form-row"><label>Emoji</label><input id="r-emoji" type="text" placeholder="📺" maxlength="2"/></div>
+          <div class="form-row"><label>Name</label><input id="r-name" type="text" placeholder="e.g. 30 min extra screen time"/></div>
+          <div class="form-row"><label>Coin Cost</label><input id="r-cost" type="number" placeholder="50"/></div>
+          <button class="btn-primary" style="background:#2ECC71" onclick="addReward()">➕ Add Reward</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">➕ Add a Child</div>
+        <div class="form-row"><label>Name</label><input id="addkid-name" type="text" placeholder="Child's name" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"/></div>
+        <div class="form-row"><label>Emoji</label><div id="addkid-emoji-picker" style="display:flex;gap:8px;flex-wrap:wrap;"></div><input type="hidden" id="addkid-emoji" value="🧒"/></div>
+        <div class="form-row"><label>Grade</label><select id="addkid-grade" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;">
+          <option value="0">Kindergarten</option><option value="1">Grade 1</option><option value="2">Grade 2</option>
+          <option value="3" selected>Grade 3</option><option value="4">Grade 4</option><option value="5">Grade 5</option><option value="6">Grade 6</option>
+        </select></div>
+        <div class="form-row"><label>Time of Year</label><select id="addkid-time" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;">
+          <option value="beginning">Beginning</option><option value="middle" selected>Middle</option><option value="end">End</option>
+        </select></div>
+        <div class="form-row"><label>4-Digit PIN</label><input id="addkid-pin" type="password" maxlength="4" placeholder="e.g. 1234" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:20px;font-weight:800;letter-spacing:6px;text-align:center;"/></div>
+        <div id="addkid-error" style="color:var(--red);font-size:13px;font-weight:700;min-height:18px;margin-bottom:8px;"></div>
+        <button class="btn-primary" style="background:#4F6EF7" onclick="addKidFromDashboard()">➕ Add Child</button>
+      </div>
+    </div>
+
+    <!-- REVIEW TAB -->
+    <div class="tab-panel" id="tab-review">
+      <div class="card">
+        <div class="card-title">✍️ Writing to Review</div>
+        <div id="writing-approvals-list"></div>
+      </div>
+      <div class="card" id="redo-notices-card" style="background:#FFF5F5;box-shadow:none;border:2px solid #FCA5A5;display:none;">
+        <div style="font-weight:800;margin-bottom:6px">🔒 Active Writing Blocks</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">These are blocking a kid from doing today's work. Clear any that shouldn't be there.</div>
+        <div id="redo-notices-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🎁 Reward Redemptions</div>
+        <div id="redemptions-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🚩 Flagged Questions</div>
+        <div id="flagged-list"></div>
+      </div>
+    </div>
+
+    <!-- MANAGE TAB -->
+    <div class="tab-panel" id="tab-manage">
+      <div class="card" style="background:#FFFBEA;box-shadow:none;border:2px solid #F7C948">
+        <div style="font-weight:800;margin-bottom:8px">💬 Send Message to Kid</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">A banner will appear on their dashboard when they next log in.</div>
+        <div class="form-row" style="margin-bottom:10px"><label>Kid</label><select id="msg-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
+        <div class="form-row" style="margin-bottom:10px"><label>Message</label><input type="text" id="msg-text-input" placeholder="Nice work today! 🎉" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"/></div>
+        <button class="btn-primary" style="background:#F59E0B;color:#1A1F36" onclick="sendParentMessage()">💬 Send Message</button>
+      </div>
       <div class="card" style="background:#FFFBEA;box-shadow:none;border:2px solid #F7C948">
         <div style="font-weight:800;margin-bottom:8px">⭐ Assign Bonus Challenge</div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Give a kid extra practice on a specific topic.</div>
@@ -553,77 +735,106 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         <button class="btn-primary" style="background:#F59E0B;color:#1A1F36" onclick="assignBonusChallenge()">⭐ Assign Challenge</button>
         <div id="bonus-challenges-list" style="margin-top:14px"></div>
       </div>
-      <div class="card">
-        <div class="card-title">🎁 Manage Rewards</div>
-        <div id="parent-rewards-list"></div>
-        <div style="height:14px"></div>
-        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
-          <div style="font-weight:800;margin-bottom:8px">Add Reward</div>
-          <div class="form-grid">
-            <div class="form-row"><label>For</label><select id="r-kid" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;">
-              <option value="lauren">👧🏾 Lauren</option><option value="andrew">🧒🏾 Andrew</option><option value="both">Both</option>
-            </select></div>
-            <div class="form-row"><label>Emoji</label><input id="r-emoji" type="text" placeholder="📺" maxlength="2"/></div>
-          </div>
-          <div class="form-row"><label>Name</label><input id="r-name" type="text" placeholder="e.g. 30 min extra screen time"/></div>
-          <div class="form-row"><label>Coin Cost</label><input id="r-cost" type="number" placeholder="50"/></div>
-          <button class="btn-primary" style="background:#2ECC71" onclick="addReward()">➕ Add Reward</button>
+      <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
+        <div style="font-weight:800;margin-bottom:8px">🧠 Adjust Brain Bucks</div>
+        <div class="form-grid">
+          <div class="form-row"><label>Kid</label><select id="coin-kid-select"></select></div>
+          <div class="form-row"><label>Amount</label><input id="coin-adjust" type="number" placeholder="+10 or -5"/></div>
         </div>
+        <button class="btn-primary" onclick="adjustCoins()">Adjust Brain Bucks</button>
       </div>
     </div>
 
     <!-- SETTINGS TAB -->
     <div class="tab-panel" id="tab-settings">
       <div class="card">
-        <div class="card-title">⚙️ Settings</div>
-        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
-          <div style="font-weight:800;margin-bottom:10px">🔊 Spelling Voice</div>
-          <div id="voice-selector-wrap">Loading voices...</div>
+        <div style="font-weight:800;font-size:16px;margin-bottom:4px">🔗 Your Family Link</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:10px">Share this with your kids to set up on new devices.</div>
+        <div style="display:flex;align-items:center;gap:8px;background:#F8F9FF;border:2px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;">
+          <div id="family-url-display" style="flex:1;font-size:14px;font-weight:700;word-break:break-all;"></div>
+          <button onclick="copyFamilyUrl()" style="background:var(--primary);color:white;border:none;border-radius:8px;padding:8px 14px;font-family:Nunito,sans-serif;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;">📋 Copy</button>
         </div>
-        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
-          <div style="font-weight:800;margin-bottom:8px">⚡ Auto-Advance</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Automatically move to the next question after a correct answer.</div>
-          <button id="autoadvance-toggle-btn" class="btn-primary" onclick="toggleAutoAdvance()">Loading...</button>
+      </div>
+      <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
+        <div style="font-weight:800;margin-bottom:10px">🔊 Spelling Voice</div>
+        <div id="voice-selector-wrap">Loading voices...</div>
+      </div>
+      <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
+        <div style="font-weight:800;margin-bottom:8px">⚡ Auto-Advance</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Automatically move to the next question after a correct answer.</div>
+        <button id="autoadvance-toggle-btn" class="btn-primary" onclick="toggleAutoAdvance()">Loading...</button>
+      </div>
+      <div class="card" style="background:#EEF9FF;box-shadow:none;border:2px solid #7DD3FC;margin-bottom:14px">
+        <div style="font-weight:800;margin-bottom:8px">✈️ Vacation Mode</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Protects all streaks daily. Turn off when you return home.</div>
+        <button id="vacation-toggle-btn" class="btn-primary" onclick="toggleVacationMode()" style="background:#0EA5E9">Loading...</button>
+      </div>
+      <div class="card" style="background:#FFF0F9;box-shadow:none;border:2px solid #F9A8D4;margin-bottom:14px">
+        <div style="font-weight:800;margin-bottom:8px">🤒 Excuse a Kid</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Excuse a kid for any day — protects streak and won't count as incomplete week.</div>
+        <div class="form-row" style="margin-bottom:10px"><label>Kid</label><select id="excuse-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
+        <div class="form-row" style="margin-bottom:10px"><label>Date</label><input type="date" id="excuse-date-input" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"/></div>
+        <div id="excuse-status" style="font-size:13px;color:var(--muted);margin-bottom:10px;font-weight:600;"></div>
+        <button class="btn-primary" style="background:#EC4899" onclick="excuseKidDay()">🤒 Excuse This Day</button>
+      </div>
+      <div class="card" style="background:#F0FBF4;box-shadow:none;border:2px solid #86EFAC;margin-bottom:14px">
+        <div style="font-weight:800;margin-bottom:8px">🛡️ Skip Days</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Grant a skip day to protect a streak for a future missed day.</div>
+        <div class="form-grid">
+          <div class="form-row"><label>Kid</label><select id="skipday-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
+          <div id="skipday-balance" style="display:flex;align-items:flex-end;padding-bottom:14px;font-weight:800;font-size:14px;color:var(--primary)"></div>
         </div>
-        <div class="card" style="background:#EEF9FF;box-shadow:none;border:2px solid #7DD3FC;margin-bottom:14px" id="vacation-mode-card">
-          <div style="font-weight:800;margin-bottom:8px">✈️ Vacation Mode</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Protects all streaks daily. Turn off when you return home.</div>
-          <button id="vacation-toggle-btn" class="btn-primary" onclick="toggleVacationMode()" style="background:#0EA5E9">Loading...</button>
-        </div>
-        <div class="card" style="background:#FFF0F9;box-shadow:none;border:2px solid #F9A8D4;margin-bottom:14px">
-          <div style="font-weight:800;margin-bottom:8px">🤒 Excuse a Kid</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Excuse a kid for any day — protects streak and won't count as incomplete week. Works retroactively.</div>
-          <div class="form-row" style="margin-bottom:10px"><label>Kid</label><select id="excuse-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
-          <div class="form-row" style="margin-bottom:10px"><label>Date</label><input type="date" id="excuse-date-input" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"/></div>
-          <div id="excuse-status" style="font-size:13px;color:var(--muted);margin-bottom:10px;font-weight:600;"></div>
-          <button class="btn-primary" style="background:#EC4899" onclick="excuseKidDay()">🤒 Excuse This Day</button>
-        </div>
-        <div class="card" style="background:#F0FBF4;box-shadow:none;border:2px solid #86EFAC;margin-bottom:14px">
-          <div style="font-weight:800;margin-bottom:8px">🛡️ Skip Days</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Grant a skip day to protect a streak for a future missed day.</div>
-          <div class="form-grid">
-            <div class="form-row"><label>Kid</label><select id="skipday-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
-            <div id="skipday-balance" style="display:flex;align-items:flex-end;padding-bottom:14px;font-weight:800;font-size:14px;color:var(--primary)"></div>
-          </div>
-          <button class="btn-primary" style="background:#2ECC71;width:100%" onclick="grantSkipDay(document.getElementById('skipday-kid-select').value)">➕ Grant Skip Day</button>
-        </div>
-        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
-          <div style="font-weight:800;margin-bottom:8px">🧠 Adjust Brain Bucks</div>
-          <div class="form-grid">
-            <div class="form-row"><label>Kid</label><select id="coin-kid-select"></select></div>
-            <div class="form-row"><label>Amount</label><input id="coin-adjust" type="number" placeholder="+10 or -5"/></div>
-          </div>
-          <button class="btn-primary" onclick="adjustCoins()">Adjust Brain Bucks</button>
-        </div>
-        <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
-          <div style="font-weight:800;margin-bottom:10px">⏱ Lesson Time Limits</div>
-          <div id="timer-inputs" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px"></div>
-          <button class="btn-primary" onclick="saveTimerSettings()">Save Time Limits</button>
+        <button class="btn-primary" style="background:#2ECC71;width:100%" onclick="grantSkipDay(document.getElementById('skipday-kid-select').value)">➕ Grant Skip Day</button>
+      </div>
+      <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
+        <div style="font-weight:800;margin-bottom:10px">⏱ Lesson Time Limits</div>
+        <div id="timer-inputs" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px"></div>
+        <button class="btn-primary" onclick="saveTimerSettings()">Save Time Limits</button>
+      </div>
+      <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
+        <div style="font-weight:800;margin-bottom:8px">🔑 Change Kid PIN</div>
+        <div id="pin-change-list"></div>
+      </div>
+      <div class="card" style="background:#FFF5F5;box-shadow:none;border:2px solid #FCA5A5;margin-bottom:14px">
+        <div style="font-weight:800;margin-bottom:8px">🗑️ Reset Tools</div>
+        <div class="form-row"><label>Kid</label><select id="reset-kid-select" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;">
+          <option value="both">Both Kids</option>
+        </select></div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn-primary" style="background:#EF4444;flex:1" onclick="resetDayProgress(document.getElementById('reset-kid-select').value)">Reset Today</button>
+          <button class="btn-primary" style="background:#7A859E;flex:1" onclick="resetAllData()">Reset All</button>
         </div>
       </div>
     </div>
 
+    <!-- ADMIN TAB (visible to admin only) -->
+    <div class="tab-panel" id="tab-admin" style="display:none;">
+      <div id="admin-panel-content"></div>
+    </div>
+
   </div>
+
+  <!-- BOTTOM NAV BAR -->
+  <nav id="parent-bottom-nav" style="position:fixed;bottom:0;left:0;right:0;background:white;border-top:2px solid var(--border);display:flex;z-index:200;box-shadow:0 -2px 12px rgba(0,0,0,0.08);">
+    <button class="bnav-btn active" id="bnav-overview" onclick="switchParentTab('tab-overview',this)">
+      <span style="font-size:20px">📊</span><span class="bnav-label">Overview</span>
+    </button>
+    <button class="bnav-btn" id="bnav-kids" onclick="switchParentTab('tab-kids',this)">
+      <span style="font-size:20px">👧</span><span class="bnav-label">Kids</span>
+    </button>
+    <button class="bnav-btn" id="bnav-review" onclick="switchParentTab('tab-review',this)">
+      <span style="font-size:20px">✍️</span><span class="bnav-label">Review</span><span id="bnav-review-badge" style="display:none;position:absolute;top:8px;right:calc(50% - 22px);background:#EF4444;color:white;border-radius:50%;width:16px;height:16px;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;"></span>
+    </button>
+    <button class="bnav-btn" id="bnav-manage" onclick="switchParentTab('tab-manage',this)">
+      <span style="font-size:20px">⚙️</span><span class="bnav-label">Manage</span>
+    </button>
+    <button class="bnav-btn" id="bnav-settings" onclick="switchParentTab('tab-settings',this)">
+      <span style="font-size:20px">🔧</span><span class="bnav-label">Settings</span>
+    </button>
+    <button class="bnav-btn" id="bnav-admin" style="display:none;" onclick="switchParentTab('tab-admin',this)">
+      <span style="font-size:20px">👑</span><span class="bnav-label">Admin</span>
+    </button>
+  </nav>
 </div>
 
 <script>
@@ -635,196 +846,381 @@ function getApiKey() { return ''; } // Key lives in Worker env — not needed he
 function hideGeneratingOverlay() { const o = document.getElementById('generating-overlay'); if(o) o.style.display='none'; }
 const FIREBASE_URL = 'https://kidstuff-11963-default-rtdb.firebaseio.com';
 const FIREBASE_API_KEY = 'AIzaSyAInfGxWV421176cfs7uI0sqp0B1dcASts';
+const FIREBASE_AUTH_URL = 'https://identitytoolkit.googleapis.com/v1';
+const ADMIN_UID_KEY = 'humphrey11715@gmail.com'; // admin email — checked against /users/{uid}/role
+
 let _fbToken = null;
 let _fbTokenExpiry = 0;
+let _currentUser = null; // { uid, email, displayName }
+
+// ── EMAIL/PASSWORD AUTH ──────────────────────────────────
+
+async function authSignUp(email, password, displayName) {
+  const res = await fetch(FIREBASE_AUTH_URL + '/accounts:signUp?key=' + FIREBASE_API_KEY, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ email, password, displayName, returnSecureToken: true })
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error && err.error.message || 'Sign up failed');
+  }
+  const data = await res.json();
+  _setAuthSession(data);
+  return data;
+}
+
+async function authSignIn(email, password) {
+  const res = await fetch(FIREBASE_AUTH_URL + '/accounts:signInWithPassword?key=' + FIREBASE_API_KEY, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ email, password, returnSecureToken: true })
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error && err.error.message || 'Sign in failed');
+  }
+  const data = await res.json();
+  _setAuthSession(data);
+  return data;
+}
+
+async function authRefreshToken(refreshToken) {
+  const res = await fetch('https://securetoken.googleapis.com/v1/token?key=' + FIREBASE_API_KEY, {
+    method: 'POST',
+    headers: {'Content-Type':'application/x-www-form-urlencoded'},
+    body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(refreshToken)
+  });
+  if (!res.ok) throw new Error('Token refresh failed');
+  const data = await res.json();
+  _fbToken = data.id_token;
+  _fbTokenExpiry = Date.now() + (parseInt(data.expires_in) * 1000);
+  localStorage.setItem('kidstuff_fbToken', _fbToken);
+  localStorage.setItem('kidstuff_fbTokenExpiry', String(_fbTokenExpiry));
+  localStorage.setItem('kidstuff_fbRefresh', data.refresh_token);
+  return _fbToken;
+}
+
+function _setAuthSession(data) {
+  _fbToken = data.idToken;
+  _fbTokenExpiry = Date.now() + (parseInt(data.expiresIn) * 1000);
+  _currentUser = { uid: data.localId, email: data.email, displayName: data.displayName || '' };
+  localStorage.setItem('kidstuff_fbToken', _fbToken);
+  localStorage.setItem('kidstuff_fbTokenExpiry', String(_fbTokenExpiry));
+  localStorage.setItem('kidstuff_fbRefresh', data.refreshToken || '');
+  localStorage.setItem('kidstuff_user', JSON.stringify(_currentUser));
+}
+
+function authSignOut() {
+  _fbToken = null;
+  _fbTokenExpiry = 0;
+  _currentUser = null;
+  localStorage.removeItem('kidstuff_fbToken');
+  localStorage.removeItem('kidstuff_fbTokenExpiry');
+  localStorage.removeItem('kidstuff_fbRefresh');
+  localStorage.removeItem('kidstuff_user');
+  localStorage.removeItem('kidstuff_cache');
+}
 
 async function getFirebaseToken() {
   // Return cached token if still valid (with 5 min buffer)
   if (_fbToken && Date.now() < _fbTokenExpiry - 300000) return _fbToken;
-  // Try cached token from localStorage
-  const cachedToken = localStorage.getItem('kidstuff_fbToken');
-  const cachedExpiry = parseInt(localStorage.getItem('kidstuff_fbTokenExpiry') || '0');
-  if (cachedToken && Date.now() < cachedExpiry - 300000) {
-    _fbToken = cachedToken;
-    _fbTokenExpiry = cachedExpiry;
-    return _fbToken;
+  // Try refresh token first (parent session)
+  const refresh = localStorage.getItem('kidstuff_fbRefresh');
+  if (refresh) {
+    try { return await authRefreshToken(refresh); } catch(e) { console.warn('Token refresh failed:', e); }
   }
-  // Sign in anonymously via Firebase Auth REST API
-  const res = await fetch(
-    'https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + FIREBASE_API_KEY,
-    { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({returnSecureToken:true}) }
-  );
+  // Fall back to anonymous auth for kid-only read access
+  const res = await fetch(FIREBASE_AUTH_URL + '/accounts:signUp?key=' + FIREBASE_API_KEY, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({returnSecureToken:true})
+  });
   if (!res.ok) throw new Error('Auth failed: ' + res.status);
   const data = await res.json();
   _fbToken = data.idToken;
   _fbTokenExpiry = Date.now() + (parseInt(data.expiresIn) * 1000);
-  localStorage.setItem('kidstuff_fbToken', _fbToken);
-  localStorage.setItem('kidstuff_fbTokenExpiry', String(_fbTokenExpiry));
   return _fbToken;
 }
 
+function loadAuthSession() {
+  const cachedToken = localStorage.getItem('kidstuff_fbToken');
+  const cachedExpiry = parseInt(localStorage.getItem('kidstuff_fbTokenExpiry') || '0');
+  const cachedUser = localStorage.getItem('kidstuff_user');
+  if (cachedToken && cachedUser) {
+    _fbToken = cachedToken;
+    _fbTokenExpiry = cachedExpiry;
+    _currentUser = JSON.parse(cachedUser);
+    return true;
+  }
+  return false;
+}
+
+function getFamilyPath(path) {
+  if (!_currentUser) throw new Error('Not authenticated');
+  return 'families/' + _currentUser.uid + (path ? '/' + path : '');
+}
+
 // ── KUMON-STYLE PROGRESSION ──────────────────────────────
-const PROGRESSION = {
-  lauren: {
-    spelling: [
-      {level:1,name:'Short Vowel Words',desc:'CVC words with short vowel sounds'},
-      {level:2,name:'Consonant Blends',desc:'Words with blends like bl, cr, st'},
-      {level:3,name:'Long Vowel Silent-E',desc:'Words with silent-e (cake, bike)'},
-      {level:4,name:'Vowel Teams',desc:'ai, ay, ee, ea combinations'},
-      {level:5,name:'R-Controlled Vowels',desc:'ar, er, ir, or, ur patterns'},
-      {level:6,name:'Digraphs',desc:'ch, sh, th, wh combinations'},
-      {level:7,name:'Prefixes',desc:'un-, re-, pre- word beginnings'},
-      {level:8,name:'Suffixes',desc:'-ing, -ed, -er, -est endings'},
-      {level:9,name:'Compound Words',desc:'Two words joined together'},
-      {level:10,name:'Homophones',desc:'Words that sound alike but differ in meaning'},
-      {level:11,name:'Irregular Sight Words',desc:'High-frequency irregular words'},
-      {level:12,name:'Multi-Syllabic Words',desc:'Words with 3+ syllables'}
+// ── GRADE-BASED CURRICULUM ──────────────────────────────
+// All subjects are now grade-based — any child at any grade uses these progressions.
+// Kids no longer have hardcoded per-child arrays; they use their grade setting.
+
+const GRADE_CURRICULUM = {
+  spelling: {
+    K: [
+      {name:'Letter Sounds',desc:'Basic consonant and short vowel sounds'},
+      {name:'CVC Words',desc:'Simple consonant-vowel-consonant words'}
     ],
-    math: [
-      {level:1,name:'Addition Within 20',desc:'Basic addition facts to 20'},
-      {level:2,name:'Addition Within 100',desc:'Two-digit addition with regrouping'},
-      {level:3,name:'Addition Within 1000',desc:'Three-digit addition with regrouping'},
-      {level:4,name:'Subtraction Within 20',desc:'Basic subtraction facts to 20'},
-      {level:5,name:'Subtraction Within 100',desc:'Two-digit subtraction with regrouping'},
-      {level:6,name:'Subtraction Within 1000',desc:'Three-digit subtraction with regrouping'},
-      {level:7,name:'Multiplication — 2s and 5s',desc:'Times tables for 2 and 5'},
-      {level:8,name:'Multiplication — 3s and 4s',desc:'Times tables for 3 and 4'},
-      {level:9,name:'Multiplication — 6s, 7s, 8s, 9s',desc:'Advanced multiplication facts'},
-      {level:10,name:'Division — 2s and 5s',desc:'Basic division with 2 and 5'},
-      {level:11,name:'Division — 3s and 4s',desc:'Division with 3 and 4'},
-      {level:12,name:'Division — 6s, 7s, 8s, 9s',desc:'Advanced division facts'},
-      {level:13,name:'Fractions — Basic Concepts',desc:'Equal parts, halves, thirds, quarters'},
-      {level:14,name:'Fractions — Comparing',desc:'Comparing and ordering fractions'},
-      {level:15,name:'Measurement — Time',desc:'Telling time and elapsed time'},
-      {level:16,name:'Measurement — Length and Weight',desc:'Inches, feet, pounds, ounces'},
-      {level:17,name:'Geometry — Shapes and Area',desc:'2D shapes, area, and perimeter'},
-      {level:18,name:'Word Problems — Mixed',desc:'Multi-step mixed operation word problems'}
+    1: [
+      {name:'Short Vowel Words',desc:'CVC words with short vowel sounds'},
+      {name:'Consonant Blends',desc:'Words with blends like bl, cr, st'},
+      {name:'Long Vowel Silent-E',desc:'Words with silent-e (cake, bike)'},
+      {name:'Vowel Teams',desc:'ai, ay, ee, ea combinations'}
     ],
-    reading: [
-      {level:1,name:'Main Idea and Key Details',desc:'Finding the main point of a passage'},
-      {level:2,name:'Story Structure',desc:'Beginning, middle, and end'},
-      {level:3,name:'Character Traits',desc:'Character feelings and motivations'},
-      {level:4,name:'Setting and Influence',desc:'How setting affects the story'},
-      {level:5,name:'Cause and Effect',desc:'Why things happen in stories'},
-      {level:6,name:'Compare and Contrast',desc:'Finding similarities and differences'},
-      {level:7,name:'Inference and Prediction',desc:'Reading between the lines'},
-      {level:8,name:"Author's Purpose",desc:'Why the author wrote the text'},
-      {level:9,name:'Vocabulary in Context',desc:'Understanding word meanings from context'},
-      {level:10,name:'Theme and Central Message',desc:'The deeper lesson of a story'}
+    2: [
+      {name:'R-Controlled Vowels',desc:'ar, er, ir, or, ur patterns'},
+      {name:'Digraphs',desc:'ch, sh, th, wh combinations'},
+      {name:'Diphthongs',desc:'oi, oy, ou, ow combinations'},
+      {name:'Silent Letters',desc:'kn, wr, mb patterns'}
     ],
-    writing: [
-      {level:1,name:'Complete Sentences',desc:'Subject and predicate structure'},
-      {level:2,name:'Narrative — Personal Story',desc:'Writing about real experiences'},
-      {level:3,name:'Narrative — Fictional Story',desc:'Creating an imaginative story'},
-      {level:4,name:'Opinion Writing — Basic',desc:'Stating and supporting an opinion'},
-      {level:5,name:'Opinion Writing — With Evidence',desc:'Using facts and examples'},
-      {level:6,name:'Informational — Basic',desc:'Writing to explain or inform'},
-      {level:7,name:'Informational — With Details',desc:'Adding supporting details'},
-      {level:8,name:'Informational — Full Structure',desc:'Intro, body, and conclusion'}
+    3: [
+      {name:'Prefixes',desc:'un-, re-, pre- word beginnings'},
+      {name:'Suffixes',desc:'-ing, -ed, -er, -est endings'},
+      {name:'Compound Words',desc:'Two words joined together'},
+      {name:'Homophones',desc:'Words that sound alike but differ in meaning'},
+      {name:'Irregular Sight Words',desc:'High-frequency irregular words'},
+      {name:'Multi-Syllabic Words',desc:'Words with 3+ syllables'}
+    ],
+    4: [
+      {name:'Greek and Latin Roots',desc:'Common word roots and their meanings'},
+      {name:'Prefixes — Advanced',desc:'dis-, mis-, over-, under-'},
+      {name:'Suffixes — Advanced',desc:'-tion, -sion, -ness, -ment'},
+      {name:'Homophones — Advanced',desc:'Commonly confused words'},
+      {name:'Syllable Patterns',desc:'VCCV, VCV, VCCCV patterns'},
+      {name:'Words with ie/ei',desc:'Spelling rules for ie and ei'}
+    ],
+    5: [
+      {name:'Greek Roots',desc:'graph, phon, tele, scope'},
+      {name:'Latin Roots',desc:'aud, vis, port, dict'},
+      {name:'Prefixes — Complex',desc:'inter-, intra-, super-, sub-'},
+      {name:'Suffixes — Complex',desc:'-ous, -ious, -al, -ial'},
+      {name:'Commonly Misspelled Words',desc:'High-frequency error words'},
+      {name:'Analogies and Word Relationships',desc:'Understanding word connections'}
+    ],
+    6: [
+      {name:'Etymology — Greek',desc:'Word origins from Greek'},
+      {name:'Etymology — Latin',desc:'Word origins from Latin'},
+      {name:'Affixes — Advanced',desc:'Complex prefix/suffix combinations'},
+      {name:'Domain-Specific Vocabulary',desc:'Subject-area terminology'},
+      {name:'Nuanced Vocabulary',desc:'Shades of meaning and connotation'},
+      {name:'Academic Vocabulary',desc:'Words used across disciplines'}
     ]
   },
-  andrew: {
-    spelling: [
-      {level:7,name:'Prefixes',desc:'un-, re-, pre- word beginnings'},
-      {level:8,name:'Suffixes',desc:'-ing, -ed, -er, -est endings'},
-      {level:9,name:'Compound Words',desc:'Two words joined together'},
-      {level:10,name:'Homophones',desc:'Words that sound alike but differ in meaning'},
-      {level:11,name:'Irregular Sight Words',desc:'High-frequency irregular words'},
-      {level:12,name:'Multi-Syllabic Words',desc:'Words with 3+ syllables'}
+  math: {
+    K: [
+      {name:'Counting to 20',desc:'Number recognition and counting'},
+      {name:'Addition Within 5',desc:'Basic addition with small numbers'},
+      {name:'Subtraction Within 5',desc:'Basic subtraction with small numbers'}
     ],
-    math: [
-      {level:1,name:'Multi-Digit Addition',desc:'Adding large numbers with regrouping'},
-      {level:2,name:'Multi-Digit Subtraction',desc:'Subtracting large numbers with regrouping'},
-      {level:3,name:'Multiplication — 2-Digit by 1-Digit',desc:'Multiplying larger numbers'},
-      {level:4,name:'Multiplication — 2-Digit by 2-Digit',desc:'Advanced multiplication'},
-      {level:5,name:'Division With Remainders',desc:'Division that leaves remainders'},
-      {level:6,name:'Long Division',desc:'1-digit divisor long division'},
-      {level:7,name:'Factors and Multiples',desc:'Finding factors and multiples'},
-      {level:8,name:'Prime and Composite Numbers',desc:'Identifying prime vs composite'},
-      {level:9,name:'Equivalent Fractions',desc:'Fractions equal in value'},
-      {level:10,name:'Adding/Subtracting Fractions — Like',desc:'Same denominator fractions'},
-      {level:11,name:'Adding/Subtracting Fractions — Unlike',desc:'Different denominator fractions'},
-      {level:12,name:'Decimals — Tenths and Hundredths',desc:'Understanding decimal place value'},
-      {level:13,name:'Comparing Decimals',desc:'Ordering and comparing decimals'},
-      {level:14,name:'Adding/Subtracting Decimals',desc:'Decimal arithmetic'},
-      {level:15,name:'Converting Measurements',desc:'Converting between units'},
-      {level:16,name:'Geometry — Lines and Angles',desc:'Lines, angles, and triangles'},
-      {level:17,name:'Area and Perimeter',desc:'Complex shapes and compound figures'},
-      {level:18,name:'Multi-Step Word Problems',desc:'Complex multi-operation problems'}
+    1: [
+      {name:'Addition Within 20',desc:'Basic addition facts to 20'},
+      {name:'Subtraction Within 20',desc:'Basic subtraction facts to 20'},
+      {name:'Place Value — Tens and Ones',desc:'Understanding two-digit numbers'},
+      {name:'Addition Within 100',desc:'Two-digit addition with regrouping'}
     ],
-    reading: [
-      {level:1,name:'Main Idea and Supporting Details',desc:'Main idea with text evidence'},
-      {level:2,name:'Plot Development',desc:'How stories develop and change'},
-      {level:3,name:'Character Development and POV',desc:'How characters grow in stories'},
-      {level:4,name:'Setting and Mood',desc:'How setting creates mood'},
-      {level:5,name:'Cause and Effect — Complex',desc:'Multiple causes and effects'},
-      {level:6,name:'Compare and Contrast — Multiple Texts',desc:'Ideas across different texts'},
-      {level:7,name:'Inference and Text Evidence',desc:'Conclusions using evidence'},
-      {level:8,name:"Author's Purpose and Perspective",desc:'Understanding bias and viewpoint'},
-      {level:9,name:'Figurative Language',desc:'Metaphors, similes, and other devices'},
-      {level:10,name:'Theme Across Multiple Texts',desc:'Theme using evidence from texts'}
+    2: [
+      {name:'Addition Within 1000',desc:'Three-digit addition with regrouping'},
+      {name:'Subtraction Within 100',desc:'Two-digit subtraction with regrouping'},
+      {name:'Subtraction Within 1000',desc:'Three-digit subtraction with regrouping'},
+      {name:'Multiplication Introduction',desc:'Equal groups and arrays'},
+      {name:'Measurement — Length',desc:'Measuring with standard units'}
     ],
-    writing: [
-      {level:5,name:'Opinion Writing — With Evidence',desc:'Using strong facts and examples'},
-      {level:6,name:'Informational — Basic',desc:'Writing to explain or inform'},
-      {level:7,name:'Informational — With Details',desc:'Adding supporting details'},
-      {level:8,name:'Informational — Full Structure',desc:'Intro, body, and conclusion'}
+    3: [
+      {name:'Multiplication — 2s and 5s',desc:'Times tables for 2 and 5'},
+      {name:'Multiplication — 3s and 4s',desc:'Times tables for 3 and 4'},
+      {name:'Multiplication — 6s, 7s, 8s, 9s',desc:'Advanced multiplication facts'},
+      {name:'Division — 2s and 5s',desc:'Basic division with 2 and 5'},
+      {name:'Division — 3s and 4s',desc:'Division with 3 and 4'},
+      {name:'Division — 6s, 7s, 8s, 9s',desc:'Advanced division facts'},
+      {name:'Fractions — Basic Concepts',desc:'Equal parts, halves, thirds, quarters'},
+      {name:'Fractions — Comparing',desc:'Comparing and ordering fractions'},
+      {name:'Measurement — Time',desc:'Telling time and elapsed time'},
+      {name:'Measurement — Length and Weight',desc:'Inches, feet, pounds, ounces'},
+      {name:'Geometry — Shapes and Area',desc:'2D shapes, area, and perimeter'},
+      {name:'Word Problems — Mixed',desc:'Multi-step mixed operation word problems'}
+    ],
+    4: [
+      {name:'Multi-Digit Addition',desc:'Adding large numbers with regrouping'},
+      {name:'Multi-Digit Subtraction',desc:'Subtracting large numbers with regrouping'},
+      {name:'Multiplication — 2-Digit by 1-Digit',desc:'Multiplying larger numbers'},
+      {name:'Multiplication — 2-Digit by 2-Digit',desc:'Advanced multiplication'},
+      {name:'Division With Remainders',desc:'Division that leaves remainders'},
+      {name:'Long Division',desc:'1-digit divisor long division'},
+      {name:'Factors and Multiples',desc:'Finding factors and multiples'},
+      {name:'Prime and Composite Numbers',desc:'Identifying prime vs composite'},
+      {name:'Equivalent Fractions',desc:'Fractions equal in value'},
+      {name:'Adding/Subtracting Fractions — Like',desc:'Same denominator fractions'},
+      {name:'Decimals — Tenths and Hundredths',desc:'Understanding decimal place value'},
+      {name:'Converting Measurements',desc:'Converting between units'},
+      {name:'Geometry — Lines and Angles',desc:'Lines, angles, and triangles'},
+      {name:'Area and Perimeter',desc:'Complex shapes and compound figures'},
+      {name:'Multi-Step Word Problems',desc:'Complex multi-operation problems'}
+    ],
+    5: [
+      {name:'Adding/Subtracting Fractions — Unlike',desc:'Different denominator fractions'},
+      {name:'Multiplying Fractions',desc:'Fraction multiplication'},
+      {name:'Dividing Fractions',desc:'Fraction division'},
+      {name:'Decimals — Operations',desc:'Adding, subtracting, multiplying decimals'},
+      {name:'Order of Operations',desc:'PEMDAS/BODMAS'},
+      {name:'Coordinate Plane',desc:'Graphing points and shapes'},
+      {name:'Volume',desc:'Finding volume of rectangular prisms'},
+      {name:'Data — Line Plots',desc:'Reading and creating line plots'},
+      {name:'Patterns and Rules',desc:'Numerical and geometric patterns'}
+    ],
+    6: [
+      {name:'Ratios and Proportions',desc:'Understanding ratios and rates'},
+      {name:'Percent',desc:'Percent concepts and calculations'},
+      {name:'Integers',desc:'Positive and negative numbers'},
+      {name:'Expressions and Variables',desc:'Algebraic expressions'},
+      {name:'Equations',desc:'Solving one-step equations'},
+      {name:'Geometry — Area',desc:'Area of triangles and quadrilaterals'},
+      {name:'Statistics — Mean/Median/Mode',desc:'Measures of central tendency'},
+      {name:'Probability',desc:'Basic probability concepts'}
+    ]
+  },
+  reading: {
+    K: [
+      {name:'Print Concepts',desc:'Left to right, words and spaces'},
+      {name:'Phonological Awareness',desc:'Rhyming and beginning sounds'}
+    ],
+    1: [
+      {name:'Main Idea and Key Details',desc:'Finding the main point of a passage'},
+      {name:'Story Structure',desc:'Beginning, middle, and end'},
+      {name:'Character Traits',desc:'Character feelings and motivations'},
+      {name:'Retelling Stories',desc:'Summarizing key events'}
+    ],
+    2: [
+      {name:'Setting and Influence',desc:'How setting affects the story'},
+      {name:'Cause and Effect',desc:'Why things happen in stories'},
+      {name:'Compare and Contrast',desc:'Finding similarities and differences'},
+      {name:'Nonfiction Features',desc:'Using text features to find information'}
+    ],
+    3: [
+      {name:'Inference and Prediction',desc:'Reading between the lines'},
+      {name:"Author's Purpose",desc:'Why the author wrote the text'},
+      {name:'Vocabulary in Context',desc:'Understanding word meanings from context'},
+      {name:'Theme and Central Message',desc:'The deeper lesson of a story'},
+      {name:'Point of View',desc:'Identifying narrator perspective'}
+    ],
+    4: [
+      {name:'Main Idea and Supporting Details',desc:'Main idea with text evidence'},
+      {name:'Plot Development',desc:'How stories develop and change'},
+      {name:'Character Development',desc:'How characters grow in stories'},
+      {name:'Figurative Language',desc:'Metaphors, similes, and idioms'},
+      {name:"Author's Perspective",desc:'Understanding bias and viewpoint'},
+      {name:'Compare Across Texts',desc:'Connecting ideas from multiple texts'}
+    ],
+    5: [
+      {name:'Inference and Text Evidence',desc:'Conclusions using textual evidence'},
+      {name:'Theme Across Multiple Texts',desc:'Theme using evidence from texts'},
+      {name:'Summarizing Informational Text',desc:'Key ideas and supporting details'},
+      {name:'Analyzing Story Elements',desc:'How elements contribute to meaning'},
+      {name:'Media Literacy',desc:'Understanding different text formats'},
+      {name:'Research Skills',desc:'Using multiple sources to answer questions'}
+    ],
+    6: [
+      {name:'Central Idea and Evidence',desc:'Tracing arguments in informational text'},
+      {name:'Analyzing Character Motivation',desc:'Understanding complex characters'},
+      {name:'Connotation and Tone',desc:'How word choice affects meaning'},
+      {name:'Argument and Claims',desc:'Evaluating evidence and reasoning'},
+      {name:'Genre Study',desc:'Comparing works within and across genres'},
+      {name:'Critical Analysis',desc:'Evaluating author craft and effectiveness'}
+    ]
+  },
+  writing: {
+    K: [
+      {name:'Drawing and Labeling',desc:'Expressing ideas through pictures and letters'}
+    ],
+    1: [
+      {name:'Complete Sentences',desc:'Subject and predicate structure'},
+      {name:'Narrative — Personal Story',desc:'Writing about real experiences'}
+    ],
+    2: [
+      {name:'Narrative — Fictional Story',desc:'Creating an imaginative story'},
+      {name:'Opinion Writing — Basic',desc:'Stating and supporting an opinion'}
+    ],
+    3: [
+      {name:'Opinion Writing — With Evidence',desc:'Using facts and examples'},
+      {name:'Informational — Basic',desc:'Writing to explain or inform'},
+      {name:'Informational — With Details',desc:'Adding supporting details'},
+      {name:'Informational — Full Structure',desc:'Intro, body, and conclusion'}
+    ],
+    4: [
+      {name:'Opinion Writing — Multi-Paragraph',desc:'Structured argument with evidence'},
+      {name:'Narrative — Developed Story',desc:'Story with developed characters and plot'},
+      {name:'Research Writing — Basic',desc:'Writing from multiple sources'},
+      {name:'Explanatory Writing',desc:'Explaining a process or concept clearly'}
+    ],
+    5: [
+      {name:'Argumentative Writing',desc:'Claim, evidence, and counterclaim'},
+      {name:'Literary Analysis',desc:'Writing about a text with evidence'},
+      {name:'Research Report',desc:'Multi-paragraph report with citations'},
+      {name:'Creative Narrative',desc:'Complex story with theme and craft'}
+    ],
+    6: [
+      {name:'Argumentative Essay',desc:'Formal argument with rebuttal'},
+      {name:'Comparative Essay',desc:'Analyzing multiple texts or ideas'},
+      {name:'Informational Report',desc:'Formal report with structured sections'},
+      {name:'Personal Narrative — Advanced',desc:'Reflective writing with voice and style'}
     ]
   }
 };
 
-function getProgression(kidId) { return PROGRESSION[kidId] || PROGRESSION[kidId === 'tester' ? 'andrew' : 'lauren']; }
-function getSubjectProgression(kidId, subjectId) { return getProgression(kidId)[subjectId] || []; }
-function getCurrentLevelIndex(kidId, subjectId) {
-  if (!state.levels || !state.levels[kidId]) return 0;
-  return state.levels[kidId][subjectId] || 0;
-}
-function getCurrentLevelData(kidId, subjectId) {
-  const lvls = getSubjectProgression(kidId, subjectId);
-  const idx = getCurrentLevelIndex(kidId, subjectId);
-  return lvls[Math.min(idx, lvls.length-1)] || {name:'Complete',desc:'All levels mastered!'};
-}
-
-// ── GRADE-LEVEL HELPERS ──────────────────────────────────
-// GRADE_LABELS maps a grade number to a display string
-const GRADE_LABELS = {
-  0:'Kindergarten',1:'Grade 1',2:'Grade 2',3:'Grade 3',
-  4:'Grade 4',5:'Grade 5',6:'Grade 6',7:'Grade 7',
-  8:'Grade 8',9:'Grade 9',10:'Grade 10',11:'Grade 11',12:'Grade 12'
-};
-
-// Derive a grade number from the level field of a PROGRESSION entry.
-// PROGRESSION entry level numbers loosely map: 1-2=K-1, 3-4=2, 5-6=3, 7-8=4, 9-10=5, 11-12=6+
-function _levelToGrade(levelNum) {
-  if (!levelNum || levelNum <= 2) return 2;
-  if (levelNum <= 4) return 3;
-  if (levelNum <= 6) return 3;
-  if (levelNum <= 8) return 4;
-  if (levelNum <= 10) return 5;
-  if (levelNum <= 12) return 6;
-  return 6;
+// Grade key mapping — grade number to curriculum key
+// Grades 7-12 fall back to grade 6 content for now
+function _gradeKey(grade) {
+  if (grade <= 0) return 'K';
+  if (grade === 1) return 1;
+  if (grade === 2) return 2;
+  if (grade === 3) return 3;
+  if (grade === 4) return 4;
+  if (grade === 5) return 5;
+  return 6; // 6+
 }
 
-// Returns {grade, levelIdx} for the current position of a kid in a subject.
-// grade: inferred from the current PROGRESSION entry's level field
-// levelIdx: the index into the kid's PROGRESSION array
-function getCurrentGradeLevel(kidId, subjectId) {
-  const lvls = getSubjectProgression(kidId, subjectId);
-  const idx = getCurrentLevelIndex(kidId, subjectId);
-  const safeIdx = Math.min(idx, lvls.length - 1);
-  const entry = lvls[safeIdx];
-  const grade = entry ? _levelToGrade(entry.level) : 3;
-  return { grade: grade, levelIdx: safeIdx };
+// Get progression for a kid based on their grade setting
+// Falls back gracefully for any grade
+function getSubjectProgression(kidId, subjectId) {
+  const kid = state.kids.find(function(k){ return k.id === kidId; });
+  const grade = kid && kid.grade !== undefined ? kid.grade : 3;
+  const key = _gradeKey(grade);
+  const subj = GRADE_CURRICULUM[subjectId];
+  if (!subj) return [];
+  return subj[key] || subj[3] || [];
 }
 
-// Returns the full progression array for a kid/subject.
-// The 'grade' param is accepted for API compatibility but ignored —
-// we use the per-kid PROGRESSION array which is already grade-appropriate.
-function getGradeLevels(grade, subjectId) {
-  // Called as getGradeLevels(gl.grade, subjectId) from renderKidDashboard.
-  // currentKidId is always set when this is called from the kid screen.
-  return getSubjectProgression(currentKidId, subjectId);
+// Legacy alias — kept for compatibility
+function getProgression(kidId) {
+  return {
+    spelling: getSubjectProgression(kidId, 'spelling'),
+    math: getSubjectProgression(kidId, 'math'),
+    reading: getSubjectProgression(kidId, 'reading'),
+    writing: getSubjectProgression(kidId, 'writing')
+  };
 }
+
+// Get starting level index for a given grade and time of year
+// timeOfYear: 'beginning' | 'middle' | 'end'
+function getStartingLevelIndex(grade, subjectId, timeOfYear) {
+  const key = _gradeKey(grade);
+  const levels = (GRADE_CURRICULUM[subjectId] || {})[key] || [];
+  const total = levels.length;
+  if (!total) return 0;
+  if (timeOfYear === 'beginning') return 0;
+  if (timeOfYear === 'end') return Math.max(0, total - 1);
+  return Math.floor(total / 2); // middle of year
+}
+
 function getStreakScores(kidId, subjectId) {
   if (!state.streaks || !state.streaks[kidId]) return [];
   return state.streaks[kidId][subjectId] || [];
@@ -1091,11 +1487,11 @@ async function pullState() {
     setSyncBar('⟳ Syncing...', 'syncing');
 
     // Pull parent settings
-    const parentData = await fbGet('parent') || {};
+    const parentData = await fbGet(getFamilyPath('parent')) || {};
     // Pull each kid's data
-    const kidsData = await fbGet('kids') || {};
+    const kidsData = await fbGet(getFamilyPath('kids')) || {};
     // Pull shared queues
-    const sharedData = await fbGet('shared') || {};
+    const sharedData = await fbGet(getFamilyPath('shared')) || {};
 
     // Merge parent settings into state (non-destructive)
     const parentFields = ['pin','kidPins','rewards','rewardsUpdatedAt','coinMax','lessonTimers','selectedVoice',
@@ -1204,7 +1600,7 @@ async function pushKidData(kidId) {
       unlockedToday: (state.unlockedToday || {})[kidId] || {},
       lessonHistory: (state.lessonHistory || {})[kidId] || []
     };
-    await fbSet('kids/' + kidId, kidPayload);
+    await fbSet(getFamilyPath('kids/' + kidId), kidPayload);
   } catch(e) {
     console.warn('pushKidData error:', e);
   }
@@ -1234,7 +1630,7 @@ async function pushParentData() {
       excusedDays: state.excusedDays || {},
       parentMessages: state.parentMessages || {}
     };
-    await fbSet('parent', parentPayload);
+    await fbSet(getFamilyPath('parent'), parentPayload);
   } catch(e) {
     console.warn('pushParentData error:', e);
   }
@@ -1243,7 +1639,7 @@ async function pushParentData() {
 // Push shared queues
 async function pushSharedData() {
   try {
-    await fbSet('shared', {
+    await fbSet(getFamilyPath('shared'), {
       writingQueue: state.writingQueue || [],
       redemptionQueue: state.redemptionQueue || [],
       flaggedReview: state.flaggedReview || [],
@@ -1292,8 +1688,9 @@ let _suppressRealtimeUntil = 0; // epoch ms — suppress pulls triggered right a
 function startRealtimeListener() {
   if (_realtimeES) { _realtimeES.close(); _realtimeES = null; }
   getFirebaseToken().then(function(token) {
-    // Listen to the root — any change triggers a pull
-    const url = FIREBASE_URL + '/.json?accept=text/event-stream&auth=' + token;
+    // Listen only to this family's path — not the entire database root
+    const familyPath = getFamilyPath('');
+    const url = FIREBASE_URL + '/' + familyPath + '.json?accept=text/event-stream&auth=' + token;
     _realtimeES = new EventSource(url);
     _realtimeES.addEventListener('put', function(e) {
       if (isSyncing) return;
@@ -1424,7 +1821,434 @@ function updateLastSyncedDisplay() {
   if (landingStatus && ts) landingStatus.textContent = '☁️ Firebase • ' + label;
 }
 
-// ── SCREENS ─────────────────────────────────────────────
+// ── AUTH ROUTING ─────────────────────────────────────────
+function goStudents() {
+  // Check for ?f= family code in URL first
+  const params = new URLSearchParams(window.location.search);
+  const fCode = params.get('f');
+  if (fCode) {
+    // Validate family code and go to kid select
+    loadFamilyByCode(fCode.toUpperCase());
+  } else {
+    const saved = localStorage.getItem('kidstuff_familyCode');
+    if (saved) {
+      loadFamilyByCode(saved);
+    } else {
+      showScreen('screen-family-code');
+    }
+  }
+}
+
+async function loadFamilyByCode(code) {
+  try {
+    const token = await getFirebaseToken();
+    const res = await fetch(FIREBASE_URL + '/familyCodes/' + code + '.json?auth=' + token);
+    const data = await res.json();
+    if (!data || !data.uid) {
+      document.getElementById('family-code-error') && (document.getElementById('family-code-error').textContent = 'Family code not found. Check with your parent.');
+      showScreen('screen-family-code');
+      return;
+    }
+    // Set family context to this uid (read-only kid access)
+    _currentUser = { uid: data.uid, email: '', displayName: data.familyName || '', kidOnly: true };
+    localStorage.setItem('kidstuff_familyCode', code);
+    localStorage.setItem('kidstuff_user', JSON.stringify(_currentUser));
+    await pullState();
+    showScreen('screen-kid-select');
+  } catch(e) {
+    console.warn('loadFamilyByCode error:', e);
+    showScreen('screen-family-code');
+  }
+}
+
+async function submitFamilyCode() {
+  const input = document.getElementById('family-code-input');
+  const errEl = document.getElementById('family-code-error');
+  const code = (input ? input.value : '').toUpperCase().trim();
+  if (!code || code.length < 2) { if(errEl) errEl.textContent = 'Please enter your family code.'; return; }
+  if(errEl) errEl.textContent = '';
+  await loadFamilyByCode(code);
+}
+
+async function doLogin() {
+  const email = (document.getElementById('login-email').value || '').trim();
+  const password = document.getElementById('login-password').value || '';
+  const errEl = document.getElementById('login-error');
+  const btn = document.getElementById('login-btn');
+  if (!email || !password) { errEl.textContent = 'Please enter email and password.'; return; }
+  errEl.textContent = '';
+  btn.textContent = 'Logging in...'; btn.disabled = true;
+  try {
+    await authSignIn(email, password);
+    await afterParentLogin();
+  } catch(e) {
+    errEl.textContent = _friendlyAuthError(e.message);
+  } finally {
+    btn.textContent = 'Log In'; btn.disabled = false;
+  }
+}
+
+async function doSignup() {
+  const name = (document.getElementById('signup-name').value || '').trim();
+  const email = (document.getElementById('signup-email').value || '').trim();
+  const password = document.getElementById('signup-password').value || '';
+  const lastName = (document.getElementById('signup-lastname').value || '').trim();
+  const errEl = document.getElementById('signup-error');
+  const btn = document.getElementById('signup-btn');
+  if (!name || !email || !password || !lastName) { errEl.textContent = 'Please fill in all fields.'; return; }
+  if (password.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return; }
+  errEl.textContent = '';
+  btn.textContent = 'Creating account...'; btn.disabled = true;
+  try {
+    const data = await authSignUp(email, password, name);
+    const uid = data.localId;
+    // Generate family code from last name
+    const familyCode = await generateFamilyCode(lastName);
+    // Write user record
+    const token = await getFirebaseToken();
+    await fetch(FIREBASE_URL + '/users/' + uid + '.json?auth=' + token, {
+      method: 'PUT', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ email, displayName: name, lastName, familyCode, status: 'pending', role: 'parent', createdAt: Date.now() })
+    });
+    // Write family code lookup
+    await fetch(FIREBASE_URL + '/familyCodes/' + familyCode + '.json?auth=' + token, {
+      method: 'PUT', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ uid, familyName: name })
+    });
+    // Notify admin via Firebase notifications collection
+    await fetch(FIREBASE_URL + '/adminNotifications.json?auth=' + token, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ type: 'newSignup', email, displayName: name, familyCode, uid, createdAt: Date.now(), read: false })
+    });
+    // Check status and route accordingly
+    await afterParentLogin();
+  } catch(e) {
+    errEl.textContent = _friendlyAuthError(e.message);
+  } finally {
+    btn.textContent = 'Create Account'; btn.disabled = false;
+  }
+}
+
+async function generateFamilyCode(lastName) {
+  // Build a 4-char code from last name consonants/letters
+  const clean = lastName.toUpperCase().replace(/[^A-Z]/g,'');
+  let base = (clean.length >= 4 ? clean.slice(0,4) : (clean + 'XXXX').slice(0,4));
+  const token = await getFirebaseToken();
+  // Collision check
+  let code = base, suffix = 2;
+  while (true) {
+    const res = await fetch(FIREBASE_URL + '/familyCodes/' + code + '.json?auth=' + token);
+    const existing = await res.json();
+    if (!existing) break; // code is free
+    code = base.slice(0,3) + suffix; suffix++;
+    if (suffix > 99) { code = base + Math.random().toString(36).slice(2,4).toUpperCase(); break; }
+  }
+  return code;
+}
+
+async function afterParentLogin() {
+  if (!_currentUser) return;
+  const token = await getFirebaseToken();
+  const res = await fetch(FIREBASE_URL + '/users/' + _currentUser.uid + '.json?auth=' + token);
+  const userData = await res.json();
+  if (!userData) {
+    // Brand new user with no record yet — send to onboarding
+    showScreen('screen-onboarding');
+    initOnboarding();
+    return;
+  }
+  // Check admin
+  const isAdmin = userData.role === 'admin' || _currentUser.email === 'humphrey11715@gmail.com';
+  _currentUser.isAdmin = isAdmin;
+  _currentUser.familyCode = userData.familyCode || '';
+  _currentUser.features = userData.features || null; // null = all on
+  localStorage.setItem('kidstuff_user', JSON.stringify(_currentUser));
+
+  if (userData.status === 'pending') {
+    document.getElementById('pending-email').textContent = _currentUser.email;
+    showScreen('screen-pending');
+    return;
+  }
+  // Check if this is first login (no kids set up)
+  if (isAdmin) {
+    // Check if migration needed (flat data exists)
+    await migrateDataIfNeeded(token);
+  }
+  await initSync();
+  showScreen('screen-parent');
+  renderParentDashboard();
+}
+
+function doLogout() {
+  if (_realtimeES) { _realtimeES.close(); _realtimeES = null; }
+  authSignOut();
+  state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  showScreen('screen-landing');
+}
+
+function _friendlyAuthError(msg) {
+  if (!msg) return 'Something went wrong. Try again.';
+  if (msg.includes('EMAIL_EXISTS')) return 'An account with this email already exists.';
+  if (msg.includes('INVALID_PASSWORD') || msg.includes('INVALID_LOGIN_CREDENTIALS')) return 'Incorrect email or password.';
+  if (msg.includes('EMAIL_NOT_FOUND')) return 'No account found with this email.';
+  if (msg.includes('WEAK_PASSWORD')) return 'Password must be at least 6 characters.';
+  if (msg.includes('TOO_MANY_ATTEMPTS')) return 'Too many attempts. Please try again later.';
+  if (msg.includes('INVALID_EMAIL')) return 'Please enter a valid email address.';
+  return 'Error: ' + msg;
+}
+
+// ── MIGRATION — flat → namespaced ────────────────────────
+async function migrateDataIfNeeded(token) {
+  try {
+    // Check if old flat data exists
+    const oldParent = await fetch(FIREBASE_URL + '/parent.json?auth=' + token).then(r => r.json());
+    const newFamily = await fetch(FIREBASE_URL + '/families/' + _currentUser.uid + '/parent.json?auth=' + token).then(r => r.json());
+    if (!oldParent || newFamily) return; // nothing to migrate or already done
+    // Migrate parent, kids, shared
+    const oldKids = await fetch(FIREBASE_URL + '/kids.json?auth=' + token).then(r => r.json()).catch(()=>null);
+    const oldShared = await fetch(FIREBASE_URL + '/shared.json?auth=' + token).then(r => r.json()).catch(()=>null);
+    const base = FIREBASE_URL + '/families/' + _currentUser.uid;
+    if (oldParent) await fetch(base + '/parent.json?auth=' + token, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(oldParent)});
+    if (oldKids) await fetch(base + '/kids.json?auth=' + token, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(oldKids)});
+    if (oldShared) await fetch(base + '/shared.json?auth=' + token, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(oldShared)});
+    showToast('✅ Data migrated to your account successfully!');
+  } catch(e) {
+    console.warn('Migration error:', e);
+  }
+}
+
+// ── ONBOARDING ───────────────────────────────────────────
+const KID_EMOJIS = ['👧','🧒','👦','🧒🏽','👧🏽','👦🏽','👧🏾','🧒🏾','👦🏾','👧🏿','🧒🏿','👦🏿','🐶','🦊','🐱','🐸','🦁','🐼','🦋','⭐'];
+
+function initOnboarding() {
+  _renderEmojiPicker('ob-emoji-picker', 'ob-emoji');
+}
+
+function _renderEmojiPicker(containerId, hiddenId) {
+  const container = document.getElementById(containerId);
+  const hidden = document.getElementById(hiddenId);
+  if (!container || !hidden) return;
+  container.innerHTML = KID_EMOJIS.map(function(e) {
+    return '<button type="button" onclick="_selectEmoji(\'' + e + '\',\'' + containerId + '\',\'' + hiddenId + '\')" '
+      + 'style="width:40px;height:40px;border-radius:10px;border:2px solid var(--border);background:white;font-size:22px;cursor:pointer;padding:0;" '
+      + 'data-emoji="' + e + '">' + e + '</button>';
+  }).join('');
+  // Pre-select first
+  _selectEmoji(KID_EMOJIS[0], containerId, hiddenId);
+}
+
+function _selectEmoji(emoji, containerId, hiddenId) {
+  const hidden = document.getElementById(hiddenId);
+  if (hidden) hidden.value = emoji;
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.querySelectorAll('button').forEach(function(b) {
+    b.style.borderColor = b.dataset.emoji === emoji ? 'var(--primary)' : 'var(--border)';
+    b.style.background = b.dataset.emoji === emoji ? '#EEF2FF' : 'white';
+  });
+}
+
+async function saveOnboardingKid() {
+  const name = (document.getElementById('ob-name').value || '').trim();
+  const emoji = document.getElementById('ob-emoji').value || '👧';
+  const grade = parseInt(document.getElementById('ob-grade').value || '3');
+  const timeOfYear = document.getElementById('ob-time').value || 'middle';
+  const pin = document.getElementById('ob-pin').value || '';
+  const errEl = document.getElementById('ob-error');
+  if (!name) { errEl.textContent = 'Please enter a name.'; return; }
+  if (pin.length !== 4 || !/^\d{4}$/.test(pin)) { errEl.textContent = 'PIN must be exactly 4 digits.'; return; }
+  errEl.textContent = '';
+  const kidId = name.toLowerCase().replace(/[^a-z0-9]/g,'') + '_' + Date.now().toString(36);
+  const startLevels = {};
+  ['spelling','math','reading','writing'].forEach(function(s) {
+    startLevels[s] = getStartingLevelIndex(grade, s, timeOfYear);
+  });
+  if (!state.kids) state.kids = [];
+  state.kids.push({ id: kidId, name, emoji, grade, coins: 0 });
+  if (!state.kidPins) state.kidPins = {};
+  state.kidPins[kidId] = pin;
+  if (!state.levels) state.levels = {};
+  state.levels[kidId] = startLevels;
+  saveState();
+  await initSync();
+  showScreen('screen-parent');
+  renderParentDashboard();
+}
+
+async function addKidFromDashboard() {
+  const name = (document.getElementById('addkid-name').value || '').trim();
+  const emoji = document.getElementById('addkid-emoji').value || '🧒';
+  const grade = parseInt(document.getElementById('addkid-grade').value || '3');
+  const timeOfYear = document.getElementById('addkid-time').value || 'middle';
+  const pin = document.getElementById('addkid-pin').value || '';
+  const errEl = document.getElementById('addkid-error');
+  if (!name) { errEl.textContent = 'Please enter a name.'; return; }
+  if (pin.length !== 4 || !/^\d{4}$/.test(pin)) { errEl.textContent = 'PIN must be exactly 4 digits.'; return; }
+  errEl.textContent = '';
+  const kidId = name.toLowerCase().replace(/[^a-z0-9]/g,'') + '_' + Date.now().toString(36);
+  const startLevels = {};
+  ['spelling','math','reading','writing'].forEach(function(s) {
+    startLevels[s] = getStartingLevelIndex(grade, s, timeOfYear);
+  });
+  state.kids.push({ id: kidId, name, emoji, grade, coins: 0 });
+  if (!state.kidPins) state.kidPins = {};
+  state.kidPins[kidId] = pin;
+  if (!state.levels) state.levels = {};
+  state.levels[kidId] = startLevels;
+  saveState();
+  showToast('✅ ' + name + ' added!');
+  document.getElementById('addkid-name').value = '';
+  document.getElementById('addkid-pin').value = '';
+  renderParentDashboard();
+}
+
+// ── BOTTOM NAV ───────────────────────────────────────────
+function switchParentTab(tabId, btn) {
+  document.querySelectorAll('#parent-tab-content .tab-panel').forEach(function(p) { p.classList.remove('active'); });
+  const panel = document.getElementById(tabId);
+  if (panel) panel.classList.add('active');
+  document.querySelectorAll('.bnav-btn').forEach(function(b) { b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  // Render tab content
+  if (tabId === 'tab-overview') { renderProgressOverview(); renderWeeklySummary(); }
+  if (tabId === 'tab-kids') { renderCurriculumOverview(); renderLevelAdjSelects(); _renderEmojiPicker('addkid-emoji-picker','addkid-emoji'); }
+  if (tabId === 'tab-review') { renderWritingApprovals(); renderRedemptionQueue(); renderFlaggedList(); renderRedoNotices(); }
+  if (tabId === 'tab-manage') { renderBonusChallengesList(); }
+  if (tabId === 'tab-settings') { renderFamilyUrl(); renderPinChangeList(); renderTimerInputs(); renderApiKeyStatus(); renderVacationBtn(); renderAutoAdvanceToggle(); }
+  if (tabId === 'tab-admin') { renderAdminPanel(); }
+}
+
+// Legacy switchTab alias so existing code still works
+function switchTab(tabId, btn) { switchParentTab(tabId, btn); }
+
+function renderFamilyUrl() {
+  const el = document.getElementById('family-url-display');
+  if (!el) return;
+  const code = _currentUser && _currentUser.familyCode ? _currentUser.familyCode : '';
+  el.textContent = code ? 'kidstuff.singlesourcecg.com/?f=' + code : 'Not set yet';
+}
+
+function copyFamilyUrl() {
+  const code = _currentUser && _currentUser.familyCode ? _currentUser.familyCode : '';
+  if (!code) return;
+  const url = 'https://kidstuff.singlesourcecg.com/?f=' + code;
+  navigator.clipboard.writeText(url).then(function() { showToast('📋 Family link copied!'); }).catch(function() { showToast('URL: ' + url); });
+}
+
+function renderPinChangeList() {
+  const el = document.getElementById('pin-change-list');
+  if (!el) return;
+  el.innerHTML = state.kids.filter(function(k){ return k.id !== 'tester'; }).map(function(k) {
+    return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'
+      + '<span style="font-size:20px">' + k.emoji + '</span>'
+      + '<span style="font-weight:700;flex:1">' + k.name + '</span>'
+      + '<input type="password" maxlength="4" placeholder="New PIN" id="pinchange-' + k.id + '" style="width:90px;padding:8px;border:2px solid var(--border);border-radius:8px;font-size:18px;font-weight:800;letter-spacing:4px;text-align:center;"/>'
+      + '<button onclick="saveKidPin(\'' + k.id + '\')" style="background:var(--primary);color:white;border:none;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;">Save</button>'
+      + '</div>';
+  }).join('');
+}
+
+function saveKidPin(kidId) {
+  const input = document.getElementById('pinchange-' + kidId);
+  if (!input) return;
+  const pin = input.value.trim();
+  if (!/^\d{4}$/.test(pin)) { showToast('PIN must be 4 digits.'); return; }
+  if (!state.kidPins) state.kidPins = {};
+  state.kidPins[kidId] = pin;
+  saveState();
+  input.value = '';
+  showToast('✅ PIN updated for ' + (state.kids.find(function(k){return k.id===kidId;})||{}).name + '!');
+}
+
+// ── ADMIN PANEL ──────────────────────────────────────────
+async function renderAdminPanel() {
+  const el = document.getElementById('admin-panel-content');
+  if (!el) return;
+  el.innerHTML = '<div class="card"><div class="card-title">👑 Admin Panel</div><div style="color:var(--muted);font-size:14px;">Loading families...</div></div>';
+  try {
+    const token = await getFirebaseToken();
+    // Load all users
+    const usersRes = await fetch(FIREBASE_URL + '/users.json?auth=' + token);
+    const users = await usersRes.json() || {};
+    // Load pending notifications
+    const notifRes = await fetch(FIREBASE_URL + '/adminNotifications.json?auth=' + token);
+    const notifs = await notifRes.json() || {};
+    const pending = Object.values(users).filter(function(u){ return u.status === 'pending'; });
+    const active = Object.values(users).filter(function(u){ return u.status === 'active' || (!u.status && u.role); });
+    const unreadNotifs = Object.entries(notifs).filter(function(n){ return !n[1].read; });
+    el.innerHTML = '';
+    // Pending signups card
+    const pendingCard = document.createElement('div');
+    pendingCard.className = 'card';
+    pendingCard.style.cssText = 'background:#FFFBEA;border:2px solid #F7C948;box-shadow:none;';
+    pendingCard.innerHTML = '<div style="font-weight:800;margin-bottom:12px">⏳ Pending Approvals'
+      + (pending.length ? ' <span style="background:#EF4444;color:white;border-radius:50%;padding:2px 7px;font-size:12px;">' + pending.length + '</span>' : '') + '</div>'
+      + (pending.length === 0 ? '<div style="color:var(--muted);font-size:14px;">No pending signups.</div>' : '')
+      + pending.map(function(u) {
+        return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">'
+          + '<div style="flex:1"><div style="font-weight:700">' + (u.displayName||'Unknown') + '</div>'
+          + '<div style="font-size:12px;color:var(--muted)">' + u.email + ' · Family code: <b>' + (u.familyCode||'?') + '</b></div></div>'
+          + '<button onclick="adminApprove(\'' + u.email + '\')" style="background:#2ECC71;color:white;border:none;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;font-size:13px;">✅ Approve</button>'
+          + '<button onclick="adminDeny(\'' + u.email + '\')" style="background:#EF4444;color:white;border:none;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;font-size:13px;">✕</button>'
+          + '</div>';
+      }).join('');
+    el.appendChild(pendingCard);
+    // All families card
+    const familiesCard = document.createElement('div');
+    familiesCard.className = 'card';
+    familiesCard.innerHTML = '<div style="font-weight:800;margin-bottom:12px">👨‍👩‍👧 All Families (' + Object.keys(users).length + ')</div>'
+      + Object.values(users).map(function(u) {
+        const fUrl = u.familyCode ? 'kidstuff.singlesourcecg.com/?f=' + u.familyCode : '—';
+        const statusColor = u.status === 'active' ? '#2ECC71' : u.status === 'pending' ? '#F59E0B' : '#7A859E';
+        return '<div style="padding:10px 0;border-bottom:1px solid var(--border);">'
+          + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'
+          + '<div style="width:8px;height:8px;border-radius:50%;background:' + statusColor + ';flex-shrink:0;"></div>'
+          + '<div style="font-weight:700;flex:1">' + (u.displayName||u.email) + '</div>'
+          + '<div style="font-size:11px;color:var(--muted)">' + (u.status||'active') + '</div>'
+          + '</div>'
+          + '<div style="font-size:12px;color:var(--muted);padding-left:16px">' + u.email + '</div>'
+          + '<div style="font-size:12px;color:var(--primary);padding-left:16px;font-weight:700;cursor:pointer;" onclick="navigator.clipboard.writeText(\'https://' + fUrl + '\')">'
+          + '🔗 ' + fUrl + ' (tap to copy)</div>'
+          + '</div>';
+      }).join('');
+    el.appendChild(familiesCard);
+  } catch(e) {
+    el.innerHTML = '<div class="card"><div style="color:var(--red);">Error loading admin data: ' + e.message + '</div></div>';
+  }
+}
+
+async function adminApprove(email) {
+  try {
+    const token = await getFirebaseToken();
+    const usersRes = await fetch(FIREBASE_URL + '/users.json?auth=' + token);
+    const users = await usersRes.json() || {};
+    const uid = Object.keys(users).find(function(k){ return users[k].email === email; });
+    if (!uid) { showToast('User not found.'); return; }
+    await fetch(FIREBASE_URL + '/users/' + uid + '.json?auth=' + token, {
+      method: 'PATCH', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ status: 'active', approvedAt: Date.now() })
+    });
+    showToast('✅ ' + email + ' approved!');
+    renderAdminPanel();
+  } catch(e) { showToast('Error: ' + e.message); }
+}
+
+async function adminDeny(email) {
+  if (!confirm('Deny and remove account for ' + email + '?')) return;
+  try {
+    const token = await getFirebaseToken();
+    const usersRes = await fetch(FIREBASE_URL + '/users.json?auth=' + token);
+    const users = await usersRes.json() || {};
+    const uid = Object.keys(users).find(function(k){ return users[k].email === email; });
+    if (!uid) { showToast('User not found.'); return; }
+    await fetch(FIREBASE_URL + '/users/' + uid + '.json?auth=' + token, {
+      method: 'PATCH', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ status: 'denied' })
+    });
+    showToast('❌ ' + email + ' denied.');
+    renderAdminPanel();
+  } catch(e) { showToast('Error: ' + e.message); }
+}
 function _setZoom(allow) {
   const vp = document.getElementById('viewport-meta');
   if (!vp) return;
@@ -1927,7 +2751,7 @@ async function startBonusChallenge(bonusId) {
     };
     if (!state.liveLesson) state.liveLesson = {};
     state.liveLesson[currentKidId] = { subject: bc.topic || subjectId, icon: icon, startedAt: Date.now() };
-    try { fbSet('kids/' + currentKidId + '/liveLesson', state.liveLesson[currentKidId]); } catch(_){}
+    try { fbSet(getFamilyPath('kids/' + currentKidId + '/liveLesson'), state.liveLesson[currentKidId]); } catch(_){}
     showScreen('screen-lesson');
     document.getElementById('lesson-title').textContent = icon + ' Bonus: ' + (bc.topic || subjectId);
     startLessonTimer();
@@ -1936,7 +2760,7 @@ async function startBonusChallenge(bonusId) {
     document.getElementById('generating-overlay').style.display = 'none';
     console.error('Bonus challenge load error:', e);
     if (state.liveLesson) state.liveLesson[currentKidId] = null;
-    try { fbSet('kids/' + currentKidId + '/liveLesson', null); } catch(_){}
+    try { fbSet(getFamilyPath('kids/' + currentKidId + '/liveLesson'), null); } catch(_){}
     showToast('😴 Couldn\'t load challenge — try again in a moment.');
   }
 }
@@ -1984,7 +2808,7 @@ async function startLesson(subjectId) {
     // Signal to parent dashboard that this kid is actively working
     if (!state.liveLesson) state.liveLesson = {};
     state.liveLesson[currentKidId] = { subject: levelData.name, icon: icon, startedAt: Date.now() };
-    try { fbSet('kids/' + currentKidId + '/liveLesson', state.liveLesson[currentKidId]); } catch(_){}
+    try { fbSet(getFamilyPath('kids/' + currentKidId + '/liveLesson'), state.liveLesson[currentKidId]); } catch(_){}
     showScreen('screen-lesson');
     document.getElementById('lesson-title').textContent = icon + ' ' + levelData.name;
     startLessonTimer();
@@ -1993,7 +2817,7 @@ async function startLesson(subjectId) {
     document.getElementById('generating-overlay').style.display='none';
     console.error('Lesson load error:', e);
     if (state.liveLesson) state.liveLesson[currentKidId] = null;
-    try { fbSet('kids/' + currentKidId + '/liveLesson', null); } catch(_){}
+    try { fbSet(getFamilyPath('kids/' + currentKidId + '/liveLesson'), null); } catch(_){}
     const isOffline = !navigator.onLine;
     const msg = isOffline
       ? "Looks like you're offline. Connect to the internet and try again! 🌐"
@@ -3124,12 +3948,28 @@ function finishLesson() {
   const ls = lessonState;
   // Clear live lesson indicator in parent dashboard
   if (state.liveLesson) state.liveLesson[currentKidId] = null;
-  try { fbSet('kids/' + currentKidId + '/liveLesson', null); } catch(_){}
+  try { fbSet(getFamilyPath('kids/' + currentKidId + '/liveLesson'), null); } catch(_){}
   const origTotal = ls.questions.length;
   const origCorrect = ls.correct;
   const total = origTotal;
   const pct = total > 0 ? Math.round((origCorrect / total) * 100) : 0;
   if (!state.progress[currentKidId]) state.progress[currentKidId]={};
+
+  // Bonus challenges are completely separate from daily progress
+  // They never write to state.progress, never block the daily lesson
+  if (ls.isBonusChallenge) {
+    const isWriting = ls.subjectType === 'writing';
+    const bonusCoinsEarned = isWriting ? 0 : (pct === 100 ? 2 : pct >= 80 ? 1 : 0);
+    const kid = state.kids.find(function(k){ return k.id === currentKidId; });
+    if (kid && bonusCoinsEarned > 0) { kid.coins += bonusCoinsEarned; stampCoins(currentKidId); }
+    const timerSec = Math.min(ls.timerSeconds || 0, ls.timerTotal || 9999);
+    const elapsedMin = Math.floor(timerSec / 60);
+    recordLessonHistory(currentKidId, ls.subjectId + '_bonus', pct, bonusCoinsEarned, origCorrect, total, elapsedMin, getCurrentLevelIndex(currentKidId, ls.subjectId));
+    saveState();
+    completeBonusChallenge(ls.bonusChallengeId);
+    return;
+  }
+
   const alreadyDone = state.progress[currentKidId][ls.subjectId] && state.progress[currentKidId][ls.subjectId].date === getTodayKey();
   // New Brain Bucks formula: 2 for 100%, 1 for 80%+, 0 otherwise
   // Writing is pending parent approval — coins awarded at approval instead
@@ -3209,11 +4049,6 @@ function finishLesson() {
   }
 
   saveState();
-  // Complete bonus challenge if this was one
-  if (ls.isBonusChallenge && ls.bonusChallengeId) {
-    completeBonusChallenge(ls.bonusChallengeId);
-    return; // completeBonusChallenge handles navigation
-  }
   // Record to 30-day history
   if (!alreadyDone) {
     const curIdx = getCurrentLevelIndex(currentKidId, ls.subjectId);
@@ -3293,7 +4128,7 @@ function exitLesson() {
   if (confirm('Exit lesson? Progress won\'t be saved.')) {
     stopLessonTimer();
     if (state.liveLesson) state.liveLesson[currentKidId] = null;
-    try { fbSet('kids/' + currentKidId + '/liveLesson', null); } catch(_){}
+    try { fbSet(getFamilyPath('kids/' + currentKidId + '/liveLesson'), null); } catch(_){}
     showScreen('screen-kid');
   }
 }
@@ -3419,6 +4254,16 @@ function parentUnlockLesson() {
 
 function renderParentDashboard() {
   try {
+    // Show admin tab if admin
+    const adminNav = document.getElementById('bnav-admin');
+    const adminPanel = document.getElementById('tab-admin');
+    if (_currentUser && _currentUser.isAdmin) {
+      if (adminNav) adminNav.style.display = '';
+      if (adminPanel) adminPanel.style.display = '';
+    }
+    // Update header with user name
+    const sub = document.getElementById('parent-header-sub');
+    if (sub && _currentUser) sub.textContent = (_currentUser.displayName || 'Parent') + "'s Dashboard";
     // Check incomplete week penalty for all kids whenever parent opens dashboard
     state.kids.forEach(function(k) { checkIncompleteWeekPenalty(k.id); });
     renderParentKidSummary();
@@ -3738,7 +4583,7 @@ function startWritingRedo() {
   };
   if (!state.liveLesson) state.liveLesson = {};
   state.liveLesson[currentKidId] = { subject: 'Writing Redo', icon: '✏️', startedAt: Date.now() };
-  try { fbSet('kids/' + currentKidId + '/liveLesson', state.liveLesson[currentKidId]); } catch(_){}
+  try { fbSet(getFamilyPath('kids/' + currentKidId + '/liveLesson'), state.liveLesson[currentKidId]); } catch(_){}
   showScreen('screen-lesson');
   document.getElementById('lesson-title').textContent = '✏️ Writing Redo';
   startLessonTimer();
@@ -5244,7 +6089,7 @@ function clearStaleLiveLessons() {
     const isStale = !live.startedAt || (now - live.startedAt) > maxMs;
     if (isStale) {
       state.liveLesson[k.id] = null;
-      try { fbSet('kids/' + k.id + '/liveLesson', null); } catch(_){}
+      try { fbSet(getFamilyPath('kids/' + k.id + '/liveLesson'), null); } catch(_){}
       changed = true;
     }
   });
@@ -5300,7 +6145,6 @@ function purgeOrphanedRedoNotices() {
 applyDarkModePreference();
 loadLocalFallback();
 runMigrations();
-// Auto-protect streaks on US federal holidays
 state.kids.forEach(function(k) { checkHolidayStreakProtection(k.id); });
 applyVacationStreakProtection();
 purgeBonusChallenges();
@@ -5310,8 +6154,53 @@ purgeOrphanedRedoNotices();
 clearStaleLiveLessons();
 updateLastSyncedDisplay();
 
-// Init on load
-initSync();
+// ── APP INIT — check auth session on load ────────────────
+(async function() {
+  // Check for ?f= family code (student device)
+  const params = new URLSearchParams(window.location.search);
+  const fCode = params.get('f');
+  if (fCode) {
+    // Store and go straight to student flow
+    localStorage.setItem('kidstuff_familyCode', fCode.toUpperCase());
+    const hasCachedUser = loadAuthSession();
+    if (!hasCachedUser || !_currentUser || _currentUser.kidOnly) {
+      // Need to load family data with a token — use anonymous for read-only kid access
+      try {
+        await loadFamilyByCode(fCode.toUpperCase());
+      } catch(e) {
+        showScreen('screen-landing');
+      }
+      return;
+    }
+  }
+
+  // Check if parent session exists
+  const hasCachedUser = loadAuthSession();
+  if (hasCachedUser && _currentUser && !_currentUser.kidOnly) {
+    // Parent session — restore and go to dashboard
+    try {
+      await afterParentLogin();
+    } catch(e) {
+      console.warn('Session restore failed:', e);
+      showScreen('screen-landing');
+    }
+    return;
+  }
+
+  // Kid-only session (family code stored)
+  const savedCode = localStorage.getItem('kidstuff_familyCode');
+  if (savedCode && (!_currentUser || _currentUser.kidOnly)) {
+    try {
+      await loadFamilyByCode(savedCode);
+      return;
+    } catch(e) {
+      // Fall through to landing
+    }
+  }
+
+  // No session — show landing
+  showScreen('screen-landing');
+})();
 </script>
 <!-- Reward Edit Modal -->
 <div id="reward-edit-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;padding:20px;">
