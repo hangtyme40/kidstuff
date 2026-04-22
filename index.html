@@ -6461,15 +6461,23 @@ function triggerLevelUpCelebration(kidId, subjectId) {
 // A liveLesson with a timestamp older than the max lesson time + buffer is cleared.
 function clearStaleLiveLessons() {
   if (!state.liveLesson) return;
-  const maxMs = 90 * 60 * 1000; // 90 minutes max before auto-clear
+  const maxMs = 90 * 60 * 1000;
   const now = Date.now();
   let changed = false;
   state.kids.forEach(function(k) {
     const live = state.liveLesson[k.id];
     if (!live) return;
-    // Clear if no timestamp (pre-dates the startedAt field) or if older than 90 min
+    // Clear if no timestamp or older than 90 min
     const isStale = !live.startedAt || (now - live.startedAt) > maxMs;
-    if (isStale) {
+    // Also clear if the kid has already completed all subjects today
+    // (finishLesson should clear it, but this is a safety net)
+    const prog = state.progress && state.progress[k.id] || {};
+    const sched = getScheduleForDow(new Date().getDay());
+    const allDone = !sched.isRest && sched.subjects && sched.subjects.length > 0 &&
+      sched.subjects.every(function(s) {
+        return prog[s] && prog[s].date === getTodayKey();
+      });
+    if (isStale || allDone) {
       state.liveLesson[k.id] = null;
       try { fbSet(getFamilyPath('kids/' + k.id + '/liveLesson'), null); } catch(_){}
       changed = true;
