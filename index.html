@@ -1752,9 +1752,17 @@ let _suppressRealtimeUntil = 0; // epoch ms — suppress pulls triggered right a
 
 function startRealtimeListener() {
   if (_realtimeES) { _realtimeES.close(); _realtimeES = null; }
+  // Don't start listener if we don't have a user session yet
+  if (!_currentUser || !_currentUser.uid) {
+    setTimeout(startRealtimeListener, 5000); // retry in 5s
+    return;
+  }
   getFirebaseToken().then(function(token) {
-    // Listen only to this family's path — not the entire database root
-    const familyPath = getFamilyPath('');
+    let familyPath;
+    try { familyPath = getFamilyPath(''); } catch(e) {
+      setTimeout(startRealtimeListener, 5000);
+      return;
+    }
     const url = FIREBASE_URL + '/' + familyPath + '.json?accept=text/event-stream&auth=' + token;
     _realtimeES = new EventSource(url);
     _realtimeES.addEventListener('put', function(e) {
@@ -3851,7 +3859,9 @@ function submitWriting() {
     kidAnswerType: 'drawing',
     status: 'pending', date: new Date().toLocaleDateString()
   });
-  saveState();
+  // Save locally first, then explicitly push shared data so parent sees it immediately
+  localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+  pushSharedData().catch(function(e){ console.warn('Writing submit push error:', e); });
   showFeedback(true, '✅ Submitted! Your parent will review it.');
   document.getElementById('writing-submit-btn').style.display='none';
   recordAnswer(true); showNextBtn();
