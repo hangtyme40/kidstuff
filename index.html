@@ -24,6 +24,35 @@
   --bg:#F0F4FF;--card:#FFF;--primary:#4F6EF7;--primary-dark:#3451D1;
   --green:#2ECC71;--green-dark:#27AE60;--yellow:#F7C948;--red:#FF6B6B;
   --text:#1A1F36;--muted:#7A859E;--border:#E2E8F8;
+}
+body.dark-mode {
+  --bg:#0F1117;--card:#1E2235;--primary:#6B8AFA;--primary-dark:#4F6EF7;
+  --green:#2ECC71;--green-dark:#27AE60;--yellow:#F7C948;--red:#FF6B6B;
+  --text:#E8EAFF;--muted:#8892B0;--border:#2D3355;
+}
+body.dark-mode { background:var(--bg);color:var(--text); }
+body.dark-mode .card { background:var(--card);color:var(--text); }
+body.dark-mode .app-header { background:#1A2040; }
+body.dark-mode .pin-box { background:#1E2235;color:var(--text); }
+body.dark-mode .pin-key { background:#2D3355;color:var(--text);border-color:var(--border); }
+body.dark-mode .pin-key:active { background:#3D4475; }
+body.dark-mode .question-card { background:var(--card); }
+body.dark-mode .option-btn { background:#2D3355;color:var(--text);border-color:var(--border); }
+body.dark-mode .option-btn:hover { background:#3D4475; }
+body.dark-mode .answer-input, body.dark-mode .lined-area { background:#2D3355;color:var(--text);border-color:var(--border); }
+body.dark-mode .btn-primary { background:var(--primary); }
+body.dark-mode .results-screen { background:var(--bg); }
+body.dark-mode #parent-bottom-nav { background:#1E2235;border-top-color:var(--border); }
+body.dark-mode .bnav-label { color:var(--muted); }
+body.dark-mode .bnav-btn.active .bnav-label { color:var(--primary); }
+body.dark-mode input, body.dark-mode select, body.dark-mode textarea { background:#2D3355;color:var(--text);border-color:var(--border); }
+body.dark-mode .subject-card { background:#2D3355;border-color:var(--border); }
+body.dark-mode .subject-card.completed { background:#1A3030;border-color:var(--green); }
+body.dark-mode .tab-panel { background:var(--bg); }
+body.dark-mode .writing-prompt { background:#2D3355;color:var(--text); }
+body.dark-mode .passage-box { background:#2D3355;color:var(--text); }
+body.dark-mode .feedback-box.correct { background:#1A3030; }
+body.dark-mode .feedback-box.wrong { background:#3D1A1A; }
   --shadow:0 4px 20px rgba(79,110,247,0.10);--radius:18px;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -841,12 +870,12 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <button class="bnav-btn active" id="bnav-overview" onclick="switchParentTab('tab-overview',this)" style="position:relative;">
       <span style="font-size:20px">📊</span><span class="bnav-label">Overview</span>
     </button>
-    <button class="bnav-btn" id="bnav-kids" onclick="switchParentTab('tab-kids',this)">
-      <span style="font-size:20px">👧</span><span class="bnav-label">Kids</span>
-    </button>
     <button class="bnav-btn" id="bnav-review" onclick="switchParentTab('tab-review',this)" style="position:relative;">
       <span style="font-size:20px">✍️</span><span class="bnav-label">Review</span>
       <span id="bnav-review-badge" style="display:none;position:absolute;top:6px;right:8px;background:#EF4444;color:white;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:800;align-items:center;justify-content:center;line-height:18px;text-align:center;"></span>
+    </button>
+    <button class="bnav-btn" id="bnav-kids" onclick="switchParentTab('tab-kids',this)">
+      <span style="font-size:20px">👧</span><span class="bnav-label">Kids</span>
     </button>
     <button class="bnav-btn" id="bnav-manage" onclick="switchParentTab('tab-manage',this)">
       <span style="font-size:20px">🔧</span><span class="bnav-label">Manage</span>
@@ -2902,7 +2931,7 @@ function renderKidHistory(kidId) {
     const rows = entries.map(function(e) {
       const scoreColor = e.score >= 90 ? '#2ECC71' : e.score >= 70 ? '#F59E0B' : '#EF4444';
       return '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)">'
-        + '<span style="font-size:20px">' + _subjectIcon(e.subject) + '</span>'
+        + '<span style="font-size:20px">' + (e.subject && e.subject.endsWith('_bonus') ? '⭐' : _subjectIcon(e.subject)) + '</span>'
         + '<div style="flex:1">'
         + '<div style="font-weight:700;font-size:14px">' + _subjectLabel(e.subject) + (e.subject && !e.subject.endsWith('_bonus') ? ' — Level ' + _safeLevelDisplay(e.level) : '') + '</div>'
         + '<div style="font-size:12px;color:var(--muted)">' + (e.duration||0) + ' min · ' + e.correct + '/' + e.total + ' correct</div>'
@@ -5106,7 +5135,7 @@ function renderProgressOverview() {
         const scoreColor = e.score >= 90 ? '#2ECC71' : e.score >= 70 ? 'var(--primary)' : '#EF4444';
         const row = document.createElement('div');
         row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;cursor:pointer;';
-        row.innerHTML = '<span>' + _subjectIcon(e.subject) + '</span>'
+        row.innerHTML = '<span>' + (e.subject && e.subject.endsWith('_bonus') ? '⭐' : _subjectIcon(e.subject)) + '</span>'
           + '<span style="flex:1;color:var(--muted)">' + (e.dateDisplay||e.date) + '</span>'
           + '<span style="font-weight:800;color:' + scoreColor + '">' + e.score + '%</span>'
           + '<span style="color:var(--muted);font-size:11px">' + e.correct + '/' + e.total + '</span>'
