@@ -628,6 +628,10 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
       </div>
       <!-- Recent sessions -->
       <div id="progress-overview"></div>
+    </div>
+
+    <!-- REVIEW TAB -->
+    <div class="tab-panel" id="tab-review">
       <!-- Writing to Review -->
       <div class="card">
         <div class="card-title">✍️ Writing to Review</div>
@@ -721,7 +725,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
           <div class="form-row"><label>Kid</label><select id="r-kid" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select></div>
           <div class="form-row"><label>Emoji</label><input id="r-emoji" type="text" placeholder="📺" maxlength="2" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"/></div>
           <div class="form-row"><label>Name</label><input id="r-name" type="text" placeholder="e.g. 30 min extra screen time" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"/></div>
-          <div class="form-row"><label>Coin Cost</label><input id="r-cost" type="number" placeholder="50" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"/></div>
+          <div class="form-row"><label>Brain Bucks Cost</label><input id="r-cost" type="number" placeholder="50" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"/></div>
           <button class="btn-primary" style="background:#2ECC71" onclick="addReward()">➕ Add Reward</button>
         </div>
       </div>
@@ -836,10 +840,13 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   <nav id="parent-bottom-nav" style="position:fixed;bottom:0;left:0;right:0;background:white;border-top:2px solid var(--border);display:flex;z-index:200;box-shadow:0 -2px 12px rgba(0,0,0,0.08);">
     <button class="bnav-btn active" id="bnav-overview" onclick="switchParentTab('tab-overview',this)" style="position:relative;">
       <span style="font-size:20px">📊</span><span class="bnav-label">Overview</span>
-      <span id="bnav-overview-badge" style="display:none;position:absolute;top:6px;right:10px;background:#EF4444;color:white;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:800;align-items:center;justify-content:center;"></span>
     </button>
     <button class="bnav-btn" id="bnav-kids" onclick="switchParentTab('tab-kids',this)">
       <span style="font-size:20px">👧</span><span class="bnav-label">Kids</span>
+    </button>
+    <button class="bnav-btn" id="bnav-review" onclick="switchParentTab('tab-review',this)" style="position:relative;">
+      <span style="font-size:20px">✍️</span><span class="bnav-label">Review</span>
+      <span id="bnav-review-badge" style="display:none;position:absolute;top:6px;right:8px;background:#EF4444;color:white;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:800;align-items:center;justify-content:center;line-height:18px;text-align:center;"></span>
     </button>
     <button class="bnav-btn" id="bnav-manage" onclick="switchParentTab('tab-manage',this)">
       <span style="font-size:20px">🔧</span><span class="bnav-label">Manage</span>
@@ -1574,14 +1581,19 @@ async function pullState() {
       if (kidIdx === -1 && remote.info) {
         state.kids.push(remote.info);
       } else if (kidIdx !== -1 && remote.info) {
-        // Take higher coin value
-        state.kids[kidIdx] = Object.assign({}, state.kids[kidIdx], remote.info, {
-          coins: Math.max(state.kids[kidIdx].coins || 0, remote.info.coins || 0)
-        });
+        // Use coinsUpdatedAt timestamp to decide which coin value wins
+        // Whoever updated most recently is correct — prevents Math.max from reverting reductions
+        const localTs = (state.coinsUpdatedAt && state.coinsUpdatedAt[kidId]) || 0;
+        const remoteTs = (remote.coinsUpdatedAt) || 0;
+        const winningCoins = remoteTs >= localTs ? (remote.info.coins || 0) : (state.kids[kidIdx].coins || 0);
+        state.kids[kidIdx] = Object.assign({}, state.kids[kidIdx], remote.info, { coins: winningCoins });
+        // Sync the winning timestamp
+        if (!state.coinsUpdatedAt) state.coinsUpdatedAt = {};
+        state.coinsUpdatedAt[kidId] = Math.max(localTs, remoteTs);
       }
       // Per-kid data fields
       const kidFields = ['progress','streaks','levels','dailyStreak',
-                         'brainBucksMilestones','skipDay','unlockedToday','lessonHistory','liveLesson'];
+                         'brainBucksMilestones','skipDay','unlockedToday','lessonHistory','liveLesson','coinsUpdatedAt'];
       kidFields.forEach(function(f) {
         if (remote[f] !== undefined) {
           if (!state[f]) state[f] = {};
@@ -1662,7 +1674,8 @@ async function pushKidData(kidId) {
       brainBucksMilestones: (state.brainBucksMilestones || {})[kidId] || [],
       skipDay: (state.skipDay || {})[kidId] || 0,
       unlockedToday: (state.unlockedToday || {})[kidId] || {},
-      lessonHistory: (state.lessonHistory || {})[kidId] || []
+      lessonHistory: (state.lessonHistory || {})[kidId] || [],
+      coinsUpdatedAt: (state.coinsUpdatedAt || {})[kidId] || 0
     };
     await fbSet(getFamilyPath('kids/' + kidId), kidPayload);
   } catch(e) {
@@ -2245,6 +2258,8 @@ function switchParentTab(tabId, btn) {
   // Tab-specific rendering
   if (tabId === 'tab-overview') {
     renderProgressOverview(); renderWeeklySummary();
+  }
+  if (tabId === 'tab-review') {
     renderWritingApprovals(); renderRedemptionQueue(); renderFlaggedList(); renderRedoNotices();
   }
   if (tabId === 'tab-kids') {
@@ -2280,13 +2295,16 @@ function updateTabBadges() {
   const pendingR = (state.redemptionQueue||[]).filter(function(r){ return r.status==='pending'; }).length;
   const pendingF = (state.flaggedReview||[]).filter(function(f){ return f.status==='pending'; }).length;
   const total = pendingW + pendingR + pendingF;
-  // Show badge on overview nav since review items are in overview now
-  const badge = document.getElementById('bnav-overview-badge');
+  const badge = document.getElementById('bnav-review-badge');
   if (badge) {
-    badge.style.display = total > 0 ? 'flex' : 'none';
-    badge.textContent = total > 0 ? total : '';
+    if (total > 0) {
+      badge.style.display = 'flex';
+      badge.textContent = total;
+    } else {
+      badge.style.display = 'none';
+      badge.textContent = '';
+    }
   }
-  // Parent badge (kid screen)
   updateParentBadge();
 }
 
@@ -4479,11 +4497,7 @@ function renderParentDashboard() {
     // Render overview tab content (default tab)
     renderProgressOverview();
     renderWeeklySummary();
-    renderWritingApprovals();
-    renderRedemptionQueue();
-    renderFlaggedList();
-    renderRedoNotices();
-    // Update badges
+    // Update badges (will check for pending reviews)
     updateTabBadges();
     // Level adj wiring
     const levelAdjKid = document.getElementById('level-adj-kid');
@@ -4764,7 +4778,7 @@ function resolveFlag(id, award) {
       bonusCoins = 1; // fallback if progress not found
     }
     if (kid && bonusCoins > 0) { kid.coins += bonusCoins; stampCoins(f.kidId); }
-    showToast('✅ Accepted — ' + (bonusCoins > 0 ? bonusCoins + ' 🧠 Brain Buck' + (bonusCoins !== 1 ? 's' : '') + ' awarded to ' : 'no extra coins for ') + (kid ? kid.name : 'kid') + '!');
+    showToast('✅ Accepted — ' + (bonusCoins > 0 ? bonusCoins + ' 🧠 Brain Buck' + (bonusCoins !== 1 ? 's' : '') + ' awarded to ' : 'no extra Brain Bucks for ') + (kid ? kid.name : 'kid') + '!');
   } else {
     showToast('❌ Marked incorrect — noted for review.');
   }
@@ -5227,8 +5241,9 @@ function adjustCoins() {
   const kid=state.kids.find(k=>k.id===kidId);
   if (!kid) return;
   kid.coins=Math.max(0,kid.coins+amt);
+  stampCoins(kidId); // update timestamp so this value wins on next sync
   saveState(); document.getElementById('coin-adjust').value='';
-  showToast('✅ Coins updated!'); renderParentKidSummary();
+  showToast('✅ Brain Bucks updated!'); renderParentKidSummary();
 }
 
 function changePin() {
@@ -6548,7 +6563,7 @@ updateLastSyncedDisplay();
     <input type="hidden" id="edit-reward-id"/>
     <div class="form-row"><label>Name</label><input id="edit-r-name" type="text" placeholder="Reward name"/></div>
     <div class="form-grid">
-      <div class="form-row"><label>Coin Cost</label><input id="edit-r-cost" type="number" placeholder="50"/></div>
+      <div class="form-row"><label>Brain Bucks Cost</label><input id="edit-r-cost" type="number" placeholder="50"/></div>
       <div class="form-row"><label>Emoji</label><input id="edit-r-emoji" type="text" placeholder="🎁" maxlength="2"/></div>
     </div>
     <div style="display:flex;gap:10px;margin-top:8px">
