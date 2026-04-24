@@ -6480,7 +6480,7 @@ function runMigrations() {
 
   // One-time fix: correct entries where date (UTC) doesn't match dateDisplay (local)
   // This happens for evening lessons done after 8pm ET which shift to next day in UTC
-  if (!state._tzFixed) {
+  if (!state._tzFixed2) {
     function _normDateMig2(str) {
       if (!str) return str;
       if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
@@ -6496,19 +6496,17 @@ function runMigrations() {
       (state.lessonHistory[kidId] || []).forEach(function(e) {
         if (!e.dateDisplay) return;
         const displayISO = _normDateMig2(e.dateDisplay);
-        // If the ISO date stored is one day ahead of the display date, fix it
-        if (displayISO && displayISO !== e.date && displayISO.length === 10) {
-          const storedD = new Date(e.date);
-          const displayD = new Date(displayISO);
-          const diffDays = Math.round((storedD - displayD) / 86400000);
-          if (diffDays === 1) { // exactly one day off — timezone shift
-            e.date = displayISO;
-            tzChanged = true;
-          }
+        if (!displayISO || displayISO.length !== 10) return;
+        // If stored date differs from display date, always trust the display date
+        // (display date uses local timezone, stored date used UTC)
+        if (displayISO !== e.date) {
+          console.log('TZ fix:', e.subject, e.date, '->', displayISO);
+          e.date = displayISO;
+          tzChanged = true;
         }
       });
     });
-    state._tzFixed = true;
+    state._tzFixed2 = true;
     if (tzChanged) {
       localStorage.setItem('kidstuff_cache', JSON.stringify(state));
       setTimeout(function() {
