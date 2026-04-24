@@ -1498,7 +1498,11 @@ function updatePaceData(kidId, elapsedMin) {
   if (!state.paceData) state.paceData = {};
   if (!state.paceData[kidId]) state.paceData[kidId] = {};
   const today = new Date().toISOString().slice(0,10);
-  state.paceData[kidId][today] = (state.paceData[kidId][today] || 0) + elapsedMin;
+  // Only record if the lesson actually took meaningful time (>1 min)
+  // to prevent quick test lessons from dragging the average down
+  if (elapsedMin > 0) {
+    state.paceData[kidId][today] = (state.paceData[kidId][today] || 0) + elapsedMin;
+  }
   // Trim to window
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - PACE_WINDOW_DAYS);
@@ -2326,13 +2330,10 @@ function updateTabBadges() {
   const total = pendingW + pendingR + pendingF;
   const badge = document.getElementById('bnav-review-badge');
   if (badge) {
-    if (total > 0) {
-      badge.style.display = 'flex';
-      badge.textContent = total;
-    } else {
-      badge.style.display = 'none';
-      badge.textContent = '';
-    }
+    badge.textContent = total > 0 ? String(total) : '';
+    badge.style.display = total > 0 ? 'flex' : 'none';
+    badge.style.alignItems = 'center';
+    badge.style.justifyContent = 'center';
   }
   updateParentBadge();
 }
@@ -5156,11 +5157,21 @@ function renderWeeklySummary() {
   if (!el) return;
   const today = new Date();
   const weekStart = getWeekStart(today);
-  const subjectIcons = {spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'};
   const days = ['Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  // Normalize a date string to ISO format (handles toLocaleDateString legacy entries)
+  function toISO(dateStr) {
+    if (!dateStr) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr; // already ISO
+    try { return new Date(dateStr).toISOString().slice(0,10); } catch(e) { return dateStr; }
+  }
 
   const rows = state.kids.filter(function(k){ return k.id !== 'tester'; }).map(function(k) {
     const history = (state.lessonHistory && state.lessonHistory[k.id]) || [];
+    // Normalize all history dates once
+    const normalizedHistory = history.map(function(e) {
+      return Object.assign({}, e, { date: toISO(e.date) });
+    });
     let totalSessions = 0, totalCoins = 0;
     const dayStatuses = days.map(function(dayLabel, i) {
       const day = new Date(weekStart);
@@ -5171,9 +5182,9 @@ function renderWeeklySummary() {
       if (sched.isRest) return { dayLabel: dayLabel, status: 'rest' };
       const excused = isUSFederalHoliday(day) || state.vacationMode || isKidExcused(k.id, dateStr);
       if (excused) return { dayLabel: dayLabel, status: 'excused' };
-      const dayEntries = history.filter(function(e){ return e.date === dateStr; });
+      const dayEntries = normalizedHistory.filter(function(e){ return e.date === dateStr && !e.subject.endsWith('_bonus'); });
       totalSessions += dayEntries.length;
-      totalCoins += dayEntries.reduce(function(s,e){ return s+e.coins; }, 0);
+      totalCoins += dayEntries.reduce(function(s,e){ return s+(e.coins||0); }, 0);
       const complete = sched.subjects.every(function(s){ return dayEntries.some(function(e){ return e.subject===s; }); });
       const partial = !complete && dayEntries.length > 0;
       return { dayLabel: dayLabel, status: complete ? 'done' : partial ? 'partial' : 'missed', entries: dayEntries };
@@ -6386,6 +6397,22 @@ function runMigrations() {
     });
     state._levelsNormalized = true;
     if (changed2) localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+  }
+
+  // One-time fix: remove zero-duration entries from paceData that drag the average down
+  if (!state._paceDataCleaned) {
+    if (state.paceData) {
+      Object.keys(state.paceData).forEach(function(kidId) {
+        if (!state.paceData[kidId]) return;
+        Object.keys(state.paceData[kidId]).forEach(function(d) {
+          if (!state.paceData[kidId][d] || state.paceData[kidId][d] === 0) {
+            delete state.paceData[kidId][d];
+          }
+        });
+      });
+    }
+    state._paceDataCleaned = true;
+    localStorage.setItem('kidstuff_cache', JSON.stringify(state));
   }
 
   // One-time fix: recalculate total from score+correct for history entries
