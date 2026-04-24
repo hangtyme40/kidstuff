@@ -1630,17 +1630,32 @@ async function pullState() {
       kidFields.forEach(function(f) {
         if (remote[f] !== undefined) {
           if (!state[f]) state[f] = {};
-          if (f === 'lessonHistory' && Array.isArray(remote[f]) && Array.isArray(state[f][kidId])) {
-            // Merge and deduplicate history
-            const seen = new Set();
-            state[f][kidId] = (remote[f] || []).concat(state[f][kidId] || []).filter(function(e) {
-              const key = e.date + '|' + e.subject;
-              if (seen.has(key)) return false;
-              seen.add(key); return true;
-            });
-          } else {
-            state[f][kidId] = remote[f];
-          }
+    // Normalize lessonHistory dates to ISO format (handles legacy toLocaleDateString entries)
+    function normDate(str) {
+      if (!str) return str;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str; // already ISO
+      // Parse locale strings like "4/23/2026" safely without relying on Date()
+      const m = String(str).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (m) return m[3] + '-' + m[1].padStart(2,'0') + '-' + m[2].padStart(2,'0');
+      try {
+        const d = new Date(str);
+        if (!isNaN(d)) return d.toISOString().slice(0,10);
+      } catch(e) {}
+      return str;
+    }
+
+    if (f === 'lessonHistory' && Array.isArray(remote[f]) && Array.isArray(state[f][kidId])) {
+      const seen = new Set();
+      state[f][kidId] = (remote[f] || []).concat(state[f][kidId] || []).map(function(e) {
+        return Object.assign({}, e, { date: normDate(e.date) });
+      }).filter(function(e) {
+        const key = e.date + '|' + e.subject;
+        if (seen.has(key)) return false;
+        seen.add(key); return true;
+      });
+    } else {
+      state[f][kidId] = remote[f];
+    }
         }
       });
     });
@@ -6397,6 +6412,39 @@ function runMigrations() {
     });
     state._levelsNormalized = true;
     if (changed2) localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+  }
+
+  // One-time fix: normalize all lessonHistory dates to ISO and clear stuck liveLessons
+  if (!state._dateNormalized) {
+    function _normDateMig(str) {
+      if (!str) return str;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+      const m = String(str).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (m) return m[3] + '-' + m[1].padStart(2,'0') + '-' + m[2].padStart(2,'0');
+      try { const d = new Date(str); if (!isNaN(d)) return d.toISOString().slice(0,10); } catch(e) {}
+      return str;
+    }
+    // Normalize all history dates
+    Object.keys(state.lessonHistory || {}).forEach(function(kidId) {
+      if (!Array.isArray(state.lessonHistory[kidId])) return;
+      state.lessonHistory[kidId] = state.lessonHistory[kidId].map(function(e) {
+        return Object.assign({}, e, { date: _normDateMig(e.date) });
+      });
+    });
+    // Force-clear all liveLesson entries
+    if (state.liveLesson) {
+      Object.keys(state.liveLesson).forEach(function(kidId) {
+        state.liveLesson[kidId] = null;
+      });
+    }
+    state._dateNormalized = true;
+    localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+    // Push cleaned data to Firebase so all devices get normalized dates
+    setTimeout(function() {
+      state.kids.forEach(function(k) {
+        pushKidData(k.id).catch(function(e){ console.warn('Date norm push:', e); });
+      });
+    }, 2000);
   }
 
   // One-time fix: remove zero-duration entries from paceData that drag the average down
