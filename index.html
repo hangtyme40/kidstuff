@@ -1634,12 +1634,17 @@ async function pullState() {
     function normDate(str) {
       if (!str) return str;
       if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str; // already ISO
-      // Parse locale strings like "4/23/2026" safely without relying on Date()
-      const m = String(str).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-      if (m) return m[3] + '-' + m[1].padStart(2,'0') + '-' + m[2].padStart(2,'0');
+      // MM/DD/YYYY
+      const m1 = String(str).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (m1) return m1[3] + '-' + m1[1].padStart(2,'0') + '-' + m1[2].padStart(2,'0');
+      // "Thu Apr 23 2026" (toDateString)
+      const months = {Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',
+                      Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};
+      const m2 = String(str).match(/^[A-Za-z]{3}\s+([A-Za-z]{3})\s+(\d{1,2})\s+(\d{4})$/);
+      if (m2) return m2[3] + '-' + (months[m2[1]]||'01') + '-' + m2[2].padStart(2,'0');
       try {
         const d = new Date(str);
-        if (!isNaN(d)) return d.toISOString().slice(0,10);
+        if (!isNaN(d) && d.getFullYear() > 2020) return d.toISOString().slice(0,10);
       } catch(e) {}
       return str;
     }
@@ -5177,8 +5182,15 @@ function renderWeeklySummary() {
   // Normalize a date string to ISO format (handles toLocaleDateString legacy entries)
   function toISO(dateStr) {
     if (!dateStr) return '';
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr; // already ISO
-    try { return new Date(dateStr).toISOString().slice(0,10); } catch(e) { return dateStr; }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+    const m1 = String(dateStr).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (m1) return m1[3] + '-' + m1[1].padStart(2,'0') + '-' + m1[2].padStart(2,'0');
+    const months = {Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',
+                    Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};
+    const m2 = String(dateStr).match(/^[A-Za-z]{3}\s+([A-Za-z]{3})\s+(\d{1,2})\s+(\d{4})$/);
+    if (m2) return m2[3] + '-' + (months[m2[1]]||'01') + '-' + m2[2].padStart(2,'0');
+    try { const d = new Date(dateStr); if (!isNaN(d) && d.getFullYear() > 2020) return d.toISOString().slice(0,10); } catch(e) {}
+    return dateStr;
   }
 
   const rows = state.kids.filter(function(k){ return k.id !== 'tester'; }).map(function(k) {
@@ -6415,13 +6427,23 @@ function runMigrations() {
   }
 
   // One-time fix: normalize all lessonHistory dates to ISO and clear stuck liveLessons
-  if (!state._dateNormalized) {
+  if (!state._dateNormalized2) {  // use _dateNormalized2 to force re-run
     function _normDateMig(str) {
       if (!str) return str;
-      if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
-      const m = String(str).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-      if (m) return m[3] + '-' + m[1].padStart(2,'0') + '-' + m[2].padStart(2,'0');
-      try { const d = new Date(str); if (!isNaN(d)) return d.toISOString().slice(0,10); } catch(e) {}
+      if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str; // already ISO - done
+      // MM/DD/YYYY format (toLocaleDateString US)
+      const m1 = String(str).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (m1) return m1[3] + '-' + m1[1].padStart(2,'0') + '-' + m1[2].padStart(2,'0');
+      // "Thu Apr 23 2026" format (toDateString) - parse manually
+      const months = {Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',
+                      Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};
+      const m2 = String(str).match(/^[A-Za-z]{3}\s+([A-Za-z]{3})\s+(\d{1,2})\s+(\d{4})$/);
+      if (m2) return m2[3] + '-' + (months[m2[1]]||'01') + '-' + m2[2].padStart(2,'0');
+      // Fallback: try Date constructor (works in most environments)
+      try {
+        const d = new Date(str);
+        if (!isNaN(d) && d.getFullYear() > 2020) return d.toISOString().slice(0,10);
+      } catch(e) {}
       return str;
     }
     // Normalize all history dates
@@ -6437,7 +6459,7 @@ function runMigrations() {
         state.liveLesson[kidId] = null;
       });
     }
-    state._dateNormalized = true;
+    state._dateNormalized2 = true;
     localStorage.setItem('kidstuff_cache', JSON.stringify(state));
     // Push cleaned data to Firebase so all devices get normalized dates
     setTimeout(function() {
