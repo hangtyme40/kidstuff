@@ -1433,11 +1433,17 @@ async function flushOfflineQueue() {
 // ── LESSON HISTORY SYSTEM ────────────────────────────────
 // History now lives inside state.lessonHistory so it syncs with everything else
 
+function getLocalDateStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
 function recordLessonHistory(kidId, subjectId, pct, coins, correct, total, elapsedMin, levelIdx) {
   if (!state.lessonHistory) state.lessonHistory = {};
   if (!state.lessonHistory[kidId]) state.lessonHistory[kidId] = [];
+  const localDate = getLocalDateStr(); // local date — won't shift to next day for evening lessons
   const entry = {
-    date: new Date().toISOString().slice(0,10),
+    date: localDate,
     dateDisplay: new Date().toLocaleDateString(),
     subject: subjectId,
     score: pct,
@@ -1452,8 +1458,11 @@ function recordLessonHistory(kidId, subjectId, pct, coins, correct, total, elaps
   // Trim to HISTORY_DAYS days
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - HISTORY_DAYS);
-  const cutoffStr = cutoff.toISOString().slice(0,10);
-  state.lessonHistory[kidId] = state.lessonHistory[kidId].filter(e => e.date >= cutoffStr);
+  const cutoffStr = getLocalDateStr.call({}, cutoff); // use local date for cutoff too
+  // Actually just use simple comparison
+  const cutoffDate = new Date(); cutoffDate.setDate(cutoffDate.getDate() - HISTORY_DAYS);
+  const cutoffStr2 = cutoffDate.getFullYear() + '-' + String(cutoffDate.getMonth()+1).padStart(2,'0') + '-' + String(cutoffDate.getDate()).padStart(2,'0');
+  state.lessonHistory[kidId] = state.lessonHistory[kidId].filter(e => e.date >= cutoffStr2);
   // Update pace data for this kid/day
   updatePaceData(kidId, elapsedMin || 0);
   saveState();
@@ -1497,16 +1506,13 @@ function updateAdaptiveQuestionCount(kidId) {
 function updatePaceData(kidId, elapsedMin) {
   if (!state.paceData) state.paceData = {};
   if (!state.paceData[kidId]) state.paceData[kidId] = {};
-  const today = new Date().toISOString().slice(0,10);
-  // Only record if the lesson actually took meaningful time (>1 min)
-  // to prevent quick test lessons from dragging the average down
+  const today = getLocalDateStr(); // local date
   if (elapsedMin > 0) {
     state.paceData[kidId][today] = (state.paceData[kidId][today] || 0) + elapsedMin;
   }
-  // Trim to window
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - PACE_WINDOW_DAYS);
-  const cutoffStr = cutoff.toISOString().slice(0,10);
+  const cutoffStr = cutoff.getFullYear() + '-' + String(cutoff.getMonth()+1).padStart(2,'0') + '-' + String(cutoff.getDate()).padStart(2,'0');
   Object.keys(state.paceData[kidId]).forEach(function(d) {
     if (d < cutoffStr) delete state.paceData[kidId][d];
   });
@@ -2656,7 +2662,10 @@ function studentLogin() {
   }
 }
 
-function getTodayKey() { return new Date().toDateString(); }
+function getTodayKey() {
+  // Use local date string to avoid UTC timezone shift for evening lessons
+  return getLocalDateStr();
+}
 
 // ── DAY SCHEDULE ─────────────────────────────────────────
 // Day A (Mon/Wed/Fri/Sat = even dow): Math + Spelling
@@ -2675,8 +2684,8 @@ function getTodaySchedule() {
 }
 
 function getScheduleForDow(dow) {
-  if (dow === 0) return { isRest: true, subjects: [] };
-  const isDayA = (dow % 2 === 1) || dow === 6;
+  if (dow === 0) return { isRest: true, subjects: [] }; // Sunday = rest
+  const isDayA = (dow % 2 === 1) || dow === 6; // Mon, Wed, Fri, Sat = Day A
   return { isRest: false, subjects: isDayA ? ['spelling','math'] : ['reading','writing'] };
 }
 
@@ -6467,6 +6476,47 @@ function runMigrations() {
         pushKidData(k.id).catch(function(e){ console.warn('Date norm push:', e); });
       });
     }, 2000);
+  }
+
+  // One-time fix: correct entries where date (UTC) doesn't match dateDisplay (local)
+  // This happens for evening lessons done after 8pm ET which shift to next day in UTC
+  if (!state._tzFixed) {
+    function _normDateMig2(str) {
+      if (!str) return str;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+      const m1 = String(str).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (m1) return m1[3] + '-' + m1[1].padStart(2,'0') + '-' + m1[2].padStart(2,'0');
+      const months = {Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};
+      const m2 = String(str).match(/^[A-Za-z]{3}\s+([A-Za-z]{3})\s+(\d{1,2})\s+(\d{4})$/);
+      if (m2) return m2[3] + '-' + (months[m2[1]]||'01') + '-' + m2[2].padStart(2,'0');
+      return str;
+    }
+    let tzChanged = false;
+    Object.keys(state.lessonHistory || {}).forEach(function(kidId) {
+      (state.lessonHistory[kidId] || []).forEach(function(e) {
+        if (!e.dateDisplay) return;
+        const displayISO = _normDateMig2(e.dateDisplay);
+        // If the ISO date stored is one day ahead of the display date, fix it
+        if (displayISO && displayISO !== e.date && displayISO.length === 10) {
+          const storedD = new Date(e.date);
+          const displayD = new Date(displayISO);
+          const diffDays = Math.round((storedD - displayD) / 86400000);
+          if (diffDays === 1) { // exactly one day off — timezone shift
+            e.date = displayISO;
+            tzChanged = true;
+          }
+        }
+      });
+    });
+    state._tzFixed = true;
+    if (tzChanged) {
+      localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+      setTimeout(function() {
+        state.kids.forEach(function(k) {
+          pushKidData(k.id).catch(function(e){ console.warn('TZ fix push:', e); });
+        });
+      }, 1500);
+    }
   }
 
   // One-time fix: remove zero-duration entries from paceData that drag the average down
