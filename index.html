@@ -1438,6 +1438,21 @@ function getLocalDateStr() {
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
+// Check if a stored date value matches today — handles ISO, toDateString(), and MM/DD/YYYY formats
+function isToday(dateVal) {
+  if (!dateVal) return false;
+  const today = getTodayKey();
+  if (dateVal === today) return true;
+  // toDateString() format: "Sun Apr 26 2026"
+  const months = {Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};
+  const m1 = String(dateVal).match(/^[A-Za-z]{3}\s+([A-Za-z]{3})\s+(\d{1,2})\s+(\d{4})$/);
+  if (m1) return m1[3] + '-' + (months[m1[1]]||'01') + '-' + m1[2].padStart(2,'0') === today;
+  // MM/DD/YYYY format
+  const m2 = String(dateVal).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m2) return m2[3] + '-' + m2[1].padStart(2,'0') + '-' + m2[2].padStart(2,'0') === today;
+  return false;
+}
+
 function recordLessonHistory(kidId, subjectId, pct, coins, correct, total, elapsedMin, levelIdx) {
   if (!state.lessonHistory) state.lessonHistory = {};
   if (!state.lessonHistory[kidId]) state.lessonHistory[kidId] = [];
@@ -2834,7 +2849,7 @@ function _renderKidDashboardInner() {
     const timerMins = state.lessonTimers || {spelling:15,math:15,reading:15,writing:15};
 
     subjects.forEach(function(subjectId) {
-      const p = progress[subjectId]; const d = p && p.date === todayKey;
+      const p = progress[subjectId]; const d = p && isToday(p.date);
       if(d && !redoNotice) done++;
       const locked = d && !isUnlockedToday(currentKidId, subjectId) && !redoNotice;
       const redoLocked = redoNotice && subjectId !== 'writing';
@@ -3049,7 +3064,7 @@ async function startLesson(subjectId) {
 
   // Check if locked (completed today and not unlocked)
   const prog = (state.progress[currentKidId]||{})[subjectId];
-  const doneToday = prog && prog.date === getTodayKey();
+  const doneToday = prog && isToday(prog.date);
   if (doneToday && !isUnlockedToday(currentKidId, subjectId)) {
     showLockedModal({id:subjectId,name:_safeName(levelData.name),icon}, prog);
     return;
@@ -3471,11 +3486,14 @@ function getSpellingHint(word) {
 function checkSpelling(word) {
   const input = document.getElementById('spell-input');
   const val = (input.value||'').trim().toLowerCase();
+  // Disable input and hide check button immediately to prevent double submission
+  const checkBtn = document.getElementById('check-btn');
+  if (checkBtn) checkBtn.style.display = 'none';
+  input.disabled = true;
   const ok = val === word.toLowerCase();
   input.className = 'answer-input ' + (ok?'correct':'wrong');
   if (ok) {
     showFeedback(true, '✅ Correct! Great spelling!');
-    document.getElementById('check-btn').style.display='none';
     recordAnswer(true); showNextBtn();
   } else {
     if (lessonState) {
@@ -3493,7 +3511,6 @@ function checkSpelling(word) {
       document.getElementById('hint-reveal-btn').onclick = function() {
         fb.className = 'feedback-box wrong';
         fb.textContent = '❌ Correct spelling: "' + word + '"';
-        document.getElementById('check-btn').style.display='none';
         recordAnswer(false); showNextBtn();
       };
     }
@@ -4012,11 +4029,14 @@ function answersMatch(val, answer) {
 function checkTyped(answer) {
   const input = document.getElementById('typed-input');
   const val = (input.value||'').trim();
+  // Disable immediately to prevent double submission
+  const checkBtn = document.getElementById('check-btn');
+  if (checkBtn) checkBtn.style.display = 'none';
+  input.disabled = true;
   const ok = answersMatch(val, answer);
   input.className = 'answer-input ' + (ok?'correct':'wrong');
   if (ok) {
     showFeedback(true, '✅ Correct!');
-    document.getElementById('check-btn').style.display='none';
     recordAnswer(true); showNextBtn();
   } else {
     if (lessonState) {
@@ -4033,7 +4053,6 @@ function checkTyped(answer) {
       document.getElementById('hint-reveal-btn').onclick = function() {
         fb.className = 'feedback-box wrong';
         fb.textContent = '❌ Correct answer: ' + answer;
-        document.getElementById('check-btn').style.display='none';
         recordAnswer(false); showNextBtn();
       };
     }
@@ -4253,7 +4272,7 @@ function finishLesson() {
     return;
   }
 
-  const alreadyDone = state.progress[currentKidId][ls.subjectId] && state.progress[currentKidId][ls.subjectId].date === getTodayKey();
+  const alreadyDone = state.progress[currentKidId][ls.subjectId] && isToday(state.progress[currentKidId][ls.subjectId].date);
   // New Brain Bucks formula: 2 for 100%, 1 for 80%+, 0 otherwise
   // Writing is pending parent approval — coins awarded at approval instead
   const isWriting = ls.subjectType === 'writing';
@@ -4343,7 +4362,7 @@ function finishLesson() {
   // Check if all subjects are done today — trigger celebration
   const schedule = getTodaySchedule();
   const allDoneNow = !alreadyDone && schedule.subjects.every(function(s) {
-    return state.progress[currentKidId] && state.progress[currentKidId][s] && state.progress[currentKidId][s].date === getTodayKey();
+    return state.progress[currentKidId] && state.progress[currentKidId][s] && isToday(state.progress[currentKidId][s].date);
   });
   if (allDoneNow) {
     setTimeout(function() {
@@ -5118,9 +5137,28 @@ function renderProgressOverview() {
       card.innerHTML += '<div class="empty-state"><p>No lesson history yet.</p></div>';
     } else {
       // Today's completed lessons with delete option
-      const todayKey = getTodayKey();
+      const todayKey = getTodayKey(); // local ISO date e.g. "2026-04-26"
       const todayProg = state.progress[k.id] || {};
-      const todayEntries = Object.entries(todayProg).filter(function(e) { return e[1].date === todayKey; });
+      // Normalize progress dates — old entries used toDateString(), new use ISO
+      function progDateMatches(dateVal) {
+        if (!dateVal) return false;
+        if (dateVal === todayKey) return true;
+        // Handle old toDateString format e.g. "Sun Apr 26 2026"
+        const months = {Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};
+        const m = String(dateVal).match(/^[A-Za-z]{3}\s+([A-Za-z]{3})\s+(\d{1,2})\s+(\d{4})$/);
+        if (m) {
+          const iso = m[3] + '-' + (months[m[1]]||'01') + '-' + m[2].padStart(2,'0');
+          return iso === todayKey;
+        }
+        // Handle MM/DD/YYYY
+        const m2 = String(dateVal).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (m2) {
+          const iso = m2[3] + '-' + m2[1].padStart(2,'0') + '-' + m2[2].padStart(2,'0');
+          return iso === todayKey;
+        }
+        return false;
+      }
+      const todayEntries = Object.entries(todayProg).filter(function(e) { return progDateMatches(e[1].date); });
       if (todayEntries.length) {
         const todayDiv = document.createElement('div');
         todayDiv.style.cssText = 'margin-bottom:16px;';
@@ -6618,7 +6656,7 @@ function clearStaleLiveLessons() {
     const sched = getScheduleForDow(new Date().getDay());
     const allDone = !sched.isRest && sched.subjects && sched.subjects.length > 0 &&
       sched.subjects.every(function(s) {
-        return prog[s] && prog[s].date === getTodayKey();
+        return prog[s] && isToday(prog[s].date);
       });
     if (isStale || allDone) {
       state.liveLesson[k.id] = null;
