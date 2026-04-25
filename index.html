@@ -3167,27 +3167,38 @@ async function generateLessonQuestions(kidId, subjectId, type, levelData, bonusT
 
   let prompt = '';
   const qCount = getAdaptiveQuestionCount(kidId);
-  const readingQCount = Math.max(4, Math.round(qCount * 0.8)); // reading slightly fewer since they read a passage too
+  const readingQCount = Math.max(4, Math.round(qCount * 0.8));
+  const kid2 = state.kids.find(k=>k.id===kidId) || {};
+  const gradeNum = kid2.grade !== undefined ? parseInt(kid2.grade) : 3;
+  const gradeLabel = GRADE_LABELS[gradeNum] || 'Grade 3';
+  const gradeLine = `Student grade: ${gradeLabel}. All content — vocabulary, sentence complexity, and concepts — must be appropriate for a typical ${gradeLabel} student in a US public school (Cobb County, GA). Do NOT use words or concepts above grade level.`;
+
   if (type === 'spelling') {
-    prompt = `Generate ${qCount} spelling words for a student practicing "${levelName}" (${levelDesc}).
+    prompt = `Generate ${qCount} spelling words for a ${gradeLabel} student practicing "${levelName}" (${levelDesc}).
 Difficulty: ${diffName}. Student: ${kid.name}.${topicNote}${wrongContext}
+${gradeLine}
+Use common, frequently-tested words a ${gradeLabel} student would encounter in class or on state assessments — similar to words in the Wonders reading program. Avoid rare, obscure, or adult vocabulary.
 Return ONLY valid JSON array, no markdown:
 [{"word":"WORD","hint":"A natural example sentence using the word, like a teacher would say in a spelling test. Example: for 'pet' return 'I have a pet dog at home.' For 'cake' return 'She baked a birthday cake for her friend.' The sentence must use the word naturally."},...]
-Use ${qCount} real age-appropriate words that fit the pattern "${levelName}". No placeholder text. Every hint must be a complete sentence that uses the word.`;
+Use ${qCount} real grade-appropriate words that fit the pattern "${levelName}". No placeholder text. Every hint must be a complete sentence that uses the word.`;
 
   } else if (type === 'math') {
     const mcCount = Math.ceil(qCount / 2);
     const typedCount = qCount - mcCount;
-    prompt = `Generate ${qCount} math questions for a student practicing "${levelName}" (${levelDesc}).
+    prompt = `Generate ${qCount} math questions for a ${gradeLabel} student practicing "${levelName}" (${levelDesc}).
 Difficulty: ${diffName}. Student: ${kid.name}.${topicNote}${wrongContext}
+${gradeLine}
+Numbers, operations, and problem complexity must match ${gradeLabel} expectations. Do not use concepts from higher grade levels.
 Mix of multiple choice and typed answer questions.
 Return ONLY valid JSON array, no markdown:
 [{"type":"mc","question":"REAL MATH QUESTION","options":["A","B","C","D"],"answer":"A"},{"type":"typed","question":"REAL MATH QUESTION","answer":"ANSWER"},...]
 Use exactly ${mcCount} mc and ${typedCount} typed questions. All content must be real math problems for "${levelName}". No placeholder text. Use actual numbers and symbols (use x for multiplication, / for division).`;
 
   } else if (type === 'reading') {
-    prompt = `Generate a reading comprehension lesson for a student practicing "${levelName}" (${levelDesc}).
+    prompt = `Generate a reading comprehension lesson for a ${gradeLabel} student practicing "${levelName}" (${levelDesc}).
 Difficulty: ${diffName}. Student: ${kid.name}.${topicNote}${wrongContext}
+${gradeLine}
+The story and questions must use vocabulary and sentence structures appropriate for ${gradeLabel}. Questions should match the comprehension skills expected at this grade level.
 
 First write one complete, engaging short story (8-12 sentences). Then write ${readingQCount} multiple choice questions about it.
 Each question should reference a specific part of the story.
@@ -3216,17 +3227,18 @@ Rules:
     const avoidNote = recentWritingPrompts.length
       ? '\nAvoid these recent prompts: ' + recentWritingPrompts.map(p => '"' + p.slice(0,50) + '"').join(', ')
       : '';
-    prompt = `Generate a writing prompt for ${kid.name}, a student practicing "${levelName}" (${levelDesc}).
-Grade level context: ${GRADE_LABELS[getCurrentGradeLevel(kidId,'writing').grade] || 'Grade 3'}.
+    prompt = `Generate a writing prompt for ${kid.name}, a ${gradeLabel} student practicing "${levelName}" (${levelDesc}).
+${gradeLine}
 Difficulty: ${diffName}.${avoidNote}
 The prompt must be a CLEAR, SINGLE INSTRUCTION — NOT a story starter or opening sentence.
 Good: "Write 4-6 sentences about your favorite animal. Include what it looks like, where it lives, and why you like it."
 Bad: "After discovering a mysterious box..." (story starter, not an instruction)
+The expected length and complexity of the response should match what a typical ${gradeLabel} student can reasonably write.
 Personalize it slightly for ${kid.name} — make it feel like it was written just for them.
 IMPORTANT: Return ONE prompt only. Do NOT include any additional instructions, sentence count reminders, or sub-text below the main prompt. The prompt itself should contain all guidance.
 Return ONLY valid JSON, no markdown:
 {"prompt":"WRITING INSTRUCTION HERE"}
-Make it fun, creative, age-appropriate, and specific about what and how much to write.`;
+Make it fun, creative, grade-appropriate, and specific about what and how much to write.`;
   }
 
   if (!WORKER_URL || WORKER_URL.includes('YOUR-SUBDOMAIN')) {
