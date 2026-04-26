@@ -1823,14 +1823,13 @@ function pushState() {
 function saveState() {
   localStorage.setItem('kidstuff_cache', JSON.stringify(state));
   updateParentBadge();
-  clearTimeout(syncTimer);
   if (!isOnline) {
     offlineQueue.push(pushState);
     return;
   }
-  // Suppress realtime listener for 5s after our push so it doesn't re-pull our own changes
+  // Push immediately — no debounce — so all changes reach Firebase right away
   _suppressRealtimeUntil = Date.now() + 5000;
-  syncTimer = setTimeout(pushState, 800);
+  pushState();
 }
 
 let _realtimeES = null;
@@ -6001,6 +6000,7 @@ function excuseKidDay() {
     state.excusedToday[kidId] = today;
   }
   saveState();
+  reversePenaltyIfNeeded(kidId, dateVal); // reverse any penalty already applied for this day
   const kid = state.kids.find(k=>k.id===kidId);
   const displayDate = new Date(dateVal + 'T12:00:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});
   showToast('🤒 ' + (kid?kid.name:kidId) + ' excused for ' + displayDate + ' — streak protected.');
@@ -6326,72 +6326,88 @@ function checkPerfectWeek(kidId) {
 
 function checkIncompleteWeekPenalty(kidId) {
   if (kidId === 'tester') return;
-  const today = new Date();
-  const dow = today.getDay(); // 0=Sun, 1=Mon, ...6=Sat
+  const now = new Date();
+  const today = getLocalDateStr();
 
-  // Determine which week to evaluate:
-  // - Sunday or Monday: check the week that just ended (Mon-Sat)
-  // - Saturday after 8pm: check the current week (may be incomplete)
-  // - Any other day: nothing to evaluate yet
-  let checkDate;
-  if (dow === 0 && today.getHours() >= 23 && today.getMinutes() >= 30) {
-    // Sunday at 11:30pm or later — week is definitively done
-    checkDate = new Date(today.getTime() - 86400000); // yesterday = Saturday
-  } else if (dow === 1) {
-    // Monday — safety net for anyone who didn't open app Sunday night
-    checkDate = new Date(today.getTime() - 2 * 86400000); // Saturday
-  } else if (dow === 6 && today.getHours() >= 23 && today.getMinutes() >= 30) {
-    // Saturday at 11:30pm — week is done
-    checkDate = today;
-  } else {
-    return; // too early to evaluate
-  }
+  // Only run at 12:01am or later
+  if (now.getHours() === 0 && now.getMinutes() < 1) return;
 
+  // Initialize tracking
+  if (!state.penalizedDays) state.penalizedDays = {};
+  if (!state.penalizedDays[kidId]) state.penalizedDays[kidId] = [];
   if (!state.incompleteWeekPenalized) state.incompleteWeekPenalized = {};
-  const weekStart = getWeekStart(checkDate);
+
+  const weekStart = getWeekStart(now);
   const weekKey = weekStart.toISOString().slice(0,10);
 
-  // Already handled this week
+  // Already penalized this week — only one deduction per week
   if (state.incompleteWeekPenalized[kidId] === weekKey) return;
-  // Perfect week already claimed — mark as handled, no penalty
+  // Perfect week claimed — no penalty
   if ((state.perfectWeekClaimed||{})[kidId] === weekKey) {
-    state.incompleteWeekPenalized[kidId] = weekKey; saveState(); return;
+    state.incompleteWeekPenalized[kidId] = weekKey;
+    saveState(); return;
   }
 
   const history = (state.lessonHistory && state.lessonHistory[kidId]) || [];
-  let requiredDays = 0, completedDays = 0;
+
+  // Check each required day from Monday through yesterday
   for (let i = 0; i < 6; i++) {
     const day = new Date(weekStart);
     day.setDate(weekStart.getDate() + i);
-    if (day > today) break; // don't evaluate future days
-    const dateStr = day.toISOString().slice(0,10);
-    const excused = isUSFederalHoliday(day) || state.vacationMode || isKidExcused(kidId, dateStr);
-    if (excused) { requiredDays++; completedDays++; continue; }
-    requiredDays++;
+    const dayStr = day.getFullYear() + '-' + String(day.getMonth()+1).padStart(2,'0') + '-' + String(day.getDate()).padStart(2,'0');
+    if (dayStr >= today) break; // don't evaluate today or future
+
     const sched = getScheduleForDow(day.getDay());
-    if (sched.isRest) { completedDays++; continue; }
-    const dayEntries = history.filter(function(e) { return e.date === dateStr; });
-    if (sched.subjects.every(function(s){ return dayEntries.some(function(e){ return e.subject===s; }); })) completedDays++;
+    if (sched.isRest) continue;
+
+    const excused = isUSFederalHoliday(day) || state.vacationMode || isKidExcused(kidId, dayStr);
+    if (excused) continue;
+
+    // Skip day used — no penalty for this day
+    const skipDays = (state.skipDay && state.skipDay[kidId]) || 0;
+    if (skipDays > 0) continue;
+
+    // Already penalized this specific day
+    if (state.penalizedDays[kidId].includes(dayStr)) continue;
+
+    const dayEntries = history.filter(function(e) { return e.date === dayStr && !e.subject.endsWith('_bonus'); });
+    const complete = sched.subjects.every(function(s) { return dayEntries.some(function(e) { return e.subject === s; }); });
+
+    if (!complete) {
+      const kid = state.kids.find(function(k){ return k.id===kidId; });
+      if (kid) {
+        kid.coins = Math.max(0, kid.coins - INCOMPLETE_WEEK_PENALTY);
+        stampCoins(kidId);
+        state.penalizedDays[kidId].push(dayStr);
+        state.incompleteWeekPenalized[kidId] = weekKey;
+        saveState();
+        setTimeout(function() {
+          showToast('📉 ' + (kid.name||kidId) + ' missed ' + dayStr + ' — ' + INCOMPLETE_WEEK_PENALTY + ' 🧠 Brain Bucks deducted.');
+        }, 1200);
+      }
+      return; // one deduction per week max
+    }
   }
+}
 
-  // Mark as evaluated regardless of outcome (prevents re-running)
-  state.incompleteWeekPenalized[kidId] = weekKey;
-
-  if (requiredDays > 0 && completedDays >= requiredDays) {
-    saveState(); return; // completed the week — no penalty
-  }
-
+// Reverse a penalty when a skip day or excuse is granted retroactively
+function reversePenaltyIfNeeded(kidId, dateStr) {
+  if (!state.penalizedDays || !state.penalizedDays[kidId]) return;
+  const idx = state.penalizedDays[kidId].indexOf(dateStr);
+  if (idx === -1) return;
   const kid = state.kids.find(function(k){ return k.id===kidId; });
-  if (kid) {
-    kid.coins -= INCOMPLETE_WEEK_PENALTY;
-    stampCoins(kidId);
-    saveState();
-    // Force-push kid data immediately so the deduction reaches all devices
-    pushKidData(kidId).catch(function(e){ console.warn('Penalty push error:', e); });
-    setTimeout(function() {
-      showToast('📉 Incomplete week — ' + INCOMPLETE_WEEK_PENALTY + ' 🧠 Brain Bucks deducted for ' + (kid.name||kidId) + '.');
-    }, 1200);
+  if (!kid) return;
+  state.penalizedDays[kidId].splice(idx, 1);
+  // Clear weekly guard so week re-evaluates
+  const day = new Date(dateStr);
+  const weekKey = getWeekStart(day).toISOString().slice(0,10);
+  if (state.incompleteWeekPenalized[kidId] === weekKey) {
+    delete state.incompleteWeekPenalized[kidId];
   }
+  kid.coins += INCOMPLETE_WEEK_PENALTY;
+  stampCoins(kidId);
+  saveState();
+  showToast('↩️ Penalty reversed for ' + (kid.name||kidId) + ' — ' + INCOMPLETE_WEEK_PENALTY + ' 🧠 Brain Bucks restored.');
 }
 
 function grantSkipDay(kidId) {
@@ -6399,12 +6415,58 @@ function grantSkipDay(kidId) {
   if (!state.skipDay[kidId]) state.skipDay[kidId] = 0;
   state.skipDay[kidId]++;
   saveState();
+  // Reverse penalty for the most recently penalized day for this kid
+  const penalized = state.penalizedDays && state.penalizedDays[kidId];
+  if (penalized && penalized.length > 0) {
+    const lastPenalizedDay = penalized[penalized.length - 1];
+    reversePenaltyIfNeeded(kidId, lastPenalizedDay);
+  }
   const kid = state.kids.find(k => k.id === kidId);
   showToast('✅ Skip day granted to ' + (kid ? kid.name : kidId) + '!');
   renderParentDashboard();
 }
 
-// ── INIT ────────────────────────────────────────────────
+// ── APP RESUME / VISIBILITY ──────────────────────────────
+// When the iPad is unlocked or the app comes back to foreground,
+// check if it's a new day and reset stale lesson screens
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden) return; // app going to background — nothing to do
+  // App just came to foreground
+  const activeScreen = document.querySelector('.screen.active');
+  if (!activeScreen) return;
+  const activeId = activeScreen.id;
+  // If on lesson or results screen, check if it's stale (from a previous day)
+  if (activeId === 'screen-lesson' || activeId === 'screen-results') {
+    const lessonDate = lessonState && lessonState.startedAt
+      ? new Date(lessonState.startedAt).toISOString().slice(0,10)
+      : null;
+    const today = getLocalDateStr();
+    if (!lessonDate || lessonDate !== today) {
+      // Stale lesson from yesterday — clear and go back to kid dashboard
+      stopLessonTimer();
+      if (state.liveLesson && currentKidId) {
+        state.liveLesson[currentKidId] = null;
+        try { fbSet(getFamilyPath('kids/' + currentKidId + '/liveLesson'), null); } catch(_){}
+      }
+      lessonState = null;
+      showScreen('screen-kid');
+      pullState().then(renderKidDashboard).catch(function(){});
+      showToast('👋 Welcome back! Starting fresh for today.');
+      return;
+    }
+  }
+  // Always pull fresh state when app resumes
+  if (activeId === 'screen-parent') {
+    pullState().then(function() {
+      renderParentKidSummary();
+      updateTabBadges();
+    }).catch(function(){});
+  } else if (activeId === 'screen-kid') {
+    pullState().then(renderKidDashboard).catch(function(){});
+  } else if (activeId === 'screen-kid-select') {
+    pullState().then(renderKidSelect).catch(function(){});
+  }
+});
 // ── DEV MODE: wipe progress on every load ───────────────
 // Set DEV_MODE = false when going to production
 const DEV_MODE = false;
