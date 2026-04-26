@@ -872,7 +872,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     </button>
     <button class="bnav-btn" id="bnav-review" onclick="switchParentTab('tab-review',this)" style="position:relative;">
       <span style="font-size:20px">✍️</span><span class="bnav-label">Review</span>
-      <span id="bnav-review-badge" style="display:none;position:absolute;top:6px;right:8px;background:#EF4444;color:white;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:800;align-items:center;justify-content:center;line-height:18px;text-align:center;"></span>
+      <span id="bnav-review-badge" style="display:none;position:absolute;top:5px;right:6px;background:#EF4444;color:white;border-radius:50%;min-width:18px;height:18px;font-size:10px;font-weight:800;line-height:18px;text-align:center;padding:0 3px;box-sizing:border-box;"></span>
     </button>
     <button class="bnav-btn" id="bnav-kids" onclick="switchParentTab('tab-kids',this)">
       <span style="font-size:20px">👧</span><span class="bnav-label">Kids</span>
@@ -1860,7 +1860,10 @@ function startRealtimeListener() {
         pullState().then(function() {
           const parent = document.getElementById('screen-parent');
           const kid = document.getElementById('screen-kid');
-          if (parent && parent.classList.contains('active')) renderParentDashboard();
+          if (parent && parent.classList.contains('active')) {
+            renderParentKidSummary();
+            updateTabBadges(); // refresh badge after realtime pull
+          }
           if (kid && kid.classList.contains('active')) renderKidDashboard();
         }).catch(e => console.warn('Realtime pull error:', e));
       }, 1200);
@@ -2165,6 +2168,8 @@ async function afterParentLogin() {
   await initSync();
   showScreen('screen-parent');
   renderParentDashboard();
+  // Refresh badge after Firebase pull completes (async)
+  setTimeout(updateTabBadges, 2500);
 }
 
 function doLogout() {
@@ -2372,9 +2377,7 @@ function updateTabBadges() {
   const badge = document.getElementById('bnav-review-badge');
   if (badge) {
     badge.textContent = total > 0 ? String(total) : '';
-    badge.style.display = total > 0 ? 'flex' : 'none';
-    badge.style.alignItems = 'center';
-    badge.style.justifyContent = 'center';
+    badge.style.display = total > 0 ? 'inline-block' : 'none';
   }
   updateParentBadge();
 }
@@ -2996,17 +2999,23 @@ function redeemReward(id) {
   const kid = state.kids.find(k => k.id === currentKidId);
   if (!r || !kid || kid.coins < r.cost) return;
   kid.coins -= r.cost;
-  stampCoins(currentKidId);
+  stampCoins(currentKidId); // fresh timestamp so this deduction wins the merge
   state.redemptionQueue.push({
     id: 'rq' + Date.now(),
     kidId: currentKidId,
     rewardName: r.name,
     rewardEmoji: r.emoji,
     cost: r.cost,
-    date: new Date().toLocaleDateString(),
+    date: getLocalDateStr(),
     status: 'pending'
   });
-  saveState(); playSound('coin'); showToast('🎁 Redeemed: ' + r.name + '! Your parent has been notified.'); renderKidDashboard();
+  // Save locally first, then push both kid data and shared immediately
+  localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+  pushKidData(currentKidId).catch(function(e){ console.warn('Redemption push error:', e); });
+  pushSharedData().catch(function(e){ console.warn('Redemption shared push error:', e); });
+  playSound('coin');
+  showToast('🎁 Redeemed: ' + r.name + '! Your parent has been notified.');
+  renderKidDashboard();
 }
 
 // ── LESSON ENGINE ────────────────────────────────────────
@@ -6325,17 +6334,17 @@ function checkIncompleteWeekPenalty(kidId) {
   // - Saturday after 8pm: check the current week (may be incomplete)
   // - Any other day: nothing to evaluate yet
   let checkDate;
-  if (dow === 0) {
-    // Sunday — check Mon-Sat of the week that just ended
+  if (dow === 0 && today.getHours() >= 23 && today.getMinutes() >= 30) {
+    // Sunday at 11:30pm or later — week is definitively done
     checkDate = new Date(today.getTime() - 86400000); // yesterday = Saturday
   } else if (dow === 1) {
-    // Monday — catch anyone who didn't log in over the weekend
+    // Monday — safety net for anyone who didn't open app Sunday night
     checkDate = new Date(today.getTime() - 2 * 86400000); // Saturday
-  } else if (dow === 6 && today.getHours() >= 20) {
-    // Saturday after 8pm — week is effectively done
+  } else if (dow === 6 && today.getHours() >= 23 && today.getMinutes() >= 30) {
+    // Saturday at 11:30pm — week is done
     checkDate = today;
   } else {
-    return; // too early in the week to evaluate
+    return; // too early to evaluate
   }
 
   if (!state.incompleteWeekPenalized) state.incompleteWeekPenalized = {};
