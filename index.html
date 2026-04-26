@@ -5374,8 +5374,8 @@ function adjustCoins() {
   const amt=parseInt(document.getElementById('coin-adjust').value)||0;
   const kid=state.kids.find(k=>k.id===kidId);
   if (!kid) return;
-  kid.coins=Math.max(0,kid.coins+amt);
-  stampCoins(kidId); // update timestamp so this value wins on next sync
+  kid.coins = kid.coins + amt; // no floor — parent can set negative balance intentionally
+  stampCoins(kidId);
   saveState(); document.getElementById('coin-adjust').value='';
   showToast('✅ Brain Bucks updated!'); renderParentKidSummary();
 }
@@ -5398,7 +5398,7 @@ function resetProgress() {
       if (prog[subj].date === todayKey) {
         // Deduct coins earned today from this lesson
         const kid = state.kids.find(k=>k.id===id);
-        if (kid) kid.coins = Math.max(0, kid.coins - (prog[subj].coins||0));
+        if (kid) kid.coins = kid.coins - (prog[subj].coins||0);
         delete prog[subj];
       }
     });
@@ -5873,7 +5873,7 @@ function deleteCompletedLesson(kidId, subjectId) {
   if (prog) {
     // Deduct coins
     const kid = state.kids.find(k => k.id === kidId);
-    if (kid && prog.coins) kid.coins = Math.max(0, kid.coins - prog.coins);
+    if (kid && prog.coins) kid.coins = kid.coins - prog.coins;
     // Remove progress
     delete state.progress[kidId][subjectId];
     // Remove from streak (pop last entry)
@@ -6376,7 +6376,7 @@ function checkIncompleteWeekPenalty(kidId) {
     if (!complete) {
       const kid = state.kids.find(function(k){ return k.id===kidId; });
       if (kid) {
-        kid.coins = Math.max(0, kid.coins - INCOMPLETE_WEEK_PENALTY);
+        kid.coins = kid.coins - INCOMPLETE_WEEK_PENALTY;
         stampCoins(kidId);
         state.penalizedDays[kidId].push(dayStr);
         state.incompleteWeekPenalized[kidId] = weekKey;
