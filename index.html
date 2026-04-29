@@ -859,6 +859,16 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
           <button class="btn-primary" style="background:#7A859E;flex:1" onclick="resetAllData()">Reset All</button>
         </div>
       </div>
+      <!-- Brain Bucks Audit (admin only) -->
+      <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border);margin-bottom:14px">
+        <div style="font-weight:800;font-size:16px;margin-bottom:4px">🧠 Brain Bucks Audit</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Full transaction history for any kid.</div>
+        <div class="form-row" style="margin-bottom:12px">
+          <label>Select Kid</label>
+          <select id="audit-kid-select" onchange="renderCoinAudit()" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"></select>
+        </div>
+        <div id="coin-audit-list"></div>
+      </div>
       <!-- Admin families panel -->
       <div id="admin-panel-content"></div>
     </div>
@@ -1620,7 +1630,7 @@ async function pullState() {
     const parentFields = ['pin','kidPins','rewards','rewardsUpdatedAt','coinMax','lessonTimers','selectedVoice',
                           'difficultyLevel','vacationMode','paceData','adaptiveQ',
                           'perfectWeekClaimed','levelsUpdatedAt','incompleteWeekPenalized','soundsOff','autoAdvance',
-                          'excusedToday','excusedDays','parentMessages'];
+                          'excusedToday','excusedDays','parentMessages','coinLog','penalizedDays'];
     parentFields.forEach(function(f) {
       if (parentData[f] !== undefined) state[f] = parentData[f];
     });
@@ -1798,7 +1808,8 @@ async function pushParentData() {
       autoAdvance: state.autoAdvance === true,
       excusedToday: state.excusedToday || {},
       excusedDays: state.excusedDays || {},
-      parentMessages: state.parentMessages || {}
+      parentMessages: state.parentMessages || {},
+      coinLog: state.coinLog || {}
     };
     await fbSet(getFamilyPath('parent'), parentPayload);
   } catch(e) {
@@ -2379,8 +2390,17 @@ function switchParentTab(tabId, btn) {
     }
   }
   if (tabId === 'tab-admin') {
-    populateKidDropdowns(); // ensure reset-kid-select is populated
+    populateKidDropdowns();
     renderAutoAdvanceToggle(); renderBonusChallengesList(); renderAdminPanel();
+    // Populate audit kid select and render audit
+    const auditSel = document.getElementById('audit-kid-select');
+    if (auditSel && !auditSel.options.length) {
+      const kids = state.kids.filter(function(k){ return k.id !== 'tester'; });
+      auditSel.innerHTML = kids.map(function(k){
+        return '<option value="' + k.id + '">' + k.emoji + ' ' + k.name + '</option>';
+      }).join('');
+    }
+    renderCoinAudit();
   }
 }
 
@@ -2441,6 +2461,51 @@ function saveKidPin(kidId) {
 }
 
 // ── ADMIN PANEL ──────────────────────────────────────────
+function renderCoinAudit() {
+  const sel = document.getElementById('audit-kid-select');
+  const el = document.getElementById('coin-audit-list');
+  if (!sel || !el) return;
+
+  // Populate dropdown if empty
+  if (!sel.options.length) {
+    const kids = state.kids.filter(function(k){ return k.id !== 'tester'; });
+    sel.innerHTML = kids.map(function(k){
+      return '<option value="' + k.id + '">' + k.emoji + ' ' + k.name + '</option>';
+    }).join('');
+  }
+
+  const kidId = sel.value;
+  if (!kidId) { el.innerHTML = ''; return; }
+
+  const kid = state.kids.find(function(k){ return k.id === kidId; });
+  const log = (state.coinLog && state.coinLog[kidId]) || [];
+
+  if (!log.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:14px;padding:8px 0;">No transactions recorded yet. Transactions are recorded going forward from this build.</div>';
+    return;
+  }
+
+  el.innerHTML = '<div style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">'
+    + '<div style="font-size:13px;color:var(--muted);font-weight:700;">' + log.length + ' transactions</div>'
+    + '<div style="font-family:\'Baloo 2\',cursive;font-size:18px;font-weight:800;color:var(--primary);">Balance: 🧠 ' + (kid ? kid.coins : '?') + '</div>'
+    + '</div>'
+    + log.map(function(t) {
+        const isPos = t.amount > 0;
+        const amtColor = isPos ? '#2ECC71' : '#EF4444';
+        const amtStr = (isPos ? '+' : '') + t.amount;
+        const d = new Date(t.ts);
+        const timeStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+        return '<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;">'
+          + '<div style="font-weight:800;color:' + amtColor + ';min-width:36px;text-align:right;">' + amtStr + '</div>'
+          + '<div style="flex:1;">'
+          + '<div style="font-weight:700;">' + t.reason + '</div>'
+          + '<div style="font-size:11px;color:var(--muted);">' + timeStr + '</div>'
+          + '</div>'
+          + '<div style="font-size:12px;color:var(--muted);font-weight:700;white-space:nowrap;">bal: ' + t.balance + '</div>'
+          + '</div>';
+      }).join('');
+}
+
 async function renderAdminPanel() {
   const el = document.getElementById('admin-panel-content');
   if (!el) return;
@@ -3019,6 +3084,7 @@ function redeemReward(id) {
   if (!r || !kid || kid.coins < r.cost) return;
   kid.coins -= r.cost;
   stampCoins(currentKidId); // fresh timestamp so this deduction wins the merge
+  logCoinTransaction(currentKidId, -r.cost, '🎁 Redeemed: ' + r.name, kid.coins);
   state.redemptionQueue.push({
     id: 'rq' + Date.now(),
     kidId: currentKidId,
@@ -4295,7 +4361,7 @@ function finishLesson() {
   if (ls.isBonusChallenge) {
     const bonusCoinsEarned = ls.bonusCoins || 0; // parent-specified flat amount only
     const kid = state.kids.find(function(k){ return k.id === currentKidId; });
-    if (kid && bonusCoinsEarned > 0) { kid.coins += bonusCoinsEarned; stampCoins(currentKidId); }
+    if (kid && bonusCoinsEarned > 0) { kid.coins += bonusCoinsEarned; stampCoins(currentKidId); logCoinTransaction(currentKidId, +bonusCoinsEarned, '⭐ Bonus challenge', kid.coins); }
     const timerSec = Math.min(ls.timerSeconds || 0, ls.timerTotal || 9999);
     const elapsedMin = Math.floor(timerSec / 60);
     recordLessonHistory(currentKidId, ls.subjectId + '_bonus', pct, bonusCoinsEarned, origCorrect, total, elapsedMin, getCurrentLevelIndex(currentKidId, ls.subjectId));
@@ -4348,7 +4414,7 @@ function finishLesson() {
     });
   });
   const kid = state.kids.find(k=>k.id===currentKidId);
-  if (kid && !alreadyDone) { kid.coins += coins; stampCoins(currentKidId); }
+  if (kid && !alreadyDone) { kid.coins += coins; stampCoins(currentKidId); logCoinTransaction(currentKidId, +coins, '📚 ' + ls.subjectName + ' lesson (' + pct + '%)', kid.coins); }
   state.difficultyLevel[currentKidId] = ls.diffLevel;
 
   // ── Kumon advancement logic ──────────────────────────
@@ -4893,7 +4959,7 @@ function resolveFlag(id, award) {
     } else {
       bonusCoins = 1; // fallback if progress not found
     }
-    if (kid && bonusCoins > 0) { kid.coins += bonusCoins; stampCoins(f.kidId); }
+    if (kid && bonusCoins > 0) { kid.coins += bonusCoins; stampCoins(f.kidId); logCoinTransaction(f.kidId, +bonusCoins, '🚩 Flagged question accepted', kid.coins); }
     showToast('✅ Accepted — ' + (bonusCoins > 0 ? bonusCoins + ' 🧠 Brain Buck' + (bonusCoins !== 1 ? 's' : '') + ' awarded to ' : 'no extra Brain Bucks for ') + (kid ? kid.name : 'kid') + '!');
   } else {
     showToast('❌ Marked incorrect — noted for review.');
@@ -4914,6 +4980,7 @@ function approveWriting(id) {
   const alreadyAwarded = writingProg && writingProg.coinsAwarded;
   if (kid && !alreadyAwarded) {
     kid.coins += 2;
+    logCoinTransaction(entry.kidId, 2, '✏️ Writing approved', kid.coins);
     stampCoins(w.kidId);
     if (writingProg) { writingProg.coins = 2; writingProg.coinsAwarded = true; }
   }
@@ -5394,6 +5461,7 @@ function adjustCoins() {
   if (!kid) return;
   kid.coins = kid.coins + amt; // no floor — parent can set negative balance intentionally
   stampCoins(kidId);
+  logCoinTransaction(kidId, amt, '🔧 Parent adjustment', kid.coins);
   saveState(); document.getElementById('coin-adjust').value='';
   showToast('✅ Brain Bucks updated!'); renderParentKidSummary();
 }
@@ -5416,7 +5484,7 @@ function resetProgress() {
       if (prog[subj].date === todayKey) {
         // Deduct coins earned today from this lesson
         const kid = state.kids.find(k=>k.id===id);
-        if (kid) kid.coins = kid.coins - (prog[subj].coins||0);
+        if (kid) { var dAmt = -(prog[subj].coins||0); kid.coins = kid.coins + dAmt; if(dAmt) logCoinTransaction(kidId, dAmt, '🗑️ Lesson deleted: ' + subj, kid.coins); }
         delete prog[subj];
       }
     });
@@ -6337,7 +6405,7 @@ function checkPerfectWeek(kidId) {
   if (requiredDays > 0 && perfectDays >= requiredDays) {
     state.perfectWeekClaimed[kidId] = weekKey;
     const kid = state.kids.find(k=>k.id===kidId);
-    if (kid) { kid.coins += PERFECT_WEEK_BONUS; stampCoins(kidId); saveState(); }
+    if (kid) { kid.coins += PERFECT_WEEK_BONUS; stampCoins(kidId); logCoinTransaction(kidId, +PERFECT_WEEK_BONUS, '🏆 Perfect week bonus', kid.coins); saveState(); }
     setTimeout(function() { launchConfetti(5000); playSound('epic'); showToast('🏆 Perfect Week! +' + PERFECT_WEEK_BONUS + ' 🧠 Bonus Brain Bucks!'); }, 800);
   }
 }
@@ -6396,6 +6464,7 @@ function checkIncompleteWeekPenalty(kidId) {
       if (kid) {
         kid.coins = kid.coins - INCOMPLETE_WEEK_PENALTY;
         stampCoins(kidId);
+        logCoinTransaction(kidId, -INCOMPLETE_WEEK_PENALTY, '📉 Missed day penalty (' + dayStr + ')', kid.coins);
         state.penalizedDays[kidId].push(dayStr);
         state.incompleteWeekPenalized[kidId] = weekKey;
         saveState();
@@ -6424,6 +6493,7 @@ function reversePenaltyIfNeeded(kidId, dateStr) {
   }
   kid.coins += INCOMPLETE_WEEK_PENALTY;
   stampCoins(kidId);
+  logCoinTransaction(kidId, +INCOMPLETE_WEEK_PENALTY, '↩️ Penalty reversed (' + dateStr + ')', kid.coins);
   saveState();
   showToast('↩️ Penalty reversed for ' + (kid.name||kidId) + ' — ' + INCOMPLETE_WEEK_PENALTY + ' 🧠 Brain Bucks restored.');
 }
@@ -6700,6 +6770,21 @@ function runMigrations() {
 function stampCoins(kidId) {
   if (!state.coinsUpdatedAt) state.coinsUpdatedAt = {};
   state.coinsUpdatedAt[kidId] = Date.now();
+}
+
+// Log a Brain Bucks transaction for the audit trail
+function logCoinTransaction(kidId, amount, reason, balanceAfter) {
+  if (!state.coinLog) state.coinLog = {};
+  if (!state.coinLog[kidId]) state.coinLog[kidId] = [];
+  state.coinLog[kidId].unshift({
+    ts: Date.now(),
+    date: getLocalDateStr(),
+    amount: amount,
+    reason: reason,
+    balance: balanceAfter
+  });
+  // Keep last 200 entries per kid
+  if (state.coinLog[kidId].length > 200) state.coinLog[kidId] = state.coinLog[kidId].slice(0, 200);
 }
 
 function renderAutoAdvanceToggle() {
