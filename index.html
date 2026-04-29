@@ -1757,6 +1757,25 @@ async function pushKidData(kidId) {
   }
 }
 
+// Push only kid info (coins, etc.) without overwriting lessonHistory
+// Used from parent dashboard to avoid clobbering history with stale local data
+async function pushKidInfo(kidId) {
+  if (!kidId) return;
+  try {
+    const kid = state.kids.find(k => k.id === kidId);
+    // Only push the fields that the parent legitimately modifies
+    // Never push lessonHistory from parent — only kids push their own history
+    await fbSet(getFamilyPath('kids/' + kidId + '/info'), kid || null);
+    await fbSet(getFamilyPath('kids/' + kidId + '/coinsUpdatedAt'), (state.coinsUpdatedAt || {})[kidId] || 0);
+    await fbSet(getFamilyPath('kids/' + kidId + '/levels'), (state.levels || {})[kidId] || {});
+    await fbSet(getFamilyPath('kids/' + kidId + '/skipDay'), (state.skipDay || {})[kidId] || 0);
+    await fbSet(getFamilyPath('kids/' + kidId + '/unlockedToday'), (state.unlockedToday || {})[kidId] || {});
+    await fbSet(getFamilyPath('kids/' + kidId + '/progress'), (state.progress || {})[kidId] || {});
+  } catch(e) {
+    console.warn('pushKidInfo error:', e);
+  }
+}
+
 // Push parent settings (called from parent dashboard)
 async function pushParentData() {
   try {
@@ -1805,17 +1824,17 @@ async function pushSharedData() {
 // Smart push — pushes the right paths based on who's active
 function pushState() {
   localStorage.setItem('kidstuff_cache', JSON.stringify(state));
-  // Push kid data if a kid is active
   if (currentKidId) {
+    // Kid is active — push full kid data including lesson history
     pushKidData(currentKidId).catch(e => console.warn('Kid push error:', e));
     pushSharedData().catch(e => console.warn('Shared push error:', e));
   } else {
-    // Parent is active — push everything
+    // Parent is active — push parent settings and kid info only
+    // NEVER push full kid data from parent — would overwrite lesson history with stale local data
     pushParentData().catch(e => console.warn('Parent push error:', e));
     pushSharedData().catch(e => console.warn('Shared push error:', e));
-    // Also push all kids' data in case parent made changes (e.g. adjusting coins)
     state.kids.forEach(function(k) {
-      pushKidData(k.id).catch(e => console.warn('Kid push error:', e));
+      pushKidInfo(k.id).catch(e => console.warn('Kid info push error:', e));
     });
   }
 }
@@ -1823,13 +1842,14 @@ function pushState() {
 function saveState() {
   localStorage.setItem('kidstuff_cache', JSON.stringify(state));
   updateParentBadge();
+  clearTimeout(syncTimer);
   if (!isOnline) {
     offlineQueue.push(pushState);
     return;
   }
-  // Push immediately — no debounce — so all changes reach Firebase right away
   _suppressRealtimeUntil = Date.now() + 5000;
-  pushState();
+  // Short debounce — prevents flooding Firebase on rapid changes but still near-instant
+  syncTimer = setTimeout(pushState, 300);
 }
 
 let _realtimeES = null;
