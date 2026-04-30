@@ -2466,28 +2466,28 @@ function renderCoinAudit() {
   const el = document.getElementById('coin-audit-list');
   if (!sel || !el) return;
 
-  // Populate dropdown if empty
-  if (!sel.options.length) {
-    const kids = state.kids.filter(function(k){ return k.id !== 'tester'; });
-    sel.innerHTML = kids.map(function(k){
-      return '<option value="' + k.id + '">' + k.emoji + ' ' + k.name + '</option>';
-    }).join('');
-  }
+  // Always repopulate dropdown so it stays current
+  const kids = state.kids.filter(function(k){ return k.id !== 'tester'; });
+  const currentVal = sel.value;
+  sel.innerHTML = kids.map(function(k){
+    return '<option value="' + k.id + '"' + (k.id === currentVal ? ' selected' : '') + '>' + k.emoji + ' ' + k.name + '</option>';
+  }).join('');
 
   const kidId = sel.value;
   if (!kidId) { el.innerHTML = ''; return; }
 
   const kid = state.kids.find(function(k){ return k.id === kidId; });
+  // coinLog is per-kid — only show this kid's entries
   const log = (state.coinLog && state.coinLog[kidId]) || [];
 
   if (!log.length) {
-    el.innerHTML = '<div style="color:var(--muted);font-size:14px;padding:8px 0;">No transactions recorded yet. Transactions are recorded going forward from this build.</div>';
+    el.innerHTML = '<div style="color:var(--muted);font-size:14px;padding:8px 0;">No transactions recorded yet for ' + (kid ? kid.name : kidId) + '. Transactions are recorded going forward.</div>';
     return;
   }
 
   el.innerHTML = '<div style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">'
-    + '<div style="font-size:13px;color:var(--muted);font-weight:700;">' + log.length + ' transactions</div>'
-    + '<div style="font-family:\'Baloo 2\',cursive;font-size:18px;font-weight:800;color:var(--primary);">Balance: 🧠 ' + (kid ? kid.coins : '?') + '</div>'
+    + '<div style="font-size:13px;color:var(--muted);font-weight:700;">' + log.length + ' transactions · ' + (kid ? kid.name : kidId) + '</div>'
+    + '<div style="font-family:\'Baloo 2\',cursive;font-size:18px;font-weight:800;color:var(--primary);">🧠 ' + (kid ? kid.coins : '?') + '</div>'
     + '</div>'
     + log.map(function(t) {
         const isPos = t.amount > 0;
@@ -2496,12 +2496,12 @@ function renderCoinAudit() {
         const d = new Date(t.ts);
         const timeStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
         return '<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;">'
-          + '<div style="font-weight:800;color:' + amtColor + ';min-width:36px;text-align:right;">' + amtStr + '</div>'
+          + '<div style="font-weight:800;color:' + amtColor + ';min-width:40px;text-align:right;">' + amtStr + '</div>'
           + '<div style="flex:1;">'
           + '<div style="font-weight:700;">' + t.reason + '</div>'
           + '<div style="font-size:11px;color:var(--muted);">' + timeStr + '</div>'
           + '</div>'
-          + '<div style="font-size:12px;color:var(--muted);font-weight:700;white-space:nowrap;">bal: ' + t.balance + '</div>'
+          + '<div style="font-size:12px;color:var(--muted);font-weight:700;white-space:nowrap;">→ ' + t.balance + '</div>'
           + '</div>';
       }).join('');
 }
@@ -3381,7 +3381,63 @@ Make it fun, creative, grade-appropriate, and specific about what and how much t
     return Array.isArray(parsed) ? dedupeQuestions(parsed, 'question') : [];
   }
   if (type === 'spelling') return dedupeQuestions(parsed, 'word');
+  if (type === 'math') return dedupeQuestions(validateMathAnswers(parsed), 'question');
   return dedupeQuestions(parsed, 'question');
+}
+
+// Evaluate simple arithmetic — used to catch AI math errors before showing kids
+function evalSimpleMath(expr) {
+  if (!expr) return null;
+  const s = String(expr).trim()
+    .replace(/[×✕✗]/g,'*').replace(/÷/g,'/')
+    .replace(/\s*[xX]\s*/g,' * ').replace(/\s+/g,' ').trim();
+  if (!/^[\d\s\+\-\*\/\(\)\.]+$/.test(s)) return null;
+  try {
+    const result = Function('"use strict"; return (' + s + ')')();
+    if (typeof result === 'number' && isFinite(result)) return result;
+  } catch(e) {}
+  return null;
+}
+
+function validateMathAnswers(questions) {
+  if (!Array.isArray(questions)) return questions;
+  return questions.map(function(q) {
+    if (!q || !q.question) return q;
+    // Look for "N op N =" pattern in the question
+    const exprMatch = String(q.question).match(/([\d\s\+\-×\*xX÷\/\(\)\.]+)\s*=\s*\??$/);
+    if (!exprMatch) return q;
+    const correctVal = evalSimpleMath(exprMatch[1]);
+    if (correctVal === null) return q;
+    const correctStr = Number.isInteger(correctVal) ? String(correctVal) : String(Math.round(correctVal*1000)/1000);
+    // Resolve AI answer — letter (A/B/C/D) or direct value
+    let resolvedAns = String(q.answer||'').trim();
+    if (q.options && /^[A-Da-d]$/.test(resolvedAns)) {
+      const idx = resolvedAns.toUpperCase().charCodeAt(0) - 65;
+      resolvedAns = q.options[idx] ? String(q.options[idx]).trim() : resolvedAns;
+    }
+    const aiNum = parseFraction(resolvedAns.replace(/[^0-9.\/\-]/g,''));
+    if (aiNum !== null && Math.abs(aiNum - correctVal) < 0.01) return q; // AI correct
+    // AI wrong — fix it
+    console.warn('Math fix:', q.question, '| AI:', q.answer, '| Correct:', correctStr);
+    const fixed = Object.assign({}, q);
+    if (q.options) {
+      const correctIdx = q.options.findIndex(function(o) {
+        const n = parseFraction(String(o).replace(/[^0-9.\/\-]/g,''));
+        return n !== null && Math.abs(n - correctVal) < 0.01;
+      });
+      if (correctIdx >= 0) {
+        fixed.answer = q.options[correctIdx];
+      } else {
+        // Replace first option with correct answer
+        fixed.options = q.options.slice();
+        fixed.options[0] = correctStr;
+        fixed.answer = correctStr;
+      }
+    } else {
+      fixed.answer = correctStr;
+    }
+    return fixed;
+  });
 }
 
 function dedupeQuestions(arr, key) {
