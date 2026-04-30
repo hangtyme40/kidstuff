@@ -1494,38 +1494,37 @@ function recordLessonHistory(kidId, subjectId, pct, coins, correct, total, elaps
 }
 
 // ── PACE TRACKING ────────────────────────────────────────
-const PACE_TARGET_MIN = 30;
+const PACE_TARGET_MIN = 45; // total daily across all 4 subjects (~11 min each)
+const PACE_TARGET_PER_SUBJECT = 11; // target per subject for adaptive Q count
 const PACE_WINDOW_DAYS = 7;
 const ADAPTIVE_Q_MIN = 5;
-const ADAPTIVE_Q_MAX = 50; // raise ceiling so the system can actually reach 30 min
+const ADAPTIVE_Q_MAX = 50;
 
-function getAdaptiveQuestionCount(kidId) {
+function getAdaptiveQuestionCount(kidId, subjectId) {
   if (!state.adaptiveQ) state.adaptiveQ = {};
-  if (!state.adaptiveQ[kidId]) state.adaptiveQ[kidId] = 10;
-  return state.adaptiveQ[kidId];
+  // Per-subject key so each subject adapts independently
+  const key = kidId + '_' + (subjectId || 'all');
+  if (!state.adaptiveQ[key] && !state.adaptiveQ[kidId]) state.adaptiveQ[key] = 10;
+  // Support both new per-subject key and legacy per-kid key
+  return state.adaptiveQ[key] || state.adaptiveQ[kidId] || 10;
 }
 
-function updateAdaptiveQuestionCount(kidId) {
+function updateAdaptiveQuestionCount(kidId, subjectId, elapsedMin) {
   if (!state.adaptiveQ) state.adaptiveQ = {};
-  if (!state.adaptiveQ[kidId]) state.adaptiveQ[kidId] = 10;
-  const avg = getAvgDailyMinutes(kidId);
-  if (avg === 0) return; // no usable data yet
-  // Need at least 3 days of data before adjusting
-  const dayCount = state.paceData && state.paceData[kidId] ? Object.keys(state.paceData[kidId]).length : 0;
-  const historyDays = (function() {
-    const h = (state.lessonHistory && state.lessonHistory[kidId]) || [];
-    return new Set(h.map(function(e){ return e.date; })).size;
-  })();
-  if (dayCount < 3 && historyDays < 3) return;
-  const diff = PACE_TARGET_MIN - avg; // positive = under target (need more Qs), negative = over
+  const key = kidId + '_' + (subjectId || 'all');
+  if (!state.adaptiveQ[key]) state.adaptiveQ[key] = state.adaptiveQ[kidId] || 10;
+
+  // Use elapsed time for this specific lesson to adapt per-subject
+  if (!elapsedMin || elapsedMin === 0) return;
+
+  const diff = PACE_TARGET_PER_SUBJECT - elapsedMin;
   let delta = 0;
   const absDiff = Math.abs(diff);
-  // Aggressive scaling — the further from 30 min, the bigger the jump
-  if (absDiff <= 3)       delta = diff > 0 ? 1 : -1;   // within 3 min — nudge ±1
-  else if (absDiff <= 8)  delta = diff > 0 ? 3 : -2;   // 3-8 min off — ±2-3
-  else if (absDiff <= 15) delta = diff > 0 ? 6 : -4;   // 8-15 min off — bigger jump
-  else                    delta = diff > 0 ? 10 : -6;   // >15 min off — aggressive
-  state.adaptiveQ[kidId] = Math.max(ADAPTIVE_Q_MIN, Math.min(ADAPTIVE_Q_MAX, state.adaptiveQ[kidId] + delta));
+  if (absDiff <= 2)       delta = diff > 0 ? 1 : -1;
+  else if (absDiff <= 5)  delta = diff > 0 ? 2 : -2;
+  else if (absDiff <= 10) delta = diff > 0 ? 4 : -3;
+  else                    delta = diff > 0 ? 6 : -4;
+  state.adaptiveQ[key] = Math.max(ADAPTIVE_Q_MIN, Math.min(ADAPTIVE_Q_MAX, state.adaptiveQ[key] + delta));
 }
 
 function updatePaceData(kidId, elapsedMin) {
@@ -2787,8 +2786,8 @@ function getTodaySchedule() {
 
 function getScheduleForDow(dow) {
   if (dow === 0) return { isRest: true, subjects: [] }; // Sunday = rest
-  const isDayA = (dow % 2 === 1) || dow === 6; // Mon, Wed, Fri, Sat = Day A
-  return { isRest: false, subjects: isDayA ? ['spelling','math'] : ['reading','writing'] };
+  // All 4 subjects every day Mon–Sat
+  return { isRest: false, subjects: ['spelling','math','reading','writing'] };
 }
 
 
@@ -3260,7 +3259,7 @@ async function generateLessonQuestions(kidId, subjectId, type, levelData, bonusT
   }
 
   let prompt = '';
-  const qCount = getAdaptiveQuestionCount(kidId);
+  const qCount = getAdaptiveQuestionCount(kidId, type);
   const readingQCount = Math.max(4, Math.round(qCount * 0.8));
   const kid2 = state.kids.find(k=>k.id===kidId) || {};
   const gradeNum = kid2.grade !== undefined ? parseInt(kid2.grade) : 3;
@@ -4515,7 +4514,7 @@ function finishLesson() {
   if (!alreadyDone) {
     const curIdx = getCurrentLevelIndex(currentKidId, ls.subjectId);
     recordLessonHistory(currentKidId, ls.subjectId, pct, coins, origCorrect, total, elapsedMin, curIdx);
-    updateAdaptiveQuestionCount(currentKidId);
+    updateAdaptiveQuestionCount(currentKidId, ls.subjectId, elapsedMin);
   }
   // Check daily streak
   checkDailyStreak(currentKidId);
@@ -4771,14 +4770,14 @@ function renderParentKidSummary() {
     }
   }
   document.getElementById('parent-kid-summary').innerHTML = state.kids.map(k => {
-    const qCount = getAdaptiveQuestionCount(k.id);
+    const avgQPerSubject = Math.round(['spelling','math','reading','writing'].reduce(function(s,sub){ return s + getAdaptiveQuestionCount(k.id, sub); }, 0) / 4);
     const avgMin = Math.round(getAvgDailyMinutes(k.id));
     const dayCount = state.paceData && state.paceData[k.id] ? Object.keys(state.paceData[k.id]).length : 0;
     const historyCount = (state.lessonHistory && state.lessonHistory[k.id]) ? state.lessonHistory[k.id].length : 0;
     const calibrated = dayCount >= 3 || historyCount >= 3;
     const paceLabel = !calibrated
       ? '<div style="font-size:11px;color:var(--muted);margin-top:4px">⏱ Pace calibrating…</div>'
-      : '<div style="font-size:11px;color:var(--muted);margin-top:4px">⏱ ~' + avgMin + ' min/day · ' + qCount + ' q/lesson</div>';
+      : '<div style="font-size:11px;color:var(--muted);margin-top:4px">⏱ ~' + avgMin + ' min/day · ~' + avgQPerSubject + ' q/subject</div>';
     const live = state.liveLesson && state.liveLesson[k.id];
     const liveLabel = live
       ? '<div style="font-size:11px;color:#2ECC71;font-weight:800;margin-top:4px;animation:pulse 1.5s infinite">🟢 Working on ' + live.icon + ' ' + live.subject + ' now</div>'
