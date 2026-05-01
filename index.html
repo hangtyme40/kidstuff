@@ -288,6 +288,15 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
           console.warn('Service worker registration failed:', err);
         });
       });
+
+      // Also check for SW updates whenever the app comes back to foreground
+      // This catches the case where a new build was deployed while the app was in the background
+      document.addEventListener('visibilitychange', function() {
+        if (document.hidden) return;
+        navigator.serviceWorker.getRegistration().then(function(reg) {
+          if (reg) reg.update();
+        }).catch(function(){});
+      });
     }
   </script>
 </head>
@@ -835,6 +844,12 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
       <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
         <div style="font-weight:800;margin-bottom:8px">🔑 Change Kid PIN</div>
         <div id="pin-change-list"></div>
+      </div>
+      <!-- Edit Kid Birthday -->
+      <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
+        <div style="font-weight:800;margin-bottom:4px">🎂 Kid Birthdays</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Birthdays are auto-excused every year. Format: MM-DD</div>
+        <div id="birthday-edit-list"></div>
       </div>
     </div>
 
@@ -2376,7 +2391,7 @@ function switchParentTab(tabId, btn) {
     _renderEmojiPicker('addkid-emoji-picker','addkid-emoji');
   }
   if (tabId === 'tab-manage') {
-    renderFamilyUrl(); renderPinChangeList(); renderTimerInputs();
+    renderFamilyUrl(); renderPinChangeList(); renderTimerInputs(); renderBirthdayEditList();
     renderVacationBtn();
     const skipSel = document.getElementById('skipday-kid-select');
     if (skipSel) { skipSel.onchange = function(){ updateSkipDayBalance(skipSel.value); }; updateSkipDayBalance(skipSel.value); }
@@ -2848,6 +2863,33 @@ function renderKidDashboard() {
 function _renderKidDashboardInner() {
   const kid = state.kids.find(k => k.id === currentKidId);
   if (!kid) return;
+
+  // Birthday checks
+  const todayStr = getLocalDateStr();
+  const tomorrowD = new Date(); tomorrowD.setDate(tomorrowD.getDate() + 1);
+  const tomorrowStr = tomorrowD.getFullYear() + '-' + String(tomorrowD.getMonth()+1).padStart(2,'0') + '-' + String(tomorrowD.getDate()).padStart(2,'0');
+  const isBday = isKidBirthday(currentKidId, todayStr);
+  const isBdayEve = isKidBirthday(currentKidId, tomorrowStr);
+
+  // Full birthday takeover — no lessons today
+  if (isBday) {
+    const content = document.querySelector('#screen-kid .content');
+    if (content) {
+      content.innerHTML = '<div style="text-align:center;padding:60px 24px;">'
+        + '<div style="font-size:80px;margin-bottom:16px">🎂</div>'
+        + '<div style="font-family:\'Baloo 2\',cursive;font-size:32px;font-weight:800;color:var(--primary);margin-bottom:12px">Happy Birthday, ' + kid.name + '!</div>'
+        + '<div style="font-size:18px;color:var(--muted);margin-bottom:24px">Enjoy your special day — no lessons today! 🎉</div>'
+        + '<div style="font-size:48px">🎈🎁🎊</div>'
+        + '</div>';
+      setTimeout(function() { launchConfetti(6000); playSound('epic'); }, 400);
+    }
+    document.getElementById('kid-header-sub').textContent = 'Happy Birthday ' + kid.name + '!';
+    document.getElementById('kid-dash-avatar').textContent = kid.emoji;
+    document.getElementById('kid-dash-name').textContent = kid.name;
+    document.getElementById('kid-dash-coins').textContent = '🧠 ' + kid.coins + ' Brain Bucks';
+    return; // don't render anything else
+  }
+
   document.getElementById('kid-header-sub').textContent = kid.name + "'s Lessons";
   document.getElementById('kid-dash-avatar').textContent = kid.emoji;
   document.getElementById('kid-dash-name').textContent = kid.name;
@@ -2857,11 +2899,18 @@ function _renderKidDashboardInner() {
   const schedule = getTodaySchedule();
   const greetingEl = document.getElementById('kid-dash-greeting');
   if (greetingEl) {
-    if (schedule.isRest) {
+    if (isBdayEve) {
+      greetingEl.textContent = '🎂 Happy early birthday, ' + kid.name + '! No need to log on tomorrow — it\'s your special day! 🎉';
+      greetingEl.style.color = '#F59E0B';
+      greetingEl.style.fontWeight = '800';
+    } else if (schedule.isRest) {
       greetingEl.textContent = getTimeGreeting() + ', ' + kid.name + '! Today is your rest day 😴';
+      greetingEl.style.color = '';
+      greetingEl.style.fontWeight = '';
     } else {
-      const subjectNames = schedule.subjects.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' & ');
-      greetingEl.textContent = getTimeGreeting() + ', ' + kid.name + '! Ready for ' + subjectNames + '? 🌟';
+      greetingEl.textContent = getTimeGreeting() + ', ' + kid.name + '! Ready to learn today? 🌟';
+      greetingEl.style.color = '';
+      greetingEl.style.fontWeight = '';
     }
     greetingEl.style.display = 'block';
   }
@@ -3328,10 +3377,10 @@ Rules:
   } else if (type === 'writing') {
     const recentWritingPrompts = (state.lessonHistory[kidId] || [])
       .filter(e => e.subject === 'writing' && e.writingPrompt)
-      .slice(0, 3)
+      .slice(0, 15)
       .map(e => e.writingPrompt);
     const avoidNote = recentWritingPrompts.length
-      ? '\nAvoid these recent prompts: ' + recentWritingPrompts.map(p => '"' + p.slice(0,50) + '"').join(', ')
+      ? '\nAvoid these recent prompts (do not repeat similar topics or formats):\n' + recentWritingPrompts.map((p,i) => (i+1) + '. "' + p.slice(0,60) + '"').join('\n')
       : '';
     prompt = `Generate a writing prompt for ${kid.name}, a ${gradeLabel} student practicing "${levelName}" (${levelDesc}).
 ${gradeLine}
@@ -5370,10 +5419,14 @@ function renderProgressOverview() {
           }).join('');
       card.appendChild(bySubject);
 
-      // Recent history table
+      // Recent history table — last 2 days only
       const recentDiv = document.createElement('div');
       recentDiv.innerHTML = '<div style="font-weight:800;font-size:14px;margin-bottom:8px;color:var(--muted)">RECENT SESSIONS</div>';
-      const recent = history.slice().sort((a,b) => b.date.localeCompare(a.date)).slice(0, 30);
+      // Get the 2 most recent unique dates
+      const sortedHistory = history.slice().sort((a,b) => b.date.localeCompare(a.date));
+      const recentDates = [];
+      sortedHistory.forEach(function(e) { if (recentDates.length < 2 && !recentDates.includes(e.date)) recentDates.push(e.date); });
+      const recent = sortedHistory.filter(function(e) { return recentDates.includes(e.date); });
       recent.forEach(function(e) {
         const scoreColor = e.score >= 90 ? '#2ECC71' : e.score >= 70 ? 'var(--primary)' : '#EF4444';
         const row = document.createElement('div');
@@ -6216,6 +6269,36 @@ function isKidBirthday(kidId, dateStr) {
   // birthday stored as "MM-DD"
   const monthDay = dateStr.slice(5); // "MM-DD" from "YYYY-MM-DD"
   return monthDay === kid.birthday;
+}
+
+function renderBirthdayEditList() {
+  const el = document.getElementById('birthday-edit-list');
+  if (!el) return;
+  const kids = state.kids.filter(function(k){ return k.id !== 'tester'; });
+  el.innerHTML = kids.map(function(k) {
+    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'
+      + '<span style="font-size:20px">' + k.emoji + '</span>'
+      + '<span style="font-weight:700;flex:1">' + k.name + '</span>'
+      + '<input id="bday-' + k.id + '" type="text" maxlength="5" placeholder="MM-DD" value="' + (k.birthday||'') + '" '
+      + 'style="width:90px;padding:8px 10px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:15px;text-align:center;"/>'
+      + '<button onclick="saveBirthday(\'' + k.id + '\')" style="padding:8px 14px;border:none;border-radius:10px;background:var(--primary);color:white;font-family:Nunito,sans-serif;font-weight:700;font-size:13px;cursor:pointer;">Save</button>'
+      + '</div>';
+  }).join('');
+}
+
+function saveBirthday(kidId) {
+  const input = document.getElementById('bday-' + kidId);
+  if (!input) return;
+  const val = input.value.trim();
+  if (val && !/^\d{2}-\d{2}$/.test(val)) {
+    showToast('⚠️ Use MM-DD format e.g. 05-15');
+    return;
+  }
+  const kid = state.kids.find(function(k){ return k.id === kidId; });
+  if (!kid) return;
+  kid.birthday = val || '';
+  saveState();
+  showToast('🎂 Birthday ' + (val ? 'set to ' + val : 'cleared') + ' for ' + kid.name + '!');
 }
 
 function renderExcuseStatus() {
