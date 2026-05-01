@@ -1494,38 +1494,37 @@ function recordLessonHistory(kidId, subjectId, pct, coins, correct, total, elaps
 }
 
 // ── PACE TRACKING ────────────────────────────────────────
-const PACE_TARGET_MIN = 30;
+const PACE_TARGET_MIN = 45; // total daily across all 4 subjects (~11 min each)
+const PACE_TARGET_PER_SUBJECT = 11; // target per subject for adaptive Q count
 const PACE_WINDOW_DAYS = 7;
 const ADAPTIVE_Q_MIN = 5;
-const ADAPTIVE_Q_MAX = 50; // raise ceiling so the system can actually reach 30 min
+const ADAPTIVE_Q_MAX = 50;
 
-function getAdaptiveQuestionCount(kidId) {
+function getAdaptiveQuestionCount(kidId, subjectId) {
   if (!state.adaptiveQ) state.adaptiveQ = {};
-  if (!state.adaptiveQ[kidId]) state.adaptiveQ[kidId] = 10;
-  return state.adaptiveQ[kidId];
+  // Per-subject key so each subject adapts independently
+  const key = kidId + '_' + (subjectId || 'all');
+  if (!state.adaptiveQ[key] && !state.adaptiveQ[kidId]) state.adaptiveQ[key] = 10;
+  // Support both new per-subject key and legacy per-kid key
+  return state.adaptiveQ[key] || state.adaptiveQ[kidId] || 10;
 }
 
-function updateAdaptiveQuestionCount(kidId) {
+function updateAdaptiveQuestionCount(kidId, subjectId, elapsedMin) {
   if (!state.adaptiveQ) state.adaptiveQ = {};
-  if (!state.adaptiveQ[kidId]) state.adaptiveQ[kidId] = 10;
-  const avg = getAvgDailyMinutes(kidId);
-  if (avg === 0) return; // no usable data yet
-  // Need at least 3 days of data before adjusting
-  const dayCount = state.paceData && state.paceData[kidId] ? Object.keys(state.paceData[kidId]).length : 0;
-  const historyDays = (function() {
-    const h = (state.lessonHistory && state.lessonHistory[kidId]) || [];
-    return new Set(h.map(function(e){ return e.date; })).size;
-  })();
-  if (dayCount < 3 && historyDays < 3) return;
-  const diff = PACE_TARGET_MIN - avg; // positive = under target (need more Qs), negative = over
+  const key = kidId + '_' + (subjectId || 'all');
+  if (!state.adaptiveQ[key]) state.adaptiveQ[key] = state.adaptiveQ[kidId] || 10;
+
+  // Use elapsed time for this specific lesson to adapt per-subject
+  if (!elapsedMin || elapsedMin === 0) return;
+
+  const diff = PACE_TARGET_PER_SUBJECT - elapsedMin;
   let delta = 0;
   const absDiff = Math.abs(diff);
-  // Aggressive scaling — the further from 30 min, the bigger the jump
-  if (absDiff <= 3)       delta = diff > 0 ? 1 : -1;   // within 3 min — nudge ±1
-  else if (absDiff <= 8)  delta = diff > 0 ? 3 : -2;   // 3-8 min off — ±2-3
-  else if (absDiff <= 15) delta = diff > 0 ? 6 : -4;   // 8-15 min off — bigger jump
-  else                    delta = diff > 0 ? 10 : -6;   // >15 min off — aggressive
-  state.adaptiveQ[kidId] = Math.max(ADAPTIVE_Q_MIN, Math.min(ADAPTIVE_Q_MAX, state.adaptiveQ[kidId] + delta));
+  if (absDiff <= 2)       delta = diff > 0 ? 1 : -1;
+  else if (absDiff <= 5)  delta = diff > 0 ? 2 : -2;
+  else if (absDiff <= 10) delta = diff > 0 ? 4 : -3;
+  else                    delta = diff > 0 ? 6 : -4;
+  state.adaptiveQ[key] = Math.max(ADAPTIVE_Q_MIN, Math.min(ADAPTIVE_Q_MAX, state.adaptiveQ[key] + delta));
 }
 
 function updatePaceData(kidId, elapsedMin) {
@@ -2466,28 +2465,28 @@ function renderCoinAudit() {
   const el = document.getElementById('coin-audit-list');
   if (!sel || !el) return;
 
-  // Populate dropdown if empty
-  if (!sel.options.length) {
-    const kids = state.kids.filter(function(k){ return k.id !== 'tester'; });
-    sel.innerHTML = kids.map(function(k){
-      return '<option value="' + k.id + '">' + k.emoji + ' ' + k.name + '</option>';
-    }).join('');
-  }
+  // Always repopulate dropdown so it stays current
+  const kids = state.kids.filter(function(k){ return k.id !== 'tester'; });
+  const currentVal = sel.value;
+  sel.innerHTML = kids.map(function(k){
+    return '<option value="' + k.id + '"' + (k.id === currentVal ? ' selected' : '') + '>' + k.emoji + ' ' + k.name + '</option>';
+  }).join('');
 
   const kidId = sel.value;
   if (!kidId) { el.innerHTML = ''; return; }
 
   const kid = state.kids.find(function(k){ return k.id === kidId; });
+  // coinLog is per-kid — only show this kid's entries
   const log = (state.coinLog && state.coinLog[kidId]) || [];
 
   if (!log.length) {
-    el.innerHTML = '<div style="color:var(--muted);font-size:14px;padding:8px 0;">No transactions recorded yet. Transactions are recorded going forward from this build.</div>';
+    el.innerHTML = '<div style="color:var(--muted);font-size:14px;padding:8px 0;">No transactions recorded yet for ' + (kid ? kid.name : kidId) + '. Transactions are recorded going forward.</div>';
     return;
   }
 
   el.innerHTML = '<div style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">'
-    + '<div style="font-size:13px;color:var(--muted);font-weight:700;">' + log.length + ' transactions</div>'
-    + '<div style="font-family:\'Baloo 2\',cursive;font-size:18px;font-weight:800;color:var(--primary);">Balance: 🧠 ' + (kid ? kid.coins : '?') + '</div>'
+    + '<div style="font-size:13px;color:var(--muted);font-weight:700;">' + log.length + ' transactions · ' + (kid ? kid.name : kidId) + '</div>'
+    + '<div style="font-family:\'Baloo 2\',cursive;font-size:18px;font-weight:800;color:var(--primary);">🧠 ' + (kid ? kid.coins : '?') + '</div>'
     + '</div>'
     + log.map(function(t) {
         const isPos = t.amount > 0;
@@ -2496,12 +2495,12 @@ function renderCoinAudit() {
         const d = new Date(t.ts);
         const timeStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
         return '<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;">'
-          + '<div style="font-weight:800;color:' + amtColor + ';min-width:36px;text-align:right;">' + amtStr + '</div>'
+          + '<div style="font-weight:800;color:' + amtColor + ';min-width:40px;text-align:right;">' + amtStr + '</div>'
           + '<div style="flex:1;">'
           + '<div style="font-weight:700;">' + t.reason + '</div>'
           + '<div style="font-size:11px;color:var(--muted);">' + timeStr + '</div>'
           + '</div>'
-          + '<div style="font-size:12px;color:var(--muted);font-weight:700;white-space:nowrap;">bal: ' + t.balance + '</div>'
+          + '<div style="font-size:12px;color:var(--muted);font-weight:700;white-space:nowrap;">→ ' + t.balance + '</div>'
           + '</div>';
       }).join('');
 }
@@ -2787,8 +2786,8 @@ function getTodaySchedule() {
 
 function getScheduleForDow(dow) {
   if (dow === 0) return { isRest: true, subjects: [] }; // Sunday = rest
-  const isDayA = (dow % 2 === 1) || dow === 6; // Mon, Wed, Fri, Sat = Day A
-  return { isRest: false, subjects: isDayA ? ['spelling','math'] : ['reading','writing'] };
+  // All 4 subjects every day Mon–Sat
+  return { isRest: false, subjects: ['spelling','math','reading','writing'] };
 }
 
 
@@ -2826,9 +2825,9 @@ function setRewardsForKid(kidId, arr) {
 }
 // ── KID DASHBOARD ────────────────────────────────────────
 function renderKidDashboard() {
-  // Check streak every time kid dashboard loads — catches missed days even without completing a lesson
+  // Check streak every time dashboard loads — catches missed days on login
   if (currentKidId && currentKidId !== 'tester') {
-    checkDailyStreak(currentKidId);
+    try { checkDailyStreak(currentKidId); } catch(_) {}
   }
   try {
     _renderKidDashboardInner();
@@ -3264,7 +3263,7 @@ async function generateLessonQuestions(kidId, subjectId, type, levelData, bonusT
   }
 
   let prompt = '';
-  const qCount = getAdaptiveQuestionCount(kidId);
+  const qCount = getAdaptiveQuestionCount(kidId, type);
   const readingQCount = Math.max(4, Math.round(qCount * 0.8));
   const kid2 = state.kids.find(k=>k.id===kidId) || {};
   const gradeNum = kid2.grade !== undefined ? parseInt(kid2.grade) : 3;
@@ -3385,7 +3384,63 @@ Make it fun, creative, grade-appropriate, and specific about what and how much t
     return Array.isArray(parsed) ? dedupeQuestions(parsed, 'question') : [];
   }
   if (type === 'spelling') return dedupeQuestions(parsed, 'word');
+  if (type === 'math') return dedupeQuestions(validateMathAnswers(parsed), 'question');
   return dedupeQuestions(parsed, 'question');
+}
+
+// Evaluate simple arithmetic — used to catch AI math errors before showing kids
+function evalSimpleMath(expr) {
+  if (!expr) return null;
+  const s = String(expr).trim()
+    .replace(/[×✕✗]/g,'*').replace(/÷/g,'/')
+    .replace(/\s*[xX]\s*/g,' * ').replace(/\s+/g,' ').trim();
+  if (!/^[\d\s\+\-\*\/\(\)\.]+$/.test(s)) return null;
+  try {
+    const result = Function('"use strict"; return (' + s + ')')();
+    if (typeof result === 'number' && isFinite(result)) return result;
+  } catch(e) {}
+  return null;
+}
+
+function validateMathAnswers(questions) {
+  if (!Array.isArray(questions)) return questions;
+  return questions.map(function(q) {
+    if (!q || !q.question) return q;
+    // Look for "N op N =" pattern in the question
+    const exprMatch = String(q.question).match(/([\d\s\+\-×\*xX÷\/\(\)\.]+)\s*=\s*\??$/);
+    if (!exprMatch) return q;
+    const correctVal = evalSimpleMath(exprMatch[1]);
+    if (correctVal === null) return q;
+    const correctStr = Number.isInteger(correctVal) ? String(correctVal) : String(Math.round(correctVal*1000)/1000);
+    // Resolve AI answer — letter (A/B/C/D) or direct value
+    let resolvedAns = String(q.answer||'').trim();
+    if (q.options && /^[A-Da-d]$/.test(resolvedAns)) {
+      const idx = resolvedAns.toUpperCase().charCodeAt(0) - 65;
+      resolvedAns = q.options[idx] ? String(q.options[idx]).trim() : resolvedAns;
+    }
+    const aiNum = parseFraction(resolvedAns.replace(/[^0-9.\/\-]/g,''));
+    if (aiNum !== null && Math.abs(aiNum - correctVal) < 0.01) return q; // AI correct
+    // AI wrong — fix it
+    console.warn('Math fix:', q.question, '| AI:', q.answer, '| Correct:', correctStr);
+    const fixed = Object.assign({}, q);
+    if (q.options) {
+      const correctIdx = q.options.findIndex(function(o) {
+        const n = parseFraction(String(o).replace(/[^0-9.\/\-]/g,''));
+        return n !== null && Math.abs(n - correctVal) < 0.01;
+      });
+      if (correctIdx >= 0) {
+        fixed.answer = q.options[correctIdx];
+      } else {
+        // Replace first option with correct answer
+        fixed.options = q.options.slice();
+        fixed.options[0] = correctStr;
+        fixed.answer = correctStr;
+      }
+    } else {
+      fixed.answer = correctStr;
+    }
+    return fixed;
+  });
 }
 
 function dedupeQuestions(arr, key) {
@@ -4463,7 +4518,7 @@ function finishLesson() {
   if (!alreadyDone) {
     const curIdx = getCurrentLevelIndex(currentKidId, ls.subjectId);
     recordLessonHistory(currentKidId, ls.subjectId, pct, coins, origCorrect, total, elapsedMin, curIdx);
-    updateAdaptiveQuestionCount(currentKidId);
+    updateAdaptiveQuestionCount(currentKidId, ls.subjectId, elapsedMin);
   }
   // Check daily streak
   checkDailyStreak(currentKidId);
@@ -4719,14 +4774,14 @@ function renderParentKidSummary() {
     }
   }
   document.getElementById('parent-kid-summary').innerHTML = state.kids.map(k => {
-    const qCount = getAdaptiveQuestionCount(k.id);
+    const avgQPerSubject = Math.round(['spelling','math','reading','writing'].reduce(function(s,sub){ return s + getAdaptiveQuestionCount(k.id, sub); }, 0) / 4);
     const avgMin = Math.round(getAvgDailyMinutes(k.id));
     const dayCount = state.paceData && state.paceData[k.id] ? Object.keys(state.paceData[k.id]).length : 0;
     const historyCount = (state.lessonHistory && state.lessonHistory[k.id]) ? state.lessonHistory[k.id].length : 0;
     const calibrated = dayCount >= 3 || historyCount >= 3;
     const paceLabel = !calibrated
       ? '<div style="font-size:11px;color:var(--muted);margin-top:4px">⏱ Pace calibrating…</div>'
-      : '<div style="font-size:11px;color:var(--muted);margin-top:4px">⏱ ~' + avgMin + ' min/day · ' + qCount + ' q/lesson</div>';
+      : '<div style="font-size:11px;color:var(--muted);margin-top:4px">⏱ ~' + avgMin + ' min/day · ~' + avgQPerSubject + ' q/subject</div>';
     const live = state.liveLesson && state.liveLesson[k.id];
     const liveLabel = live
       ? '<div style="font-size:11px;color:#2ECC71;font-weight:800;margin-top:4px;animation:pulse 1.5s infinite">🟢 Working on ' + live.icon + ' ' + live.subject + ' now</div>'
@@ -4961,7 +5016,7 @@ function resolveFlag(id, award) {
       bonusCoins = Math.max(0, newCoins - (prog.coins || 0));
       if (bonusCoins > 0) { prog.correct = newCorrect; prog.score = newPct; prog.coins = newCoins; }
     } else {
-      bonusCoins = 0; // no progress data found — don't award speculatively
+      bonusCoins = 0; // no progress data — don't award speculatively
     }
     if (kid && bonusCoins > 0) { kid.coins += bonusCoins; stampCoins(f.kidId); logCoinTransaction(f.kidId, +bonusCoins, '🚩 Flagged question accepted', kid.coins); }
     showToast('✅ Accepted — ' + (bonusCoins > 0 ? bonusCoins + ' 🧠 Brain Buck' + (bonusCoins !== 1 ? 's' : '') + ' awarded to ' : 'no extra Brain Bucks for ') + (kid ? kid.name : 'kid') + '!');
@@ -5792,7 +5847,7 @@ function checkDailyStreak(kidId) {
   const ds = state.dailyStreak[kidId];
   const today = getTodayKey(); // ISO e.g. "2026-05-01"
 
-  // Build yesterday in same ISO format
+  // Build yesterday in same ISO format as getTodayKey()
   const yest = new Date();
   yest.setDate(yest.getDate() - 1);
   const yesterdayKey = yest.getFullYear() + '-' + String(yest.getMonth()+1).padStart(2,'0') + '-' + String(yest.getDate()).padStart(2,'0');
@@ -5807,25 +5862,23 @@ function checkDailyStreak(kidId) {
   });
 
   if (allDoneToday && ds.lastDate !== today) {
-    // Completed today's work
     if (ds.lastDate === yesterdayKey) {
       ds.count++; // extending streak
     } else {
-      ds.count = 1; // fresh streak
+      ds.count = 1; // new streak
     }
     ds.lastDate = today;
     saveState();
     checkPerfectWeek(kidId);
     checkIncompleteWeekPenalty(kidId);
-    const milestones = {7:'🔥 7-Day Streak! You\'re on fire!', 14:'⚡ 14 Days! Two weeks strong!', 30:'🏆 30-Day Streak! Incredible!', 60:'🌟 60 Days! You\'re a legend!', 100:'👑 100-Day Streak! Unbelievable!'};
+    const milestones = {7:"🔥 7-Day Streak! You're on fire!", 14:"⚡ 14 Days! Two weeks strong!", 30:"🏆 30-Day Streak! Incredible!", 60:"🌟 60 Days! You're a legend!", 100:"👑 100-Day Streak! Unbelievable!"};
     if (milestones[ds.count]) {
       setTimeout(function() { launchConfetti(4000); playSound('epic'); showToast(milestones[ds.count]); }, 1000);
     }
   } else if (!allDoneToday && ds.lastDate !== today) {
-    // Check if yesterday was a required day they missed — reset streak
+    // Not done today — check if yesterday was missed (breaks streak)
     const yestSched = getScheduleForDow(yest.getDay());
-    if (!yestSched.isRest && ds.lastDate !== yesterdayKey && ds.lastDate !== today) {
-      // lastDate is neither today nor yesterday — they missed at least yesterday
+    if (!yestSched.isRest && ds.lastDate !== yesterdayKey) {
       const excused = isUSFederalHoliday(yest) || state.vacationMode || isKidExcused(kidId, yesterdayKey);
       if (!excused && ds.count > 0) {
         ds.count = 0;
@@ -5852,6 +5905,7 @@ function renderStreakOnDashboard(kidId) {
   if (countEl) countEl.textContent = ds.count;
   if (fireEl) fireEl.style.opacity = '1';
 }
+
 
 
 // ── LEVEL-UP CELEBRATION ─────────────────────────────────
@@ -6051,7 +6105,7 @@ function sendParentMessage() {
   if (!sel || !inp || !inp.value.trim()) { showToast('⚠️ Enter a message first.'); return; }
   const kidId = sel.value;
   if (!state.parentMessages) state.parentMessages = {};
-  state.parentMessages[kidId] = { text: inp.value.trim(), date: new Date().toLocaleDateString() };
+  state.parentMessages[kidId] = { text: inp.value.trim(), date: new Date().toLocaleDateString(), ts: Date.now() };
   saveState();
   inp.value = '';
   const kid = state.kids.find(k=>k.id===kidId);
@@ -6073,8 +6127,14 @@ function renderParentMessageBanner(kidId) {
   const text = document.getElementById('parent-message-text');
   if (!banner || !text) return;
   const msg = state.parentMessages && state.parentMessages[kidId];
-  if (msg && msg.text) {
-    text.textContent = msg.text;
+  // Auto-expire messages older than 24 hours
+  if (msg && msg.ts && (Date.now() - msg.ts) > 86400000) {
+    delete state.parentMessages[kidId];
+    saveState();
+  }
+  const fresh = state.parentMessages && state.parentMessages[kidId];
+  if (fresh && fresh.text) {
+    text.textContent = fresh.text;
     banner.style.display = 'block';
   } else {
     banner.style.display = 'none';
@@ -6782,6 +6842,31 @@ function runMigrations() {
       localStorage.setItem('kidstuff_cache', JSON.stringify(state));
       console.log('Migrated ' + fixCount + ' lesson history total(s).');
     }
+  }
+
+  // One-time fix: clear parent messages that have no timestamp (they're stale)
+  if (!state._msgTsFixed) {
+    if (state.parentMessages) {
+      Object.keys(state.parentMessages).forEach(function(kidId) {
+        const msg = state.parentMessages[kidId];
+        if (msg && !msg.ts) {
+          delete state.parentMessages[kidId];
+        }
+      });
+    }
+    // Reset streak lastDate if stored in old toDateString format
+    if (state.dailyStreak) {
+      Object.keys(state.dailyStreak).forEach(function(kidId) {
+        const ds = state.dailyStreak[kidId];
+        if (ds && ds.lastDate && /^[A-Za-z]{3}\s/.test(ds.lastDate)) {
+          // Old toDateString format — clear it so streak re-evaluates correctly
+          ds.lastDate = '';
+          ds.count = 0;
+        }
+      });
+    }
+    state._msgTsFixed = true;
+    localStorage.setItem('kidstuff_cache', JSON.stringify(state));
   }
 }
 
