@@ -5841,35 +5841,50 @@ function checkDailyStreak(kidId) {
   if (!state.dailyStreak) state.dailyStreak = {};
   if (!state.dailyStreak[kidId]) state.dailyStreak[kidId] = { count: 0, lastDate: '' };
   const ds = state.dailyStreak[kidId];
-  const today = getTodayKey();
+  const today = getTodayKey(); // ISO format e.g. "2026-04-30"
   if (ds.lastDate === today) return; // already checked today
 
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayKey = yesterday.toDateString();
+  // Yesterday in ISO format — must match getTodayKey() format
+  const yest = new Date();
+  yest.setDate(yest.getDate() - 1);
+  const yesterdayKey = yest.getFullYear() + '-' + String(yest.getMonth()+1).padStart(2,'0') + '-' + String(yest.getDate()).padStart(2,'0');
 
   const schedule = getTodaySchedule();
   if (schedule.isRest) return; // no streak on rest days
+
   const prog = state.progress[kidId] || {};
   const subjects = schedule.subjects;
   const allDoneToday = subjects.every(function(s) {
-    return prog[s] && prog[s].date === today;
+    return prog[s] && isToday(prog[s].date);
   });
 
   if (allDoneToday) {
     if (ds.lastDate === yesterdayKey) {
-      ds.count++;
-    } else if (ds.lastDate !== today) {
-      ds.count = 1;
+      ds.count++; // continuing streak
+    } else {
+      ds.count = 1; // new streak started
     }
     ds.lastDate = today;
     saveState();
     checkPerfectWeek(kidId);
     checkIncompleteWeekPenalty(kidId);
-    // Streak milestone celebrations
     const milestones = {7:'🔥 7-Day Streak! You\'re on fire!', 14:'⚡ 14 Days! Two weeks strong!', 30:'🏆 30-Day Streak! Incredible!', 60:'🌟 60 Days! You\'re a legend!', 100:'👑 100-Day Streak! Unbelievable!'};
     if (milestones[ds.count]) {
       setTimeout(function() { launchConfetti(4000); playSound('epic'); showToast(milestones[ds.count]); }, 1000);
+    }
+  } else {
+    // Check if yesterday was a required day they missed — if so reset streak to 0
+    const yestSched = getScheduleForDow(yest.getDay());
+    if (!yestSched.isRest) {
+      const excused = isUSFederalHoliday(yest) || state.vacationMode || isKidExcused(kidId, yesterdayKey);
+      if (!excused) {
+        // They missed yesterday — reset streak
+        if (ds.count > 0) {
+          ds.count = 0;
+          ds.lastDate = ''; // clear so it can be rebuilt
+          saveState();
+        }
+      }
     }
   }
 }
@@ -5877,14 +5892,22 @@ function checkDailyStreak(kidId) {
 function renderStreakOnDashboard(kidId) {
   if (!state.dailyStreak) return;
   const ds = state.dailyStreak[kidId];
-  if (!ds || ds.count < 1) {
-    const el = document.getElementById('kid-dash-streak');
-    if (el) el.style.display = 'none';
-    return;
-  }
   const el = document.getElementById('kid-dash-streak');
   const countEl = document.getElementById('streak-count-display');
-  if (el) el.style.display = 'flex';
+  if (!ds || ds.count === 0) {
+    // Show broken streak indicator
+    if (el) el.style.display = 'flex';
+    if (countEl) countEl.textContent = '0';
+    // Dim the fire emoji if streak is 0
+    const fireEl = el && el.querySelector('.streak-fire');
+    if (fireEl) fireEl.style.opacity = '0.3';
+    return;
+  }
+  if (el) {
+    el.style.display = 'flex';
+    const fireEl = el.querySelector('.streak-fire');
+    if (fireEl) fireEl.style.opacity = '1';
+  }
   if (countEl) countEl.textContent = ds.count;
 }
 
