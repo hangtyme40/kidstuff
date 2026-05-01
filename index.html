@@ -532,10 +532,6 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
       <div class="card-title">📈 My Progress</div>
       <div id="kid-progress-summary-content"></div>
     </div>
-    <div class="card" id="kid-bb-history-card" style="display:none">
-      <div class="card-title">🧠 Brain Bucks History</div>
-      <div id="kid-bb-history-list"></div>
-    </div>
     <div class="card" id="kid-history-card" style="display:none">
       <div class="card-title">📅 My Recent Lessons</div>
       <div id="kid-history-list"></div>
@@ -800,6 +796,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
           <option value="beginning">Beginning</option><option value="middle" selected>Middle</option><option value="end">End</option>
         </select></div>
         <div class="form-row"><label>4-Digit PIN</label><input id="addkid-pin" type="password" maxlength="4" placeholder="e.g. 1234" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:20px;font-weight:800;letter-spacing:6px;text-align:center;"/></div>
+        <div class="form-row"><label>Birthday <span style="font-size:11px;color:var(--muted);font-weight:400">(auto day-off every year)</span></label><input id="addkid-birthday" type="text" placeholder="MM-DD e.g. 05-15" maxlength="5" style="width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;font-family:Nunito,sans-serif;font-size:16px;"/></div>
         <div id="addkid-error" style="color:var(--red);font-size:13px;font-weight:700;min-height:18px;margin-bottom:8px;"></div>
         <button class="btn-primary" style="background:#4F6EF7" onclick="addKidFromDashboard()">➕ Add Child</button>
       </div>
@@ -1349,8 +1346,8 @@ const DEFAULT_STATE = {
   pin:'2730',
   kidPins:{lauren:'0540',andrew:'3005',tester:'2730'},
   kids:[
-    {id:'lauren',name:'Lauren',emoji:'👧🏾',coins:0},
-    {id:'andrew',name:'Andrew',emoji:'🧒🏾',coins:0},
+    {id:'lauren',name:'Lauren',emoji:'👧🏾',coins:0,birthday:'05-05'},
+    {id:'andrew',name:'Andrew',emoji:'🧒🏾',coins:0,birthday:'05-05'},
     {id:'tester',name:'Parent Tester',emoji:'🧪',coins:0}
   ],
   rewards:{
@@ -2303,24 +2300,28 @@ async function addKidFromDashboard() {
   const grade = parseInt(document.getElementById('addkid-grade').value || '3');
   const timeOfYear = document.getElementById('addkid-time').value || 'middle';
   const pin = document.getElementById('addkid-pin').value || '';
+  const birthdayRaw = (document.getElementById('addkid-birthday').value || '').trim();
   const errEl = document.getElementById('addkid-error');
   if (!name) { errEl.textContent = 'Please enter a name.'; return; }
   if (pin.length !== 4 || !/^\d{4}$/.test(pin)) { errEl.textContent = 'PIN must be exactly 4 digits.'; return; }
+  // Validate birthday format MM-DD if provided
+  const birthday = /^\d{2}-\d{2}$/.test(birthdayRaw) ? birthdayRaw : '';
   errEl.textContent = '';
   const kidId = name.toLowerCase().replace(/[^a-z0-9]/g,'') + '_' + Date.now().toString(36);
   const startLevels = {};
   ['spelling','math','reading','writing'].forEach(function(s) {
     startLevels[s] = getStartingLevelIndex(grade, s, timeOfYear);
   });
-  state.kids.push({ id: kidId, name, emoji, grade, coins: 0 });
+  state.kids.push({ id: kidId, name, emoji, grade, coins: 0, birthday: birthday });
   if (!state.kidPins) state.kidPins = {};
   state.kidPins[kidId] = pin;
   if (!state.levels) state.levels = {};
   state.levels[kidId] = startLevels;
   saveState();
-  showToast('✅ ' + name + ' added!');
+  showToast('✅ ' + name + ' added!' + (birthday ? ' 🎂 Birthday: ' + birthday : ''));
   document.getElementById('addkid-name').value = '';
   document.getElementById('addkid-pin').value = '';
+  document.getElementById('addkid-birthday').value = '';
   renderParentDashboard();
 }
 
@@ -2939,9 +2940,13 @@ function _renderKidDashboardInner() {
     subjects.forEach(function(subjectId) {
       const p = progress[subjectId]; const d = p && isToday(p.date);
       if(d && !redoNotice) done++;
-      const locked = d && !isUnlockedToday(currentKidId, subjectId) && !redoNotice;
-      const redoLocked = redoNotice && subjectId !== 'writing';
-      const isRedoOnly = redoNotice && subjectId === 'writing' && !regularSubjects.includes('writing');
+      // Completed today and not unlocked = locked (done state)
+      const locked = d && !isUnlockedToday(currentKidId, subjectId);
+      // Redo pending: lock ALL subjects except writing (which shows as redo button)
+      // UNLESS writing is already completed today — then lock it too
+      const redoLocked = redoNotice && (subjectId !== 'writing' || d);
+      // Writing redo available: redo pending AND writing not done today
+      const isRedoWriting = redoNotice && subjectId === 'writing' && !d;
       const art = subjectArt[subjectId];
       const col = subjectColors[subjectId];
       const gl = getCurrentGradeLevel(currentKidId, subjectId);
@@ -2971,19 +2976,19 @@ function _renderKidDashboardInner() {
       })();
 
       div.innerHTML = '<div style="width:72px;height:72px;border-radius:50%;background:' + col + ';display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 10px;box-shadow:0 4px 16px rgba(0,0,0,0.15);">' + art + '</div>'
-        + '<div class="subj-name">' + (isRedoOnly ? '✍️ Writing Redo' : lvlName) + '</div>'
+        + '<div class="subj-name">' + (isRedoWriting ? '✍️ Writing Redo' : lvlName) + '</div>'
         + '<div style="font-size:11px;color:var(--primary);font-weight:700;margin-top:2px">' + gradeLabel + ' · Level ' + (curIdx+1) + '/' + gradeLevels.length + '</div>'
         + (locked
           ? '<div class="subj-score" style="margin-top:6px">✓ ' + p.score + '%</div>'
           : redoLocked
             ? '<div style="font-size:11px;color:#EF4444;font-weight:700;margin-top:4px">✍️ Finish Writing Redo first</div>'
-            : isRedoOnly
+            : isRedoWriting
               ? '<div style="font-size:11px;color:#EF4444;font-weight:700;margin-top:4px">🔄 Redo required</div>'
               : '<div class="subj-status" style="font-size:11px;color:var(--muted);margin-top:4px">⏱ ' + mins + ' min</div>')
         + streakHtml
         + (locked ? '<div style="position:absolute;top:10px;right:10px;background:#2ECC71;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:14px;">✓</div>' : '')
         + (redoLocked ? '<div style="position:absolute;top:10px;right:10px;background:#EF4444;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:14px;">🔒</div>' : '')
-        + (isRedoOnly ? '<div style="position:absolute;top:10px;right:10px;background:#EF4444;color:white;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:800;">REDO</div>' : '');
+        + (isRedoWriting ? '<div style="position:absolute;top:10px;right:10px;background:#EF4444;color:white;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:800;">REDO</div>' : '');
       if (redoLocked) {
         div.onclick = function() { showToast('✍️ Complete the Writing Redo first!'); };
         div.style.opacity = '0.6';
@@ -3002,10 +3007,16 @@ function _renderKidDashboardInner() {
       prog_el.style.color = '#2ECC71';
       prog_el.style.fontWeight = '800';
     } else {
-      prog_el.textContent = schedule.label + ' · ' + done + ' of ' + total_subjects + ' done';
+      prog_el.textContent = done + ' of ' + total_subjects + ' subjects done today';
     }
   }
-  // Bonus challenge buttons
+  // Birthday celebration
+  if (isKidBirthday(currentKidId, getLocalDateStr())) {
+    setTimeout(function() {
+      launchConfetti(4000);
+      showToast('🎂 Happy Birthday ' + kid.name + '! Enjoy your day off! 🎉');
+    }, 800);
+  }
   const bonusBtnsEl = document.getElementById('bonus-challenge-btns');
   if (bonusBtnsEl) {
     const pending = (state.bonusChallenges || []).filter(b => b.kidId === currentKidId && b.status === 'pending');
@@ -6192,7 +6203,19 @@ function excuseKidToday() { excuseKidDay(); }
 function isKidExcused(kidId, dateStr) {
   if (state.excusedToday && state.excusedToday[kidId] === dateStr) return true;
   if (state.excusedDays && state.excusedDays[kidId] && state.excusedDays[kidId].includes(dateStr)) return true;
+  // Birthday check — auto-excused on their birthday every year
+  if (isKidBirthday(kidId, dateStr)) return true;
   return false;
+}
+
+// Check if dateStr (ISO "YYYY-MM-DD") matches a kid's birthday (MM-DD, any year)
+function isKidBirthday(kidId, dateStr) {
+  if (!dateStr) return false;
+  const kid = state.kids.find(function(k){ return k.id === kidId; });
+  if (!kid || !kid.birthday) return false; // no birthday stored
+  // birthday stored as "MM-DD"
+  const monthDay = dateStr.slice(5); // "MM-DD" from "YYYY-MM-DD"
+  return monthDay === kid.birthday;
 }
 
 function renderExcuseStatus() {
@@ -6875,6 +6898,16 @@ function runMigrations() {
       });
     }
     state._streakReset4sub = true;
+    localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+  }
+
+  // One-time: add birthday field to existing kids
+  if (!state._birthdayMigrated) {
+    const birthdayMap = { lauren: '05-05', andrew: '05-05' };
+    state.kids.forEach(function(k) {
+      if (birthdayMap[k.id] && !k.birthday) k.birthday = birthdayMap[k.id];
+    });
+    state._birthdayMigrated = true;
     localStorage.setItem('kidstuff_cache', JSON.stringify(state));
   }
 }
