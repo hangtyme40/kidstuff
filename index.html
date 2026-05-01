@@ -2773,14 +2773,12 @@ function getTodayKey() {
 // Day B (Tue/Thu = odd dow): Reading + Writing
 // Sunday (dow=0): Rest day
 function getTodaySchedule() {
-  const dow = new Date().getDay(); // 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
+  const dow = new Date().getDay();
   if (dow === 0) return { isRest: true, subjects: [] };
-  const isDayA = (dow % 2 === 1) || dow === 6;
   return {
     isRest: false,
-    isDayA,
-    subjects: isDayA ? ['spelling','math'] : ['reading','writing'],
-    label: isDayA ? 'Spelling & Math today' : 'Reading & Writing today'
+    subjects: ['spelling','math','reading','writing'],
+    label: 'All 4 subjects today'
   };
 }
 
@@ -5847,7 +5845,7 @@ function checkDailyStreak(kidId) {
   const ds = state.dailyStreak[kidId];
   const today = getTodayKey(); // ISO e.g. "2026-05-01"
 
-  // Build yesterday in same ISO format as getTodayKey()
+  // Build yesterday in ISO format
   const yest = new Date();
   yest.setDate(yest.getDate() - 1);
   const yesterdayKey = yest.getFullYear() + '-' + String(yest.getMonth()+1).padStart(2,'0') + '-' + String(yest.getDate()).padStart(2,'0');
@@ -5856,16 +5854,28 @@ function checkDailyStreak(kidId) {
   if (schedule.isRest) return;
 
   const prog = state.progress[kidId] || {};
-  const subjects = schedule.subjects;
+  const subjects = schedule.subjects; // now always all 4
+
+  // Check if all 4 subjects are done today
   const allDoneToday = subjects.every(function(s) {
     return prog[s] && isToday(prog[s].date);
   });
 
+  // Verify the lastDate day was actually fully completed with all 4 subjects
+  // (guards against streaks built when only 2 subjects were required)
+  function wasFullyCompleted(dateStr) {
+    if (!dateStr) return false;
+    const h = (state.lessonHistory && state.lessonHistory[kidId]) || [];
+    const dayEntries = h.filter(function(e){ return e.date === dateStr && !e.subject.endsWith('_bonus'); });
+    return subjects.every(function(s){ return dayEntries.some(function(e){ return e.subject === s; }); });
+  }
+
   if (allDoneToday && ds.lastDate !== today) {
-    if (ds.lastDate === yesterdayKey) {
-      ds.count++; // extending streak
+    // Completed today — check if yesterday was also fully completed to extend streak
+    if (ds.lastDate === yesterdayKey && wasFullyCompleted(yesterdayKey)) {
+      ds.count++; // extending valid streak
     } else {
-      ds.count = 1; // new streak
+      ds.count = 1; // new streak (yesterday incomplete or different day)
     }
     ds.lastDate = today;
     saveState();
@@ -5876,11 +5886,12 @@ function checkDailyStreak(kidId) {
       setTimeout(function() { launchConfetti(4000); playSound('epic'); showToast(milestones[ds.count]); }, 1000);
     }
   } else if (!allDoneToday && ds.lastDate !== today) {
-    // Not done today — check if yesterday was missed (breaks streak)
+    // Not done today yet — check if yesterday was a required day they didn't fully complete
     const yestSched = getScheduleForDow(yest.getDay());
-    if (!yestSched.isRest && ds.lastDate !== yesterdayKey) {
+    if (!yestSched.isRest) {
       const excused = isUSFederalHoliday(yest) || state.vacationMode || isKidExcused(kidId, yesterdayKey);
-      if (!excused && ds.count > 0) {
+      if (!excused && !wasFullyCompleted(yesterdayKey) && ds.count > 0) {
+        // Yesterday was required but not fully completed with all 4 subjects — reset
         ds.count = 0;
         ds.lastDate = '';
         saveState();
@@ -6116,7 +6127,9 @@ function dismissParentMessage() {
   if (!state.parentMessages) return;
   if (state.parentMessages[currentKidId]) {
     delete state.parentMessages[currentKidId];
-    saveState();
+    localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+    // Must push parent data directly — kid branch of pushState won't push parentMessages
+    pushParentData().catch(function(e){ console.warn('Dismiss message push error:', e); });
   }
   const banner = document.getElementById('parent-message-banner');
   if (banner) banner.style.display = 'none';
@@ -6845,27 +6858,22 @@ function runMigrations() {
   }
 
   // One-time fix: clear parent messages that have no timestamp (they're stale)
-  if (!state._msgTsFixed) {
+  // Also force-reset streaks since 4-subject requirement is new — old streaks were built on 2 subjects
+  if (!state._streakReset4sub) {
     if (state.parentMessages) {
       Object.keys(state.parentMessages).forEach(function(kidId) {
         const msg = state.parentMessages[kidId];
-        if (msg && !msg.ts) {
-          delete state.parentMessages[kidId];
-        }
+        if (msg && !msg.ts) delete state.parentMessages[kidId];
       });
     }
-    // Reset streak lastDate if stored in old toDateString format
+    // Force reset all streaks — they were built when only 2 subjects were required per day
+    // Kids must now complete all 4 to build a streak
     if (state.dailyStreak) {
       Object.keys(state.dailyStreak).forEach(function(kidId) {
-        const ds = state.dailyStreak[kidId];
-        if (ds && ds.lastDate && /^[A-Za-z]{3}\s/.test(ds.lastDate)) {
-          // Old toDateString format — clear it so streak re-evaluates correctly
-          ds.lastDate = '';
-          ds.count = 0;
-        }
+        state.dailyStreak[kidId] = { count: 0, lastDate: '' };
       });
     }
-    state._msgTsFixed = true;
+    state._streakReset4sub = true;
     localStorage.setItem('kidstuff_cache', JSON.stringify(state));
   }
 }
