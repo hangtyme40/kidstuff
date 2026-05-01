@@ -4727,8 +4727,10 @@ function renderParentDashboard() {
     // Update header
     const sub = document.getElementById('parent-header-sub');
     if (sub && _currentUser) sub.textContent = (_currentUser.displayName || 'Parent') + "'s Dashboard";
-    // Check incomplete week penalty
-    state.kids.forEach(function(k) { checkIncompleteWeekPenalty(k.id); });
+    // Check streaks for all kids so parent sees accurate counts without kids needing to log in
+    state.kids.forEach(function(k) {
+      if (k.id !== 'tester') { try { checkDailyStreak(k.id); } catch(_) {} }
+    });
     // Populate all dropdowns
     populateKidDropdowns();
     // Render kid summary strip
@@ -5880,7 +5882,6 @@ function checkDailyStreak(kidId) {
     ds.lastDate = today;
     saveState();
     checkPerfectWeek(kidId);
-    checkIncompleteWeekPenalty(kidId);
     const milestones = {7:"🔥 7-Day Streak! You're on fire!", 14:"⚡ 14 Days! Two weeks strong!", 30:"🏆 30-Day Streak! Incredible!", 60:"🌟 60 Days! You're a legend!", 100:"👑 100-Day Streak! Unbelievable!"};
     if (milestones[ds.count]) {
       setTimeout(function() { launchConfetti(4000); playSound('epic'); showToast(milestones[ds.count]); }, 1000);
