@@ -1737,6 +1737,8 @@ async function pullState() {
     state.lastSynced = new Date().toISOString();
     localStorage.setItem('kidstuff_cache', JSON.stringify(state));
     updateLastSyncedDisplay();
+    // Always refresh badge after pull so writing submissions show immediately
+    try { updateTabBadges(); } catch(_) {}
     state.kids.forEach(function(k) { checkHolidayStreakProtection(k.id); });
     applyVacationStreakProtection();
     // Purge stale data after successful sync
@@ -1916,7 +1918,10 @@ function startRealtimeListener() {
       _realtimeRetryTimer = setTimeout(function() {
         pullState().then(function() {
           const parent = document.getElementById('screen-parent');
-          if (parent && parent.classList.contains('active')) renderParentKidSummary();
+          if (parent && parent.classList.contains('active')) {
+            renderParentKidSummary();
+            updateTabBadges();
+          }
         }).catch(e => console.warn('Realtime patch pull error:', e));
       }, 1200);
     });
@@ -2424,7 +2429,7 @@ function switchTab(tabId, btn) { switchParentTab(tabId, btn); }
 
 // ── REVIEW BADGE ─────────────────────────────────────────
 function updateTabBadges() {
-  const pendingW = (state.writingQueue||[]).filter(function(w){ return w.status==='pending'; }).length;
+  const pendingW = (state.writingQueue||[]).filter(function(w){ return w.status==='pending' || w.status==='stale'; }).length;
   const pendingR = (state.redemptionQueue||[]).filter(function(r){ return r.status==='pending'; }).length;
   const pendingF = (state.flaggedReview||[]).filter(function(f){ return f.status==='pending'; }).length;
   const total = pendingW + pendingR + pendingF;
@@ -5005,13 +5010,14 @@ function clearRedoNotice(kidId) {
 
 function renderWritingApprovals() {
   const el = document.getElementById('writing-approvals-list');
-  const pending = (state.writingQueue||[]).filter(w=>w.status==='pending');
+  const pending = (state.writingQueue||[]).filter(w=>w.status==='pending' || w.status==='stale');
   if (!pending.length) { el.innerHTML='<div class="empty-state"><div class="empty-icon">✅</div><p>No writing to review.</p></div>'; return; }
   el.innerHTML = pending.map(w => {
     const kid = state.kids.find(k=>k.id===w.kidId);
+    const isStale = w.status === 'stale';
     return `<div class="approval-item">
       <div class="approval-info">
-        <div style="font-weight:700">${kid?kid.emoji+' '+kid.name:w.kidId} · ${w.date}</div>
+        <div style="font-weight:700">${kid?kid.emoji+' '+kid.name:w.kidId} · ${w.date}${isStale ? ' <span style="font-size:11px;color:#F59E0B;font-weight:700">(from previous day)</span>' : ''}</div>
         <div style="font-size:13px;color:var(--muted);margin-top:4px"><strong>Prompt:</strong> ${w.prompt}</div>
         ${w.kidAnswerType === 'drawing'
           ? `<img src="${w.kidAnswer}" style="width:100%;border-radius:8px;border:1.5px solid var(--border);margin-top:8px;display:block;" alt="Student handwriting"/>`
@@ -5099,7 +5105,7 @@ function approveWriting(id) {
   const alreadyAwarded = writingProg && writingProg.coinsAwarded;
   if (kid && !alreadyAwarded) {
     kid.coins += 2;
-    logCoinTransaction(entry.kidId, 2, '✏️ Writing approved', kid.coins);
+    logCoinTransaction(w.kidId, 2, '✏️ Writing approved', kid.coins);
     stampCoins(w.kidId);
     if (writingProg) { writingProg.coins = 2; writingProg.coinsAwarded = true; }
   }
