@@ -894,7 +894,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     </button>
     <button class="bnav-btn" id="bnav-review" onclick="switchParentTab('tab-review',this)" style="position:relative;">
       <span style="font-size:20px">✍️</span><span class="bnav-label">Review</span>
-      <span id="bnav-review-badge" style="display:none;position:absolute;top:5px;right:6px;background:#EF4444;color:white;border-radius:50%;min-width:18px;height:18px;font-size:10px;font-weight:800;line-height:18px;text-align:center;padding:0 3px;box-sizing:border-box;"></span>
+      <span id="bnav-review-badge" style="display:none;position:absolute;top:4px;right:4px;width:10px;height:10px;background:#EF4444;border-radius:50%;border:2px solid white;"></span>
     </button>
     <button class="bnav-btn" id="bnav-kids" onclick="switchParentTab('tab-kids',this)">
       <span style="font-size:20px">👧</span><span class="bnav-label">Kids</span>
@@ -2434,10 +2434,7 @@ function updateTabBadges() {
   const pendingF = (state.flaggedReview||[]).filter(function(f){ return f.status==='pending'; }).length;
   const total = pendingW + pendingR + pendingF;
   const badge = document.getElementById('bnav-review-badge');
-  if (badge) {
-    badge.textContent = total > 0 ? String(total) : '';
-    badge.style.display = total > 0 ? 'inline-block' : 'none';
-  }
+  if (badge) badge.style.display = total > 0 ? 'block' : 'none';
   updateParentBadge();
 }
 
