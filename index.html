@@ -749,6 +749,12 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         </div>
         <button class="btn-primary" onclick="adjustCoins()">Adjust Brain Bucks</button>
       </div>
+      <!-- Brain Bucks Reward Settings -->
+      <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
+        <div style="font-weight:800;margin-bottom:4px">⭐ Brain Bucks Per Lesson</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Max earned at 100% score. 80%+ earns 1 less. Decimals allowed (e.g. 0.5).</div>
+        <div id="coin-max-settings"></div>
+      </div>
       <!-- Manage Rewards -->
       <div class="card">
         <div class="card-title">🎁 Manage Rewards</div>
@@ -1390,7 +1396,7 @@ const DEFAULT_STATE = {
   writingQueue:[],
   difficultyLevel:{lauren:2,andrew:2,tester:2},
   usedTopics:{lauren:[],andrew:[],tester:[]},
-  coinMax:{lauren:{spelling:2,math:2,reading:2,writing:2},andrew:{spelling:2,math:2,reading:2,writing:2},tester:{spelling:2,math:2,reading:2,writing:2}},
+  coinMax:{lauren:{spelling:2,math:2,reading:2,writing:0.5},andrew:{spelling:2,math:2,reading:2,writing:0.5},tester:{spelling:2,math:2,reading:2,writing:0.5}},
   redemptionQueue:[],
   dailyStreak:{lauren:{count:0,lastDate:''},andrew:{count:0,lastDate:''},tester:{count:0,lastDate:''}},
   skipDay:{lauren:0,andrew:0,tester:0},
@@ -2392,7 +2398,7 @@ function switchParentTab(tabId, btn) {
     renderWritingApprovals(); renderRedemptionQueue(); renderFlaggedList(); renderRedoNotices();
   }
   if (tabId === 'tab-kids') {
-    renderCurriculumOverview(); renderLevelAdjSelects(); renderParentRewards();
+    renderCurriculumOverview(); renderLevelAdjSelects(); renderParentRewards(); renderCoinMaxSettings();
     _renderEmojiPicker('addkid-emoji-picker','addkid-emoji');
   }
   if (tabId === 'tab-manage') {
@@ -4173,7 +4179,8 @@ function submitWriting() {
     prompt: lessonState.writingPrompt,
     kidAnswer: imageDataUrl,
     kidAnswerType: 'drawing',
-    status: 'pending', date: new Date().toLocaleDateString()
+    isRedo: lessonState.isRedo || false,
+    status: 'pending', date: getLocalDateStr()
   });
   // Save locally first, then explicitly push shared data so parent sees it immediately
   localStorage.setItem('kidstuff_cache', JSON.stringify(state));
@@ -4501,8 +4508,12 @@ function finishLesson() {
   const isWriting = ls.subjectType === 'writing';
   function calcCoins(score) {
     if (isWriting) return 0; // held until approval
-    if (score === 100) return 2;
-    if (score >= 80) return 1;
+    // Get max coins for this kid/subject from coinMax settings
+    const maxCoins = (state.coinMax && state.coinMax[currentKidId] && state.coinMax[currentKidId][ls.subjectId] !== undefined)
+      ? state.coinMax[currentKidId][ls.subjectId]
+      : 2;
+    if (score === 100) return maxCoins;
+    if (score >= 80) return Math.max(0, maxCoins - 1);
     return 0;
   }
   const originalCoins = alreadyDone ? (state.progress[currentKidId][ls.subjectId].coins || 0) : calcCoins(pct);
@@ -5096,15 +5107,19 @@ function approveWriting(id) {
   if (!w) return;
   w.status = 'approved';
   const kid = state.kids.find(k=>k.id===w.kidId);
-  // Award Brain Bucks using the standard formula — approval = 100% score = 2 Brain Bucks.
-  // Coins are only awarded once per submission (not again on re-approval of a redo).
   const writingProg = state.progress[w.kidId] && state.progress[w.kidId]['writing'];
   const alreadyAwarded = writingProg && writingProg.coinsAwarded;
-  if (kid && !alreadyAwarded) {
-    kid.coins += 2;
-    logCoinTransaction(w.kidId, 2, '✏️ Writing approved', kid.coins);
+  const isRedo = w.isRedo || w.status === 'redo'; // don't award if this was a redo submission
+  // Get writing coin value from coinMax settings
+  const writingMax = (state.coinMax && state.coinMax[w.kidId] && state.coinMax[w.kidId]['writing'] !== undefined)
+    ? state.coinMax[w.kidId]['writing']
+    : 0.5;
+  const coinsToAward = (!alreadyAwarded && !isRedo) ? writingMax : 0;
+  if (kid && coinsToAward > 0) {
+    kid.coins += coinsToAward;
+    logCoinTransaction(w.kidId, coinsToAward, '✏️ Writing approved', kid.coins);
     stampCoins(w.kidId);
-    if (writingProg) { writingProg.coins = 2; writingProg.coinsAwarded = true; }
+    if (writingProg) { writingProg.coins = coinsToAward; writingProg.coinsAwarded = true; }
   }
   // Clear redo notice so kid dashboard doesn't stay locked
   if (state.redoNotices) {
@@ -5112,14 +5127,14 @@ function approveWriting(id) {
       return !(n.kidId === w.kidId && n.subject === 'writing');
     });
   }
-  // Clear any stale redo/pending entries for this kid
   state.writingQueue = state.writingQueue.filter(function(x) {
     if (x.id === w.id) return true;
     if (x.kidId !== w.kidId) return true;
-    return x.status !== 'redo' && x.status !== 'pending';
+    return x.status !== 'redo' && x.status !== 'pending' && x.status !== 'stale';
   });
   saveState();
-  showToast('✅ Approved — ' + (kid ? kid.name : '') + ' earned 🧠 2 Brain Bucks!');
+  const earnMsg = coinsToAward > 0 ? ' +🧠 ' + coinsToAward + ' Brain Bucks!' : ' (no Brain Bucks — redo submission)';
+  showToast('✅ Approved — ' + (kid ? kid.name : '') + earnMsg);
   renderWritingApprovals();
   renderParentKidSummary();
   updateTabBadges();
@@ -6304,6 +6319,49 @@ function saveBirthday(kidId) {
   showToast('🎂 Birthday ' + (val ? 'set to ' + val : 'cleared') + ' for ' + kid.name + '!');
 }
 
+function renderCoinMaxSettings() {
+  const el = document.getElementById('coin-max-settings');
+  if (!el) return;
+  if (!state.coinMax) state.coinMax = {};
+  const subjects = ['spelling','math','reading','writing'];
+  const icons = {spelling:'🔤',math:'🧮',reading:'📖',writing:'✏️'};
+  const kids = state.kids.filter(function(k){ return k.id !== 'tester'; });
+  el.innerHTML = kids.map(function(k) {
+    if (!state.coinMax[k.id]) state.coinMax[k.id] = {spelling:2,math:2,reading:2,writing:0.5};
+    return '<div style="margin-bottom:14px">'
+      + '<div style="font-weight:700;margin-bottom:8px;font-size:14px;">' + k.emoji + ' ' + k.name + '</div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+      + subjects.map(function(s) {
+          const val = state.coinMax[k.id][s] !== undefined ? state.coinMax[k.id][s] : 2;
+          return '<div style="display:flex;align-items:center;gap:6px;">'
+            + '<span style="font-size:16px">' + icons[s] + '</span>'
+            + '<span style="font-size:13px;flex:1;color:var(--muted)">' + s.charAt(0).toUpperCase()+s.slice(1) + '</span>'
+            + '<input id="coinmax-' + k.id + '-' + s + '" type="number" min="0" max="10" step="0.5" value="' + val + '" '
+            + 'style="width:60px;padding:6px 8px;border:2px solid var(--border);border-radius:8px;font-family:Nunito,sans-serif;font-size:14px;font-weight:700;text-align:center;"/>'
+            + '</div>';
+        }).join('')
+      + '</div>'
+      + '<button onclick="saveCoinMax(\'' + k.id + '\')" style="margin-top:8px;padding:8px 16px;border:none;border-radius:10px;background:var(--primary);color:white;font-family:Nunito,sans-serif;font-weight:700;font-size:13px;cursor:pointer;">Save ' + k.name + '</button>'
+      + '</div>';
+  }).join('<hr style="border:none;border-top:1px solid var(--border);margin:8px 0"/>');
+}
+
+function saveCoinMax(kidId) {
+  if (!state.coinMax) state.coinMax = {};
+  if (!state.coinMax[kidId]) state.coinMax[kidId] = {};
+  const subjects = ['spelling','math','reading','writing'];
+  subjects.forEach(function(s) {
+    const input = document.getElementById('coinmax-' + kidId + '-' + s);
+    if (input) {
+      const val = parseFloat(input.value);
+      if (!isNaN(val) && val >= 0) state.coinMax[kidId][s] = val;
+    }
+  });
+  saveState();
+  const kid = state.kids.find(function(k){ return k.id === kidId; });
+  showToast('✅ Brain Bucks settings saved for ' + (kid ? kid.name : kidId) + '!');
+}
+
 function renderExcuseStatus() {
   const sel = document.getElementById('excuse-kid-select');
   const statusEl = document.getElementById('excuse-status');
@@ -6984,6 +7042,19 @@ function runMigrations() {
       });
     }
     state._streakReset4sub = true;
+    localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+  }
+
+  // One-time: set writing Brain Bucks to 0.5 for existing kids
+  if (!state._writingCoinFixed) {
+    if (state.coinMax) {
+      Object.keys(state.coinMax).forEach(function(kidId) {
+        if (state.coinMax[kidId] && state.coinMax[kidId].writing === 2) {
+          state.coinMax[kidId].writing = 0.5;
+        }
+      });
+    }
+    state._writingCoinFixed = true;
     localStorage.setItem('kidstuff_cache', JSON.stringify(state));
   }
 
