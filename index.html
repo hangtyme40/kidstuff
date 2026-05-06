@@ -2889,12 +2889,19 @@ function _renderKidDashboardInner() {
         + '<div style="font-size:18px;color:var(--muted);margin-bottom:24px">Enjoy your special day — no lessons today! 🎉</div>'
         + '<div style="font-size:48px">🎈🎁🎊</div>'
         + '</div>';
-      setTimeout(function() { launchConfetti(6000); playSound('epic'); }, 400);
     }
-    document.getElementById('kid-header-sub').textContent = 'Happy Birthday ' + kid.name + '!';
-    document.getElementById('kid-dash-avatar').textContent = kid.emoji;
-    document.getElementById('kid-dash-name').textContent = kid.name;
-    document.getElementById('kid-dash-coins').textContent = '🧠 ' + kid.coins + ' Brain Bucks';
+    const hdrSub = document.getElementById('kid-header-sub');
+    if (hdrSub) hdrSub.textContent = 'Happy Birthday ' + kid.name + '!';
+    const avatar = document.getElementById('kid-dash-avatar');
+    if (avatar) avatar.textContent = kid.emoji;
+    const nameEl = document.getElementById('kid-dash-name');
+    if (nameEl) nameEl.textContent = kid.name;
+    const coinsEl = document.getElementById('kid-dash-coins');
+    if (coinsEl) coinsEl.textContent = '🧠 ' + kid.coins + ' Brain Bucks';
+    setTimeout(function() {
+      try { launchConfetti(6000); } catch(_) {}
+      try { playSound('epic'); } catch(_) {}
+    }, 400);
     return; // don't render anything else
   }
 
