@@ -1745,6 +1745,7 @@ async function pullState() {
     updateLastSyncedDisplay();
     // Always refresh badge after pull so writing submissions show immediately
     try { updateTabBadges(); } catch(_) {}
+    setTimeout(refreshReviewBadge, 300);
     state.kids.forEach(function(k) { checkHolidayStreakProtection(k.id); });
     applyVacationStreakProtection();
     // Purge stale data after successful sync
@@ -2440,8 +2441,18 @@ function updateTabBadges() {
   const pendingF = (state.flaggedReview||[]).filter(function(f){ return f.status==='pending'; }).length;
   const total = pendingW + pendingR + pendingF;
   const badge = document.getElementById('bnav-review-badge');
-  if (badge) badge.style.display = total > 0 ? 'block' : 'none';
+  if (badge) {
+    badge.style.display = total > 0 ? 'block' : 'none';
+  }
   updateParentBadge();
+}
+
+// Force badge refresh — call this any time the parent screen is visible
+function refreshReviewBadge() {
+  const screen = document.getElementById('screen-parent');
+  if (screen && screen.classList.contains('active')) {
+    updateTabBadges();
+  }
 }
 
 function renderFamilyUrl() {
@@ -4830,6 +4841,9 @@ function renderParentDashboard() {
     // Voice selector
     renderVoiceSelector();
     setTimeout(renderVoiceSelector, 300);
+    // Delayed badge refresh — ensures badge shows after all async pulls complete
+    setTimeout(refreshReviewBadge, 500);
+    setTimeout(refreshReviewBadge, 2000);
   } catch(e) {
     console.error('renderParentDashboard error:', e);
     showToast('❌ Dashboard error: ' + e.message);
@@ -4838,7 +4852,7 @@ function renderParentDashboard() {
 
 function renderParentKidSummary() {
   // Writing pending alert
-  const pendingW = (state.writingQueue||[]).filter(function(w){ return w.status==='pending'; });
+  const pendingW = (state.writingQueue||[]).filter(function(w){ return w.status==='pending' || w.status==='stale'; });
   const alertEl = document.getElementById('writing-pending-alert');
   const alertText = document.getElementById('writing-pending-alert-text');
   if (alertEl) {
