@@ -5148,12 +5148,16 @@ function approveWriting(id) {
       return !(n.kidId === w.kidId && n.subject === 'writing');
     });
   }
+  // Remove the approved item and any redo/pending/stale items for this kid
   state.writingQueue = state.writingQueue.filter(function(x) {
-    if (x.id === w.id) return true;
-    if (x.kidId !== w.kidId) return true;
+    if (x.id === w.id) return false; // remove the just-approved item
+    if (x.kidId !== w.kidId) return true; // keep other kids' items
     return x.status !== 'redo' && x.status !== 'pending' && x.status !== 'stale';
   });
-  saveState();
+  localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+  // Push parent data AND shared data immediately so kids can't overwrite with stale pending status
+  pushParentData().catch(function(e){ console.warn('Approve push error:', e); });
+  pushSharedData().catch(function(e){ console.warn('Approve shared push error:', e); });
   const earnMsg = coinsToAward > 0 ? ' +🧠 ' + coinsToAward + ' Brain Bucks!' : ' (no Brain Bucks — redo submission)';
   showToast('✅ Approved — ' + (kid ? kid.name : '') + earnMsg);
   renderWritingApprovals();
@@ -5221,6 +5225,8 @@ function denyWriting(id) {
   state.redoNotices = state.redoNotices.filter(function(n){ return !(n.kidId === w.kidId && n.subject === 'writing'); });
   state.redoNotices.push({ kidId: w.kidId, subject: 'writing', message: 'Your parent asked you to redo your writing. Give it another try!', date: new Date().toLocaleDateString() });
   saveState();
+  // Push shared data immediately so the redo status reaches kids right away
+  pushSharedData().catch(function(e){ console.warn('Deny shared push error:', e); });
   showToast('🔄 Marked for redo — writing unlocked.');
   renderWritingApprovals();
   renderParentKidSummary();
@@ -7192,20 +7198,20 @@ function purgeOldWritingQueue() {
 // Old pending items stay in the queue for parent review but can't trigger a redo lock.
 function purgeStaleWritingQueue() {
   if (!state.writingQueue) return;
-  const todayStr = new Date().toLocaleDateString();
-  const todayIso = new Date().toISOString().slice(0,10);
+  const todayLocal = getLocalDateStr(); // use local date to match submission dates
   let changed = false;
   state.writingQueue = state.writingQueue.map(function(w) {
     if (w.status !== 'pending') return w;
-    // If the submission date doesn't match today in either format, mark it reviewed
-    const isToday = (w.date === todayStr || w.date === todayIso);
-    if (!isToday) {
+    if (w.date !== todayLocal) {
       changed = true;
       return Object.assign({}, w, { status: 'stale' });
     }
     return w;
   });
-  if (changed) saveState();
+  if (changed) {
+    localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+    // Don't call saveState() here — would trigger push cascade and suppress badge updates
+  }
 }
 
 // Remove any redoNotice that has no matching writingQueue item with status 'redo' or 'pending'.
