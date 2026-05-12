@@ -2434,16 +2434,25 @@ function switchParentTab(tabId, btn) {
 // Legacy switchTab alias
 function switchTab(tabId, btn) { switchParentTab(tabId, btn); }
 
-// ── REVIEW BADGE ─────────────────────────────────────────
 function updateTabBadges() {
-  const pendingW = (state.writingQueue||[]).filter(function(w){ return w.status==='pending' || w.status==='stale'; }).length;
+  const cutoff2days = new Date(); cutoff2days.setDate(cutoff2days.getDate() - 2);
+  function parseWDate(str) {
+    if (!str) return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return new Date(str + 'T12:00:00');
+    const m = String(str).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (m) return new Date(m[3]+'-'+m[1].padStart(2,'0')+'-'+m[2].padStart(2,'0')+'T12:00:00');
+    return null;
+  }
+  const pendingW = (state.writingQueue||[]).filter(function(w) {
+    if (w.status === 'pending') return true;
+    if (w.status === 'stale') { const d = parseWDate(w.date); return d && d >= cutoff2days; }
+    return false;
+  }).length;
   const pendingR = (state.redemptionQueue||[]).filter(function(r){ return r.status==='pending'; }).length;
   const pendingF = (state.flaggedReview||[]).filter(function(f){ return f.status==='pending'; }).length;
   const total = pendingW + pendingR + pendingF;
   const badge = document.getElementById('bnav-review-badge');
-  if (badge) {
-    badge.style.display = total > 0 ? 'block' : 'none';
-  }
+  if (badge) badge.style.display = total > 0 ? 'block' : 'none';
   updateParentBadge();
 }
 
@@ -5039,7 +5048,19 @@ function clearRedoNotice(kidId) {
 
 function renderWritingApprovals() {
   const el = document.getElementById('writing-approvals-list');
-  const pending = (state.writingQueue||[]).filter(w=>w.status==='pending' || w.status==='stale');
+  const cutoff2days = new Date(); cutoff2days.setDate(cutoff2days.getDate() - 2);
+  function parseWDate(str) {
+    if (!str) return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return new Date(str + 'T12:00:00');
+    const m = String(str).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (m) return new Date(m[3]+'-'+m[1].padStart(2,'0')+'-'+m[2].padStart(2,'0')+'T12:00:00');
+    return null;
+  }
+  const pending = (state.writingQueue||[]).filter(function(w) {
+    if (w.status === 'pending') return true;
+    if (w.status === 'stale') { const d = parseWDate(w.date); return d && d >= cutoff2days; }
+    return false;
+  });
   if (!pending.length) { el.innerHTML='<div class="empty-state"><div class="empty-icon">✅</div><p>No writing to review.</p></div>'; return; }
   el.innerHTML = pending.map(w => {
     const kid = state.kids.find(k=>k.id===w.kidId);
@@ -7072,6 +7093,33 @@ function runMigrations() {
     localStorage.setItem('kidstuff_cache', JSON.stringify(state));
   }
 
+  // One-time: clean writing queue backlog — remove approved, cleared, old redo entries
+  if (!state._writeQueueCleaned) {
+    if (state.writingQueue) {
+      const todayLocal = getLocalDateStr();
+      const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 2);
+      function _parseWD(str) {
+        if (!str) return null;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return new Date(str + 'T12:00:00');
+        const m = String(str).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (m) return new Date(m[3]+'-'+m[1].padStart(2,'0')+'-'+m[2].padStart(2,'0')+'T12:00:00');
+        return null;
+      }
+      state.writingQueue = state.writingQueue.filter(function(w) {
+        if (w.status === 'pending') return true;
+        if (w.status === 'stale') { const d = _parseWD(w.date); return d && d >= cutoff; }
+        if (w.status === 'redo') return w.date === todayLocal;
+        return false; // remove approved, cleared, and anything else
+      });
+    }
+    state._writeQueueCleaned = true;
+    localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+    setTimeout(function() {
+      pushSharedData().catch(function(){});
+      pushParentData().catch(function(){});
+    }, 1000);
+  }
+
   // One-time: set writing Brain Bucks to 0.5 for existing kids
   if (!state._writingCoinFixed) {
     if (state.coinMax) {
@@ -7186,11 +7234,27 @@ function clearStaleLiveLessons() {
 
 function purgeOldWritingQueue() {
   if (!state.writingQueue) return;
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 30);
-  state.writingQueue = state.writingQueue.filter(function(w) {
-    if (w.status === 'pending' || w.status === 'redo') return true;
-    try { const d = new Date(w.date); return isNaN(d.getTime()) || d >= cutoff; } catch(e) { return true; }
+  const todayLocal = getLocalDateStr();
+  // Parse a date string (handles M/D/YYYY and YYYY-MM-DD)
+  function parseDate(str) {
+    if (!str) return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return new Date(str + 'T12:00:00');
+    const m = String(str).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (m) return new Date(m[3] + '-' + m[1].padStart(2,'0') + '-' + m[2].padStart(2,'0') + 'T12:00:00');
+    return null;
+  }
+  const cutoff2days = new Date(); cutoff2days.setDate(cutoff2days.getDate() - 2);
+  const cutoff7days = new Date(); cutoff7days.setDate(cutoff7days.getDate() - 7);
+  state.writingQueue = (state.writingQueue||[]).filter(function(w) {
+    const d = parseDate(w.date);
+    // Always keep pending items
+    if (w.status === 'pending') return true;
+    // Keep stale items only if within last 2 days (still worth reviewing)
+    if (w.status === 'stale') return d && d >= cutoff2days;
+    // Keep redo items only if from today (older redos are abandoned)
+    if (w.status === 'redo') return w.date === todayLocal;
+    // Remove everything else: approved, cleared, old items
+    return false;
   });
 }
 
