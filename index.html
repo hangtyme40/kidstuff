@@ -2221,8 +2221,16 @@ async function afterParentLogin() {
   await initSync();
   showScreen('screen-parent');
   renderParentDashboard();
-  // Refresh badge after Firebase pull completes (async)
-  setTimeout(updateTabBadges, 2500);
+  // After Firebase pull completes, re-run penalty checks with fresh data
+  setTimeout(function() {
+    state.kids.forEach(function(k) {
+      if (k.id !== 'tester') {
+        checkDailyStreak(k.id);
+        checkIncompleteWeekPenalty(k.id);
+      }
+    });
+    updateTabBadges();
+  }, 3000);
 }
 
 function doLogout() {
@@ -4827,9 +4835,12 @@ function renderParentDashboard() {
     // Update header
     const sub = document.getElementById('parent-header-sub');
     if (sub && _currentUser) sub.textContent = (_currentUser.displayName || 'Parent') + "'s Dashboard";
-    // Check streaks for all kids so parent sees accurate counts without kids needing to log in
+    // Check streaks and penalties for all kids
     state.kids.forEach(function(k) {
-      if (k.id !== 'tester') { try { checkDailyStreak(k.id); } catch(_) {} }
+      if (k.id !== 'tester') {
+        checkDailyStreak(k.id);
+        checkIncompleteWeekPenalty(k.id);
+      }
     });
     // Populate all dropdowns
     populateKidDropdowns();
