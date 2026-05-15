@@ -1746,6 +1746,20 @@ async function pullState() {
     // Always refresh badge after pull so writing submissions show immediately
     try { updateTabBadges(); } catch(_) {}
     setTimeout(refreshReviewBadge, 300);
+    // Run streak and penalty checks after pull with fresh Firebase data
+    // Only run if parent screen is active (not kid screens)
+    setTimeout(function() {
+      const parentScreen = document.getElementById('screen-parent');
+      if (parentScreen && parentScreen.classList.contains('active')) {
+        state.kids.forEach(function(k) {
+          if (k.id !== 'tester') {
+            try { checkDailyStreak(k.id); } catch(e) { console.warn('streak check:', e); }
+            try { checkIncompleteWeekPenalty(k.id); } catch(e) { console.warn('penalty check:', e); }
+          }
+        });
+        renderParentKidSummary();
+      }
+    }, 1500);
     state.kids.forEach(function(k) { checkHolidayStreakProtection(k.id); });
     applyVacationStreakProtection();
     // Purge stale data after successful sync
@@ -2750,9 +2764,9 @@ function pinKey(d) {
           // then check penalty — prevents double-deduction across devices
           showScreen('screen-kid');
           pullState().then(function() {
-            checkIncompleteWeekPenalty(currentKidId);
+            renderKidDashboard();
           }).catch(function() {
-            checkIncompleteWeekPenalty(currentKidId);
+            renderKidDashboard();
           });
         } else {
           document.getElementById('pin-error').textContent = 'Incorrect PIN.';
@@ -4835,13 +4849,8 @@ function renderParentDashboard() {
     // Update header
     const sub = document.getElementById('parent-header-sub');
     if (sub && _currentUser) sub.textContent = (_currentUser.displayName || 'Parent') + "'s Dashboard";
-    // Check streaks and penalties for all kids
-    state.kids.forEach(function(k) {
-      if (k.id !== 'tester') {
-        checkDailyStreak(k.id);
-        checkIncompleteWeekPenalty(k.id);
-      }
-    });
+    // Note: streak and penalty checks run after pullState completes (in afterParentLogin timeout)
+    // to ensure they have the latest Firebase data including guards
     // Populate all dropdowns
     populateKidDropdowns();
     // Render kid summary strip
