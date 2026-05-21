@@ -655,6 +655,8 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 
     <!-- OVERVIEW TAB -->
     <div class="tab-panel active" id="tab-overview">
+      <!-- Persistent action cards — missed days, pending reviews -->
+      <div id="overview-action-cards"></div>
       <!-- Week day tracker per kid -->
       <div class="card" id="weekly-summary-card">
         <div class="card-title">📅 This Week</div>
@@ -1647,7 +1649,7 @@ async function pullState() {
     const parentFields = ['pin','kidPins','rewards','rewardsUpdatedAt','coinMax','lessonTimers','selectedVoice',
                           'difficultyLevel','vacationMode','paceData','adaptiveQ',
                           'perfectWeekClaimed','levelsUpdatedAt','incompleteWeekPenalized','soundsOff','autoAdvance',
-                          'excusedToday','excusedDays','parentMessages','coinLog','penalizedDays'];
+                          'excusedToday','excusedDays','parentMessages','coinLog','penalizedDays','missedDayAlerts'];
     parentFields.forEach(function(f) {
       if (parentData[f] !== undefined) state[f] = parentData[f];
     });
@@ -1843,7 +1845,8 @@ async function pushParentData() {
       excusedToday: state.excusedToday || {},
       excusedDays: state.excusedDays || {},
       parentMessages: state.parentMessages || {},
-      coinLog: state.coinLog || {}
+      coinLog: state.coinLog || {},
+      missedDayAlerts: state.missedDayAlerts || []
     };
     await fbSet(getFamilyPath('parent'), parentPayload);
   } catch(e) {
@@ -2415,7 +2418,7 @@ function switchParentTab(tabId, btn) {
   populateKidDropdowns();
   // Tab-specific rendering
   if (tabId === 'tab-overview') {
-    renderProgressOverview(); renderWeeklySummary();
+    renderOverviewActionCards(); renderProgressOverview(); renderWeeklySummary();
   }
   if (tabId === 'tab-review') {
     renderWritingApprovals(); renderRedemptionQueue(); renderFlaggedList(); renderRedoNotices();
@@ -4856,6 +4859,7 @@ function renderParentDashboard() {
     // Render kid summary strip
     renderParentKidSummary();
     // Render overview tab content (default tab)
+    renderOverviewActionCards();
     renderProgressOverview();
     renderWeeklySummary();
     // Update badges (will check for pending reviews)
@@ -6739,15 +6743,15 @@ function checkPerfectWeek(kidId) {
   }
 }
 
+// Check for missed days and create alerts for parent to act on
+// No automatic deductions — parent confirms each penalty
 function checkIncompleteWeekPenalty(kidId) {
   if (kidId === 'tester') return;
   const now = new Date();
   const today = getLocalDateStr();
-
-  // Only run at 12:01am or later
   if (now.getHours() === 0 && now.getMinutes() < 1) return;
 
-  // Initialize tracking
+  if (!state.missedDayAlerts) state.missedDayAlerts = [];
   if (!state.penalizedDays) state.penalizedDays = {};
   if (!state.penalizedDays[kidId]) state.penalizedDays[kidId] = [];
   if (!state.incompleteWeekPenalized) state.incompleteWeekPenalized = {};
@@ -6755,22 +6759,21 @@ function checkIncompleteWeekPenalty(kidId) {
   const weekStart = getWeekStart(now);
   const weekKey = weekStart.toISOString().slice(0,10);
 
-  // Already penalized this week — only one deduction per week
+  // Already handled this week (penalized or explicitly dismissed)
   if (state.incompleteWeekPenalized[kidId] === weekKey) return;
-  // Perfect week claimed — no penalty
+  // Perfect week claimed — no penalty needed
   if ((state.perfectWeekClaimed||{})[kidId] === weekKey) {
     state.incompleteWeekPenalized[kidId] = weekKey;
-    saveState(); return;
+    return;
   }
 
   const history = (state.lessonHistory && state.lessonHistory[kidId]) || [];
 
-  // Check each required day from Monday through yesterday
   for (let i = 0; i < 6; i++) {
     const day = new Date(weekStart);
     day.setDate(weekStart.getDate() + i);
     const dayStr = day.getFullYear() + '-' + String(day.getMonth()+1).padStart(2,'0') + '-' + String(day.getDate()).padStart(2,'0');
-    if (dayStr >= today) break; // don't evaluate today or future
+    if (dayStr >= today) break;
 
     const sched = getScheduleForDow(day.getDay());
     if (sched.isRest) continue;
@@ -6778,9 +6781,14 @@ function checkIncompleteWeekPenalty(kidId) {
     const excused = isUSFederalHoliday(day) || state.vacationMode || isKidExcused(kidId, dayStr);
     if (excused) continue;
 
-    // Skip day used — no penalty for this day
     const skipDays = (state.skipDay && state.skipDay[kidId]) || 0;
     if (skipDays > 0) continue;
+
+    // Already have an alert for this kid+day
+    const alertExists = state.missedDayAlerts.some(function(a) {
+      return a.kidId === kidId && a.date === dayStr;
+    });
+    if (alertExists) continue;
 
     // Already penalized this specific day
     if (state.penalizedDays[kidId].includes(dayStr)) continue;
@@ -6789,24 +6797,134 @@ function checkIncompleteWeekPenalty(kidId) {
     const complete = sched.subjects.every(function(s) { return dayEntries.some(function(e) { return e.subject === s; }); });
 
     if (!complete) {
+      // Create a pending alert instead of auto-deducting
       const kid = state.kids.find(function(k){ return k.id===kidId; });
-      if (kid) {
-        kid.coins = kid.coins - INCOMPLETE_WEEK_PENALTY;
-        stampCoins(kidId);
-        logCoinTransaction(kidId, -INCOMPLETE_WEEK_PENALTY, '📉 Missed day penalty (' + dayStr + ')', kid.coins);
-        state.penalizedDays[kidId].push(dayStr);
-        state.incompleteWeekPenalized[kidId] = weekKey;
-        saveState();
-        setTimeout(function() {
-          showToast('📉 ' + (kid.name||kidId) + ' missed ' + dayStr + ' — ' + INCOMPLETE_WEEK_PENALTY + ' 🧠 Brain Bucks deducted.');
-        }, 1200);
-      }
-      return; // one deduction per week max
+      state.missedDayAlerts.push({
+        id: 'alert_' + kidId + '_' + dayStr,
+        kidId: kidId,
+        kidName: kid ? kid.name : kidId,
+        kidEmoji: kid ? kid.emoji : '🧒',
+        date: dayStr,
+        weekKey: weekKey,
+        penalty: INCOMPLETE_WEEK_PENALTY
+      });
+      // Mark week as having an alert so we don't create more this week
+      state.incompleteWeekPenalized[kidId] = weekKey;
+      localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+      return; // one alert per week max
     }
   }
 }
 
-// Reverse a penalty when a skip day or excuse is granted retroactively
+function renderOverviewActionCards() {
+  const el = document.getElementById('overview-action-cards');
+  if (!el) return;
+  const cards = [];
+
+  // 1. Missed day alerts — pending parent decision
+  (state.missedDayAlerts||[]).forEach(function(alert) {
+    const d = new Date(alert.date + 'T12:00:00');
+    const dayLabel = d.toLocaleDateString(undefined, {weekday:'long', month:'short', day:'numeric'});
+    cards.push(
+      '<div style="background:#FFF5F5;border:2px solid #FCA5A5;border-radius:14px;padding:14px 16px;margin-bottom:10px;">'
+      + '<div style="font-weight:800;font-size:15px;margin-bottom:6px;">⚠️ ' + alert.kidEmoji + ' ' + alert.kidName + ' missed ' + dayLabel + '</div>'
+      + '<div style="font-size:13px;color:var(--muted);margin-bottom:12px;">All 4 subjects were required but not completed.</div>'
+      + '<div style="display:flex;gap:8px;">'
+      + '<button onclick="confirmMissedDayPenalty(\'' + alert.id + '\')" style="flex:1;padding:10px;border:none;border-radius:10px;background:#EF4444;color:white;font-family:Nunito,sans-serif;font-weight:800;font-size:14px;cursor:pointer;">📉 Deduct ' + alert.penalty + ' Brain Bucks</button>'
+      + '<button onclick="excuseMissedDay(\'' + alert.id + '\')" style="flex:1;padding:10px;border:none;border-radius:10px;background:#F3F4F6;color:var(--text);font-family:Nunito,sans-serif;font-weight:800;font-size:14px;cursor:pointer;">🤒 Excuse This Day</button>'
+      + '</div></div>'
+    );
+  });
+
+  // 2. Writing submissions to review
+  const pendingW = (state.writingQueue||[]).filter(function(w){
+    if (w.status === 'pending') return true;
+    if (w.status === 'stale') {
+      const d = new Date(w.date + 'T12:00:00'); const c = new Date(); c.setDate(c.getDate()-2);
+      return d >= c;
+    }
+    return false;
+  });
+  if (pendingW.length > 0) {
+    cards.push(
+      '<div style="background:#F0FDF4;border:2px solid #86EFAC;border-radius:14px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;">'
+      + '<div style="font-size:28px;">✍️</div>'
+      + '<div style="flex:1;">'
+      + '<div style="font-weight:800;font-size:15px;">' + pendingW.length + ' writing submission' + (pendingW.length>1?'s':'') + ' to review</div>'
+      + '<div style="font-size:12px;color:var(--muted);">Tap to review and award Brain Bucks</div>'
+      + '</div>'
+      + '<button onclick="switchParentTab(\'tab-review\',document.getElementById(\'bnav-review\'))" style="padding:10px 16px;border:none;border-radius:10px;background:var(--primary);color:white;font-family:Nunito,sans-serif;font-weight:800;font-size:13px;cursor:pointer;">Review →</button>'
+      + '</div>'
+    );
+  }
+
+  // 3. Reward redemptions pending
+  const pendingR = (state.redemptionQueue||[]).filter(function(r){ return r.status==='pending'; });
+  if (pendingR.length > 0) {
+    cards.push(
+      '<div style="background:#FFFBEB;border:2px solid #FCD34D;border-radius:14px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;">'
+      + '<div style="font-size:28px;">🎁</div>'
+      + '<div style="flex:1;">'
+      + '<div style="font-weight:800;font-size:15px;">' + pendingR.length + ' reward redemption' + (pendingR.length>1?'s':'') + ' pending</div>'
+      + '<div style="font-size:12px;color:var(--muted);">Kids are waiting for their rewards</div>'
+      + '</div>'
+      + '<button onclick="switchParentTab(\'tab-review\',document.getElementById(\'bnav-review\'))" style="padding:10px 16px;border:none;border-radius:10px;background:var(--primary);color:white;font-family:Nunito,sans-serif;font-weight:800;font-size:13px;cursor:pointer;">Review →</button>'
+      + '</div>'
+    );
+  }
+
+  // 4. Flagged questions pending
+  const pendingF = (state.flaggedReview||[]).filter(function(f){ return f.status==='pending'; });
+  if (pendingF.length > 0) {
+    cards.push(
+      '<div style="background:#EFF6FF;border:2px solid #93C5FD;border-radius:14px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;">'
+      + '<div style="font-size:28px;">🚩</div>'
+      + '<div style="flex:1;">'
+      + '<div style="font-weight:800;font-size:15px;">' + pendingF.length + ' flagged question' + (pendingF.length>1?'s':'') + ' to review</div>'
+      + '<div style="font-size:12px;color:var(--muted);">Kids flagged these as unfair or unclear</div>'
+      + '</div>'
+      + '<button onclick="switchParentTab(\'tab-review\',document.getElementById(\'bnav-review\'))" style="padding:10px 16px;border:none;border-radius:10px;background:var(--primary);color:white;font-family:Nunito,sans-serif;font-weight:800;font-size:13px;cursor:pointer;">Review →</button>'
+      + '</div>'
+    );
+  }
+
+  el.innerHTML = cards.join('');
+}
+
+function confirmMissedDayPenalty(alertId) {
+  const alert = (state.missedDayAlerts||[]).find(function(a){ return a.id===alertId; });
+  if (!alert) return;
+  const kid = state.kids.find(function(k){ return k.id===alert.kidId; });
+  if (kid) {
+    kid.coins = kid.coins - alert.penalty;
+    stampCoins(alert.kidId);
+    logCoinTransaction(alert.kidId, -alert.penalty, '📉 Missed day penalty (' + alert.date + ')', kid.coins);
+    if (!state.penalizedDays) state.penalizedDays = {};
+    if (!state.penalizedDays[alert.kidId]) state.penalizedDays[alert.kidId] = [];
+    state.penalizedDays[alert.kidId].push(alert.date);
+  }
+  state.missedDayAlerts = (state.missedDayAlerts||[]).filter(function(a){ return a.id !== alertId; });
+  saveState();
+  showToast('📉 ' + alert.penalty + ' 🧠 Brain Bucks deducted from ' + alert.kidName + '.');
+  renderOverviewActionCards();
+  renderParentKidSummary();
+  updateTabBadges();
+}
+
+function excuseMissedDay(alertId) {
+  const alert = (state.missedDayAlerts||[]).find(function(a){ return a.id===alertId; });
+  if (!alert) return;
+  // Add to excused days so it won't trigger again
+  if (!state.excusedDays) state.excusedDays = {};
+  if (!state.excusedDays[alert.kidId]) state.excusedDays[alert.kidId] = [];
+  if (!state.excusedDays[alert.kidId].includes(alert.date)) {
+    state.excusedDays[alert.kidId].push(alert.date);
+  }
+  state.missedDayAlerts = (state.missedDayAlerts||[]).filter(function(a){ return a.id !== alertId; });
+  saveState();
+  showToast('🤒 ' + alert.kidName + ' excused for ' + alert.date + ' — no penalty.');
+  renderOverviewActionCards();
+}
 function reversePenaltyIfNeeded(kidId, dateStr) {
   if (!state.penalizedDays || !state.penalizedDays[kidId]) return;
   const idx = state.penalizedDays[kidId].indexOf(dateStr);
@@ -7110,6 +7228,20 @@ function runMigrations() {
       });
     }
     state._streakReset4sub = true;
+    localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+  }
+
+  // One-time: reset penalty guards for new notification-based system
+  // Clears any bad state from the old auto-deduction system
+  if (!state._penaltyNotifSystem) {
+    state.missedDayAlerts = [];
+    // Reset weekly guards so new system can evaluate fresh
+    if (state.incompleteWeekPenalized) {
+      Object.keys(state.incompleteWeekPenalized).forEach(function(k) {
+        state.incompleteWeekPenalized[k] = '';
+      });
+    }
+    state._penaltyNotifSystem = true;
     localStorage.setItem('kidstuff_cache', JSON.stringify(state));
   }
 
