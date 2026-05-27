@@ -1759,7 +1759,9 @@ async function pullState() {
             try { checkIncompleteWeekPenalty(k.id); } catch(e) { console.warn('penalty check:', e); }
           }
         });
+        renderOverviewActionCards(); // sync action cards across devices
         renderParentKidSummary();
+        updateTabBadges();
       }
     }, 1500);
     state.kids.forEach(function(k) { checkHolidayStreakProtection(k.id); });
@@ -1928,8 +1930,9 @@ function startRealtimeListener() {
           const parent = document.getElementById('screen-parent');
           const kid = document.getElementById('screen-kid');
           if (parent && parent.classList.contains('active')) {
+            renderOverviewActionCards(); // sync alert cards across devices immediately
             renderParentKidSummary();
-            updateTabBadges(); // refresh badge after realtime pull
+            updateTabBadges();
           }
           if (kid && kid.classList.contains('active')) renderKidDashboard();
         }).catch(e => console.warn('Realtime pull error:', e));
@@ -3888,10 +3891,32 @@ function renderWritingLesson(c) {
       <canvas id="writing-canvas" width="700" height="380"
         style="width:100%;height:380px;border:2px solid var(--border);border-radius:12px;background:#FAFBFF;touch-action:none;cursor:crosshair;display:block;"></canvas>
     </div>
+    <div id="writing-page-indicator" style="text-align:center;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px;display:none;">Page <span id="writing-page-num">1</span></div>
     <div class="feedback-box" id="feedback"></div>
-    <button class="btn-primary" id="writing-submit-btn" onclick="submitWriting()">Submit for Review ✉️</button>
+    <div style="display:flex;gap:10px;margin-top:4px;">
+      <button onclick="addWritingPage()" style="flex:1;padding:14px;border:2px solid var(--primary);border-radius:12px;background:white;color:var(--primary);font-family:Nunito,sans-serif;font-size:15px;font-weight:800;cursor:pointer;">➕ Add Page</button>
+      <button class="btn-primary" id="writing-submit-btn" onclick="submitWriting()" style="flex:2;">Submit for Review ✉️</button>
+    </div>
   </div>`;
   initCanvas();
+  writingPages = []; // reset pages for new lesson
+}
+
+function drawLinedBackground(ctx, w, h) {
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#FAFBFF';
+  ctx.fillRect(0, 0, w, h);
+  // Red margin line
+  ctx.strokeStyle = '#FFB3B3';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(48, 0); ctx.lineTo(48, h); ctx.stroke();
+  // Blue lines
+  ctx.strokeStyle = '#C5D0F0';
+  ctx.lineWidth = 1;
+  const lineSpacing = 44;
+  for (let y = lineSpacing; y < h; y += lineSpacing) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+  }
 }
 
 function initCanvas() {
@@ -3900,24 +3925,7 @@ function initCanvas() {
   const ctx = canvas.getContext('2d');
 
   // Draw lined paper background
-  function drawLines() {
-    const w = canvas.width, h = canvas.height;
-    ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = '#FAFBFF';
-    ctx.fillRect(0, 0, w, h);
-    // Red margin line
-    ctx.strokeStyle = '#FFB3B3';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(48, 0); ctx.lineTo(48, h); ctx.stroke();
-    // Blue lines
-    ctx.strokeStyle = '#C5D0F0';
-    ctx.lineWidth = 1;
-    const lineSpacing = 44;
-    for (let y = lineSpacing; y < h; y += lineSpacing) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
-    }
-  }
-  drawLines();
+  drawLinedBackground(ctx, canvas.width, canvas.height);
 
   // Resize canvas to actual pixel dimensions
   function resizeCanvas() {
@@ -4021,7 +4029,7 @@ function initCanvas() {
   canvas.addEventListener('touchmove', draw, {passive:false});
   canvas.addEventListener('touchend', endDraw);
 
-  canvas._drawLines = drawLines;
+  canvas._drawLines = function() { drawLinedBackground(ctx, canvas.width, canvas.height); };
 }
 
 let _canvasTool = 'pen'; // 'pen' or 'eraser'
@@ -4211,20 +4219,80 @@ function clearMathCanvas() {
   }
 }
 
-function submitWriting() {
+// Track additional writing pages
+let writingPages = []; // array of data URLs for completed pages
+
+function addWritingPage() {
   const canvas = document.getElementById('writing-canvas');
   if (!canvas) return;
-  // Check if anything was drawn by sampling pixels
+  // Check something was drawn
   const ctx = canvas.getContext('2d');
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
   let hasDrawing = false;
   for (let i = 3; i < imageData.length; i += 4) {
-    // Look for dark pixels (pen strokes)
     if (imageData[i-3] < 100 && imageData[i] > 200) { hasDrawing = true; break; }
   }
-  if (!hasDrawing) { showToast('✏️ Please write something first!'); return; }
+  if (!hasDrawing) { showToast('✏️ Please write something on this page first!'); return; }
+  // Save current page
+  writingPages.push(canvas.toDataURL('image/jpeg', 0.7));
+  // Clear canvas for new page
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawLinedBackground(ctx, canvas.width, canvas.height);
+  // Update page indicator
+  const indicator = document.getElementById('writing-page-indicator');
+  const pageNum = document.getElementById('writing-page-num');
+  if (indicator) indicator.style.display = 'block';
+  if (pageNum) pageNum.textContent = writingPages.length + 1;
+  showToast('📄 Page ' + writingPages.length + ' saved! Keep writing.');
+}
 
-  const imageDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+function submitWriting() {
+  const canvas = document.getElementById('writing-canvas');
+  if (!canvas) return;
+  // Check if anything was drawn on current page
+  const ctx = canvas.getContext('2d');
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  let hasDrawing = false;
+  for (let i = 3; i < imageData.length; i += 4) {
+    if (imageData[i-3] < 100 && imageData[i] > 200) { hasDrawing = true; break; }
+  }
+  // Allow submit if no drawing on current page only if there are saved pages
+  if (!hasDrawing && writingPages.length === 0) { showToast('✏️ Please write something first!'); return; }
+
+  // Combine all pages into one tall image
+  let finalImageUrl;
+  if (writingPages.length === 0) {
+    // Single page — use canvas directly
+    finalImageUrl = canvas.toDataURL('image/jpeg', 0.7);
+  } else {
+    // Multi-page — stitch together vertically
+    const allPages = writingPages.slice();
+    if (hasDrawing) allPages.push(canvas.toDataURL('image/jpeg', 0.7));
+    const combined = document.createElement('canvas');
+    combined.width = canvas.width;
+    combined.height = canvas.height * allPages.length;
+    const combCtx = combined.getContext('2d');
+    combCtx.fillStyle = '#FAFBFF';
+    combCtx.fillRect(0, 0, combined.width, combined.height);
+    let loadedCount = 0;
+    allPages.forEach(function(pageUrl, idx) {
+      const img = new Image();
+      img.onload = function() {
+        combCtx.drawImage(img, 0, idx * canvas.height);
+        loadedCount++;
+        if (loadedCount === allPages.length) {
+          finalImageUrl = combined.toDataURL('image/jpeg', 0.7);
+          _doSubmitWriting(finalImageUrl);
+        }
+      };
+      img.src = pageUrl;
+    });
+    return; // async — _doSubmitWriting called in callback
+  }
+  _doSubmitWriting(finalImageUrl);
+}
+
+function _doSubmitWriting(imageDataUrl) {
   if (!state.writingQueue) state.writingQueue = [];
   state.writingQueue.push({
     id: 'w'+Date.now(), kidId: currentKidId,
@@ -4234,7 +4302,7 @@ function submitWriting() {
     isRedo: lessonState.isRedo || false,
     status: 'pending', date: getLocalDateStr()
   });
-  // Save locally first, then explicitly push shared data so parent sees it immediately
+  writingPages = []; // reset for next time
   localStorage.setItem('kidstuff_cache', JSON.stringify(state));
   pushSharedData().catch(function(e){ console.warn('Writing submit push error:', e); });
   showFeedback(true, '✅ Submitted! Your parent will review it.');
