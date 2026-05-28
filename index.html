@@ -3507,7 +3507,18 @@ Make it fun, creative, grade-appropriate, and specific about what and how much t
     return Array.isArray(parsed) ? dedupeQuestions(parsed, 'question') : [];
   }
   if (type === 'spelling') return dedupeQuestions(validateSpellingWords(parsed), 'word');
-  if (type === 'math') return dedupeQuestions(validateMathAnswers(parsed), 'question');
+  if (type === 'math') {
+    const validated = validateMathAnswers(parsed).map(validateMCQuestion).filter(Boolean);
+    return dedupeQuestions(validated, 'question');
+  }
+  // Reading and other MC types
+  if (Array.isArray(parsed)) {
+    const validated = parsed.map(function(q) {
+      if (q && q.options) return validateMCQuestion(q);
+      return q;
+    }).filter(Boolean);
+    return dedupeQuestions(validated, 'question');
+  }
   return dedupeQuestions(parsed, 'question');
 }
 
@@ -3618,6 +3629,33 @@ function validateSpellingWords(questions) {
     console.warn('Spelling validation: filtered ' + (questions.length - validated.length) + ' of ' + questions.length + ' words');
   }
   return validated;
+}
+
+function validateMCQuestion(q) {
+  if (!q || !q.options || !q.answer) return q;
+  const resolvedAns = resolveAnswer(q.answer, q.options);
+  const normAns = normalizeAnswerText(resolvedAns);
+  // Check if the answer matches one of the options
+  const matchIdx = q.options.findIndex(function(o) {
+    return normalizeAnswerText(String(o)) === normAns ||
+           answersMatch(normalizeAnswerText(String(o)), normAns);
+  });
+  if (matchIdx === -1) {
+    // Answer doesn't match any option — this question is broken
+    console.warn('MC validation: answer "' + resolvedAns + '" not in options:', q.options, '| Question:', q.question);
+    // Try to find any option that contains the answer text
+    const partialIdx = q.options.findIndex(function(o) {
+      return normalizeAnswerText(String(o)).includes(normAns) ||
+             normAns.includes(normalizeAnswerText(String(o)));
+    });
+    if (partialIdx !== -1) {
+      return Object.assign({}, q, { answer: q.options[partialIdx] });
+    }
+    // Can't fix — mark as skip by returning null
+    return null;
+  }
+  // Answer exists — make sure it's stored as the exact option text (not a letter)
+  return Object.assign({}, q, { answer: q.options[matchIdx] });
 }
 
 function dedupeQuestions(arr, key) {
@@ -3832,7 +3870,7 @@ function checkSpelling(word) {
   const checkBtn = document.getElementById('check-btn');
   if (checkBtn) checkBtn.style.display = 'none';
   input.disabled = true;
-  const ok = val === word.toLowerCase();
+  const ok = normalizeAnswerText(val) === normalizeAnswerText(word.toLowerCase()) || val === word.toLowerCase();
   input.className = 'answer-input ' + (ok?'correct':'wrong');
   if (ok) {
     showFeedback(true, '✅ Correct! Great spelling!');
@@ -3870,9 +3908,11 @@ function resolveAnswer(answer, options) {
 
 function renderMCQ(c, q) {
   const cleanQ = sanitizeUnicode(q.question);
-  const cleanOpts = (q.options||[]).map(sanitizeUnicode);
-  const cleanAns = sanitizeUnicode(q.answer);
-  const resolvedAns = resolveAnswer(cleanAns, cleanOpts);
+  // Normalize options and answer to remove smart quotes, unicode spaces etc.
+  const rawOpts = (q.options||[]).map(function(o){ return sanitizeUnicode(String(o||'').replace(/[\u2018\u2019]/g,"'").replace(/[\u201C\u201D]/g,'"').replace(/\u00A0/g,' ').trim()); });
+  const cleanOpts = rawOpts;
+  const rawAns = sanitizeUnicode(String(q.answer||'').replace(/[\u2018\u2019]/g,"'").replace(/[\u201C\u201D]/g,'"').replace(/\u00A0/g,' ').trim());
+  const resolvedAns = resolveAnswer(rawAns, cleanOpts);
   const drillBadge = (lessonState && lessonState.isDrillRound) ? '<div class="drill-badge">DRILL</div>' : '';
   const isMath = lessonState && lessonState.subjectType === 'math';
 
@@ -4366,10 +4406,25 @@ function _doSubmitWriting(imageDataUrl) {
   recordAnswer(true); showNextBtn();
 }
 
+// Normalize answer text for comparison — strips invisible chars, normalizes quotes/spaces
+function normalizeAnswerText(s) {
+  if (!s) return '';
+  return String(s)
+    .replace(/[\u2018\u2019]/g, "'")   // smart single quotes → straight
+    .replace(/[\u201C\u201D]/g, '"')   // smart double quotes → straight
+    .replace(/[\u2013\u2014]/g, '-')   // em/en dash → hyphen
+    .replace(/\u00A0/g, ' ')           // non-breaking space → space
+    .replace(/\s+/g, ' ')              // collapse whitespace
+    .trim()
+    .toLowerCase();
+}
+
 function selectOption(btn, selected, correct) {
   document.querySelectorAll('.option-btn').forEach(b => b.disabled=true);
-  // Use answersMatch for numeric equivalence (handles "3" === "3 ", "12" === "12", etc.)
-  const ok = answersMatch(selected, correct);
+  // Normalize both values before comparing to handle encoding differences
+  const normSelected = normalizeAnswerText(selected);
+  const normCorrect = normalizeAnswerText(correct);
+  const ok = normSelected === normCorrect || answersMatch(normSelected, normCorrect);
   btn.classList.add(ok?'correct':'wrong');
   if (!ok) {
     if (lessonState) {
@@ -4378,7 +4433,6 @@ function selectOption(btn, selected, correct) {
     }
     playSound('wrong');
     const q = lessonState && lessonState.questions[lessonState.currentQ];
-    // For reading with story: use the question's hint field if available
     const isReadingWithStory = lessonState && lessonState.subjectType === 'reading' && lessonState.readingStory;
     const hintText = (isReadingWithStory && q && q.hint)
       ? '📖 ' + q.hint + ' — look back at the story above.'
@@ -4439,7 +4493,9 @@ function checkTyped(answer) {
   const checkBtn = document.getElementById('check-btn');
   if (checkBtn) checkBtn.style.display = 'none';
   input.disabled = true;
-  const ok = answersMatch(val, answer);
+  const normVal = normalizeAnswerText(val);
+  const normAnswer = normalizeAnswerText(answer);
+  const ok = normVal === normAnswer || answersMatch(normVal, normAnswer);
   input.className = 'answer-input ' + (ok?'correct':'wrong');
   if (ok) {
     showFeedback(true, '✅ Correct!');
