@@ -3395,10 +3395,12 @@ async function generateLessonQuestions(kidId, subjectId, type, levelData, bonusT
     prompt = `Generate ${qCount} spelling words for a ${gradeLabel} student practicing "${levelName}" (${levelDesc}).
 Difficulty: ${diffName}. Student: ${kid.name}.${topicNote}${wrongContext}
 ${gradeLine}
-Use common, frequently-tested words a ${gradeLabel} student would encounter in class or on state assessments — similar to words in the Wonders reading program. Avoid rare, obscure, or adult vocabulary.
+CRITICAL: Every word must be spelled CORRECTLY. Double-check each word before including it.
+The word in the "word" field must appear EXACTLY (same spelling) somewhere in the "hint" sentence.
+Use common, frequently-tested words a ${gradeLabel} student would encounter — similar to the Wonders reading program. Avoid rare or adult vocabulary.
 Return ONLY valid JSON array, no markdown:
-[{"word":"WORD","hint":"A natural example sentence using the word, like a teacher would say in a spelling test. Example: for 'pet' return 'I have a pet dog at home.' For 'cake' return 'She baked a birthday cake for her friend.' The sentence must use the word naturally."},...]
-Use ${qCount} real grade-appropriate words that fit the pattern "${levelName}". No placeholder text. Every hint must be a complete sentence that uses the word.`;
+[{"word":"CORRECTLY_SPELLED_WORD","hint":"A complete sentence using that exact word. Example: for 'important' the hint must contain the word 'important' spelled identically."},...]
+Use ${qCount} real grade-appropriate words that fit the pattern "${levelName}". No placeholder text. Verify spelling of every word before returning.`;
 
   } else if (type === 'math') {
     const mcCount = Math.ceil(qCount / 2);
@@ -3504,7 +3506,7 @@ Make it fun, creative, grade-appropriate, and specific about what and how much t
     }
     return Array.isArray(parsed) ? dedupeQuestions(parsed, 'question') : [];
   }
-  if (type === 'spelling') return dedupeQuestions(parsed, 'word');
+  if (type === 'spelling') return dedupeQuestions(validateSpellingWords(parsed), 'word');
   if (type === 'math') return dedupeQuestions(validateMathAnswers(parsed), 'question');
   return dedupeQuestions(parsed, 'question');
 }
@@ -3527,21 +3529,18 @@ function validateMathAnswers(questions) {
   if (!Array.isArray(questions)) return questions;
   return questions.map(function(q) {
     if (!q || !q.question) return q;
-    // Look for "N op N =" pattern in the question
     const exprMatch = String(q.question).match(/([\d\s\+\-×\*xX÷\/\(\)\.]+)\s*=\s*\??$/);
     if (!exprMatch) return q;
     const correctVal = evalSimpleMath(exprMatch[1]);
     if (correctVal === null) return q;
     const correctStr = Number.isInteger(correctVal) ? String(correctVal) : String(Math.round(correctVal*1000)/1000);
-    // Resolve AI answer — letter (A/B/C/D) or direct value
     let resolvedAns = String(q.answer||'').trim();
     if (q.options && /^[A-Da-d]$/.test(resolvedAns)) {
       const idx = resolvedAns.toUpperCase().charCodeAt(0) - 65;
       resolvedAns = q.options[idx] ? String(q.options[idx]).trim() : resolvedAns;
     }
     const aiNum = parseFraction(resolvedAns.replace(/[^0-9.\/\-]/g,''));
-    if (aiNum !== null && Math.abs(aiNum - correctVal) < 0.01) return q; // AI correct
-    // AI wrong — fix it
+    if (aiNum !== null && Math.abs(aiNum - correctVal) < 0.01) return q;
     console.warn('Math fix:', q.question, '| AI:', q.answer, '| Correct:', correctStr);
     const fixed = Object.assign({}, q);
     if (q.options) {
@@ -3552,7 +3551,6 @@ function validateMathAnswers(questions) {
       if (correctIdx >= 0) {
         fixed.answer = q.options[correctIdx];
       } else {
-        // Replace first option with correct answer
         fixed.options = q.options.slice();
         fixed.options[0] = correctStr;
         fixed.answer = correctStr;
@@ -3562,6 +3560,64 @@ function validateMathAnswers(questions) {
     }
     return fixed;
   });
+}
+
+function validateSpellingWords(questions) {
+  if (!Array.isArray(questions)) return questions;
+  const validated = [];
+  questions.forEach(function(q) {
+    if (!q || !q.word) return;
+    const word = String(q.word).trim().toLowerCase();
+    const hint = String(q.hint || '').toLowerCase();
+
+    // Check 1: word must appear in the hint sentence
+    // If AI misspelled the word, it often won't match what's in the sentence
+    if (hint && !hint.includes(word)) {
+      // Try to find the correct spelling in the hint
+      // The hint sentence uses the CORRECT word — extract it
+      const hintWords = hint.replace(/[^a-z\s]/g, '').split(/\s+/);
+      // Look for a word in the hint that's close to our word (within 1 char difference)
+      const closeMatch = hintWords.find(function(hw) {
+        if (hw.length < 3) return false;
+        if (Math.abs(hw.length - word.length) > 2) return false;
+        // Simple similarity: count matching chars
+        let matches = 0;
+        for (let i = 0; i < Math.min(hw.length, word.length); i++) {
+          if (hw[i] === word[i]) matches++;
+        }
+        return matches >= word.length - 2; // allow up to 2 char difference
+      });
+      if (closeMatch && closeMatch !== word) {
+        // Hint uses a different spelling — trust the hint
+        console.warn('Spelling fix: AI said "' + q.word + '" but hint uses "' + closeMatch + '" — correcting');
+        q = Object.assign({}, q, { word: closeMatch });
+      } else if (!closeMatch) {
+        // Word not in hint at all and no close match — skip this word
+        console.warn('Spelling skip: "' + q.word + '" not found in hint "' + q.hint + '"');
+        return; // don't add to validated list
+      }
+    }
+
+    // Check 2: basic sanity — word should be alphabetic only (no numbers, weird chars)
+    if (!/^[a-zA-Z\-']+$/.test(q.word.trim())) {
+      console.warn('Spelling skip: non-alphabetic word "' + q.word + '"');
+      return;
+    }
+
+    // Check 3: word shouldn't be too short or too long for a spelling lesson
+    if (word.length < 2 || word.length > 25) {
+      console.warn('Spelling skip: weird length "' + q.word + '"');
+      return;
+    }
+
+    validated.push(q);
+  });
+
+  // If too many words were filtered, log a warning but return what we have
+  if (validated.length < questions.length) {
+    console.warn('Spelling validation: filtered ' + (questions.length - validated.length) + ' of ' + questions.length + ' words');
+  }
+  return validated;
 }
 
 function dedupeQuestions(arr, key) {
