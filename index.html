@@ -1487,6 +1487,8 @@ function recordLessonHistory(kidId, subjectId, pct, coins, correct, total, elaps
   if (!state.lessonHistory) state.lessonHistory = {};
   if (!state.lessonHistory[kidId]) state.lessonHistory[kidId] = [];
   const localDate = getLocalDateStr(); // local date — won't shift to next day for evening lessons
+  const kid2 = state.kids.find(function(k){ return k.id === kidId; });
+  const kidGrade = kid2 && kid2.grade !== undefined ? parseInt(kid2.grade) : 3;
   const entry = {
     date: localDate,
     dateDisplay: new Date().toLocaleDateString(),
@@ -1497,6 +1499,7 @@ function recordLessonHistory(kidId, subjectId, pct, coins, correct, total, elaps
     total: total,
     duration: elapsedMin || 0,
     level: levelIdx + 1,
+    grade: kidGrade,
     wrongAnswers: (lessonState && lessonState.wrongAnswers || []).slice(0, 10)
   };
   state.lessonHistory[kidId].unshift(entry);
@@ -5614,16 +5617,20 @@ function renderProgressOverview() {
     const card = document.createElement('div');
     card.className = 'card';
 
-    // Summary stats
+    // Summary stats — filter to current grade using e.grade (grade at session time)
+    const currentGradeNum = k.grade !== undefined ? parseInt(k.grade) : 3;
+    const curGradeHistory = history.filter(function(e){ return e.grade === currentGradeNum; });
     const totalSessions = history.length;
-    const avgScore = totalSessions ? Math.round(history.reduce((s,e)=>s+e.score,0)/totalSessions) : 0;
-    const totalCoins = history.reduce((s,e)=>s+e.coins,0);
+    const curGradeSessions = curGradeHistory.length;
+    const avgScore = curGradeSessions ? Math.round(curGradeHistory.reduce(function(s,e){ return s+e.score; },0)/curGradeSessions) : null;
+    const avgColor = avgScore !== null ? (avgScore >= 90 ? '#2ECC71' : avgScore >= 70 ? '#4F63E8' : '#EF4444') : '#94A3B8';
+    const gradeStr = currentGradeNum === 0 ? 'K' : 'Gr ' + currentGradeNum;
     const streak = (state.dailyStreak && state.dailyStreak[k.id]) ? state.dailyStreak[k.id].count : 0;
 
     card.innerHTML = '<div class="card-title">' + k.emoji + ' ' + k.name + '</div>'
       + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">'
       + '<div style="background:#EEF2FF;border-radius:12px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--primary)">' + totalSessions + '</div><div style="font-size:11px;color:var(--muted);font-weight:700">SESSIONS</div></div>'
-      + '<div style="background:#F0FBF4;border-radius:12px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:#2ECC71">' + avgScore + '%</div><div style="font-size:11px;color:var(--muted);font-weight:700">AVG SCORE</div></div>'
+      + '<div style="background:#F0FBF4;border-radius:12px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:' + avgColor + '">' + (avgScore !== null ? avgScore + '%' : '—') + '</div><div style="font-size:11px;color:var(--muted);font-weight:700">AVG (' + gradeStr + ')</div></div>'
       + '<div style="background:#FFFBEA;border-radius:12px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:#F59E0B">🔥 ' + streak + '</div><div style="font-size:11px;color:var(--muted);font-weight:700">DAY STREAK</div></div>'
       + '</div>';
 
@@ -5668,25 +5675,64 @@ function renderProgressOverview() {
             }).join('');
         card.appendChild(todayDiv);
       }
-      // Subject breakdown
+      // Subject breakdown — per-grade averages using grade stored at session time
       const subjects = ['spelling','math','reading','writing'];
+      const currentKidGrade = k.grade !== undefined ? parseInt(k.grade) : 3;
       const bySubject = document.createElement('div');
       bySubject.style.cssText = 'margin-bottom:16px;';
-      bySubject.innerHTML = '<div style="font-weight:800;font-size:14px;margin-bottom:8px;color:var(--muted)">BY SUBJECT</div>'
-        + subjects.map(function(s) {
-            const entries = history.filter(e => e.subject === s);
-            if (!entries.length) return '';
-            const avg = Math.round(entries.reduce((a,e)=>a+e.score,0)/entries.length);
-            const best = Math.max(...entries.map(e=>e.score));
-            const lvlData = getCurrentLevelData(k.id, s);
-            return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">'
-              + '<span style="font-size:18px">' + subjectIcons[s] + '</span>'
-              + '<div style="flex:1"><div style="font-weight:700;font-size:13px">' + (lvlData ? _safeName(lvlData.name) || s : s) + '</div>'
-              + '<div style="font-size:11px;color:var(--muted)">' + entries.length + ' session' + (entries.length!==1?'s':'') + '</div></div>'
-              + '<div style="text-align:right"><div style="font-weight:800;color:var(--primary)">' + avg + '% avg</div>'
-              + '<div style="font-size:11px;color:#2ECC71">Best: ' + best + '%</div></div>'
-              + '</div>';
-          }).join('');
+
+      const subjectRows = subjects.map(function(s) {
+        const allEntries = history.filter(function(e){ return e.subject === s; });
+        if (!allEntries.length) return '';
+
+        // Group by grade using e.grade (grade at session time)
+        const byGrade = {};
+        allEntries.forEach(function(e) {
+          const g = e.grade !== undefined ? e.grade : 3;
+          if (!byGrade[g]) byGrade[g] = [];
+          byGrade[g].push(e.score);
+        });
+
+        const lvlData = getCurrentLevelData(k.id, s);
+        const lvlName = lvlData ? _safeName(lvlData.name) || s : s;
+
+        // Current grade entries
+        const curGradeEntries = byGrade[currentKidGrade] || [];
+        const curAvg = curGradeEntries.length ? Math.round(curGradeEntries.reduce(function(a,b){return a+b;},0)/curGradeEntries.length) : null;
+        const curBest = curGradeEntries.length ? Math.max.apply(null, curGradeEntries) : null;
+        const avgColor = curAvg !== null ? (curAvg >= 90 ? '#2ECC71' : curAvg >= 70 ? '#4F63E8' : '#EF4444') : 'var(--muted)';
+        const gradeLabel = currentKidGrade === 0 ? 'K' : 'Gr ' + currentKidGrade;
+
+        // Prior grades sorted descending
+        const priorGrades = Object.keys(byGrade)
+          .map(Number).filter(function(g){ return g !== currentKidGrade; })
+          .sort(function(a,b){ return b-a; });
+        const priorLine = priorGrades.map(function(g) {
+          const avg = Math.round(byGrade[g].reduce(function(a,b){return a+b;},0)/byGrade[g].length);
+          const gl = g === 0 ? 'K' : 'Gr ' + g;
+          return gl + ': ' + avg + '%';
+        }).join(' · ');
+
+        return '<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">'
+          + '<span style="font-size:18px">' + subjectIcons[s] + '</span>'
+          + '<div style="flex:1">'
+          + '<div style="font-weight:700;font-size:13px">' + lvlName + '</div>'
+          + '<div style="font-size:11px;color:var(--muted)">'
+          + (curGradeEntries.length ? curGradeEntries.length + ' session' + (curGradeEntries.length!==1?'s':'') + ' · ' + gradeLabel : 'No ' + gradeLabel + ' sessions yet')
+          + '</div>'
+          + (priorLine ? '<div style="font-size:10px;color:var(--muted);margin-top:2px">Prior: ' + priorLine + '</div>' : '')
+          + '</div>'
+          + '<div style="text-align:right">'
+          + '<div style="font-weight:800;font-size:18px;color:' + avgColor + '">' + (curAvg !== null ? curAvg + '%' : '—') + '</div>'
+          + (curBest !== null ? '<div style="font-size:11px;color:#2ECC71">Best: ' + curBest + '%</div>' : '')
+          + '</div>'
+          + '</div>';
+      }).join('');
+
+      bySubject.innerHTML = '<div style="font-weight:800;font-size:14px;margin-bottom:4px;color:var(--muted)">BY SUBJECT</div>'
+        + '<div style="font-size:11px;color:var(--muted);margin-bottom:10px;font-weight:700">Showing '
+        + (currentKidGrade === 0 ? 'Kindergarten' : 'Grade ' + currentKidGrade) + ' averages · prior grades shown for comparison</div>'
+        + subjectRows;
       card.appendChild(bySubject);
 
       // Recent history table — last 2 days only
@@ -7463,6 +7509,23 @@ function runMigrations() {
     }
     state._writingCoinFixed = true;
     localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+  }
+
+  // One-time: tag historical lesson history entries that lack a grade field
+  // Everything before this build was Grade 3 curriculum
+  if (!state._historyGradeTagged) {
+    if (state.lessonHistory) {
+      Object.keys(state.lessonHistory).forEach(function(kidId) {
+        (state.lessonHistory[kidId] || []).forEach(function(e) {
+          if (e.grade === undefined || e.grade === null) {
+            e.grade = 3; // pre-build sessions were all Grade 3
+          }
+        });
+      });
+    }
+    state._historyGradeTagged = true;
+    localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+    console.log('Migration: tagged historical sessions as Grade 3');
   }
 
   // One-time: add birthday field to existing kids
