@@ -1652,7 +1652,7 @@ async function pullState() {
     const parentFields = ['pin','kidPins','rewards','rewardsUpdatedAt','coinMax','lessonTimers','selectedVoice',
                           'difficultyLevel','vacationMode','paceData','adaptiveQ',
                           'perfectWeekClaimed','levelsUpdatedAt','incompleteWeekPenalized','soundsOff','autoAdvance',
-                          'excusedToday','excusedDays','parentMessages','coinLog','penalizedDays','missedDayAlerts'];
+                          'excusedToday','excusedDays','parentMessages','coinLog','penalizedDays','missedDayAlerts','approvedWritingIds'];
     parentFields.forEach(function(f) {
       if (parentData[f] !== undefined) state[f] = parentData[f];
     });
@@ -1734,6 +1734,13 @@ async function pullState() {
         seen.add(key); return true;
       });
     });
+    // Remove any writing items that have already been approved — prevents resurrection
+    const approvedIds = state.approvedWritingIds || [];
+    if (approvedIds.length) {
+      state.writingQueue = (state.writingQueue || []).filter(function(w) {
+        return !approvedIds.includes(w.id);
+      });
+    }
 
     // Migrations
     if (!state.lessonTimers) state.lessonTimers = {spelling:15,math:15,reading:15,writing:15};
@@ -1851,7 +1858,8 @@ async function pushParentData() {
       excusedDays: state.excusedDays || {},
       parentMessages: state.parentMessages || {},
       coinLog: state.coinLog || {},
-      missedDayAlerts: state.missedDayAlerts || []
+      missedDayAlerts: state.missedDayAlerts || [],
+      approvedWritingIds: state.approvedWritingIds || []
     };
     await fbSet(getFamilyPath('parent'), parentPayload);
   } catch(e) {
@@ -1862,8 +1870,13 @@ async function pushParentData() {
 // Push shared queues
 async function pushSharedData() {
   try {
+    // Strip out already-approved writing items so kid devices can't resurrect them
+    const approvedIds = state.approvedWritingIds || [];
+    const cleanQueue = (state.writingQueue || []).filter(function(w) {
+      return !approvedIds.includes(w.id);
+    });
     await fbSet(getFamilyPath('shared'), {
-      writingQueue: state.writingQueue || [],
+      writingQueue: cleanQueue,
       redemptionQueue: state.redemptionQueue || [],
       flaggedReview: state.flaggedReview || [],
       redoNotices: state.redoNotices || [],
@@ -5354,41 +5367,63 @@ function resolveFlag(id, award) {
 function approveWriting(id) {
   const w = (state.writingQueue||[]).find(x=>x.id===id);
   if (!w) return;
+
+  // Check persistent approval record — prevents double-awarding even if queue comes back
+  if (!state.approvedWritingIds) state.approvedWritingIds = [];
+  const alreadyApproved = state.approvedWritingIds.includes(id);
+
+  // Fix: check isRedo BEFORE changing status
+  const isRedo = w.isRedo === true;
+
   w.status = 'approved';
   const kid = state.kids.find(k=>k.id===w.kidId);
-  const writingProg = state.progress[w.kidId] && state.progress[w.kidId]['writing'];
-  const alreadyAwarded = writingProg && writingProg.coinsAwarded;
-  const isRedo = w.isRedo || w.status === 'redo'; // don't award if this was a redo submission
+
   // Get writing coin value from coinMax settings
   const writingMax = (state.coinMax && state.coinMax[w.kidId] && state.coinMax[w.kidId]['writing'] !== undefined)
-    ? state.coinMax[w.kidId]['writing']
-    : 0.5;
-  const coinsToAward = (!alreadyAwarded && !isRedo) ? writingMax : 0;
+    ? state.coinMax[w.kidId]['writing'] : 0.5;
+
+  // Award only if: not already approved, not a redo
+  const coinsToAward = (!alreadyApproved && !isRedo) ? writingMax : 0;
+
   if (kid && coinsToAward > 0) {
     kid.coins += coinsToAward;
     logCoinTransaction(w.kidId, coinsToAward, '✏️ Writing approved', kid.coins);
     stampCoins(w.kidId);
-    if (writingProg) { writingProg.coins = coinsToAward; writingProg.coinsAwarded = true; }
   }
-  // Clear redo notice so kid dashboard doesn't stay locked
+
+  // Record approval permanently so re-submissions of same ID never award twice
+  if (!alreadyApproved) {
+    state.approvedWritingIds.push(id);
+    // Keep list from growing forever — trim to last 200
+    if (state.approvedWritingIds.length > 200) {
+      state.approvedWritingIds = state.approvedWritingIds.slice(-200);
+    }
+  }
+
+  // Clear redo notice
   if (state.redoNotices) {
     state.redoNotices = state.redoNotices.filter(function(n) {
       return !(n.kidId === w.kidId && n.subject === 'writing');
     });
   }
-  // Remove the approved item and any redo/pending/stale items for this kid
-  state.writingQueue = state.writingQueue.filter(function(x) {
-    if (x.id === w.id) return false; // remove the just-approved item
-    if (x.kidId !== w.kidId) return true; // keep other kids' items
+
+  // Remove ALL pending/stale/redo items for this kid from the queue
+  state.writingQueue = (state.writingQueue||[]).filter(function(x) {
+    if (x.id === w.id) return false; // remove the approved item
+    if (x.kidId !== w.kidId) return true; // keep other kids
     return x.status !== 'redo' && x.status !== 'pending' && x.status !== 'stale';
   });
+
   localStorage.setItem('kidstuff_cache', JSON.stringify(state));
-  // Push parent data AND shared data immediately so kids can't overwrite with stale pending status
+  // Push both — parent data has approvedWritingIds, shared has writingQueue
   pushParentData().catch(function(e){ console.warn('Approve push error:', e); });
   pushSharedData().catch(function(e){ console.warn('Approve shared push error:', e); });
-  const earnMsg = coinsToAward > 0 ? ' +🧠 ' + coinsToAward + ' Brain Bucks!' : ' (no Brain Bucks — redo submission)';
+
+  const earnMsg = coinsToAward > 0 ? ' +🧠 ' + coinsToAward + ' Brain Bucks!'
+    : alreadyApproved ? ' (already approved)' : ' (no Brain Bucks — redo submission)';
   showToast('✅ Approved — ' + (kid ? kid.name : '') + earnMsg);
   renderWritingApprovals();
+  renderOverviewActionCards();
   renderParentKidSummary();
   updateTabBadges();
 }
