@@ -3478,7 +3478,7 @@ Rules:
   } else if (type === 'writing') {
     const recentWritingPrompts = (state.lessonHistory[kidId] || [])
       .filter(e => e.subject === 'writing' && e.writingPrompt)
-      .slice(0, 15)
+      .slice(0, 6)
       .map(e => e.writingPrompt);
     const avoidNote = recentWritingPrompts.length
       ? '\nAvoid these recent prompts (do not repeat similar topics or formats):\n' + recentWritingPrompts.map((p,i) => (i+1) + '. "' + p.slice(0,60) + '"').join('\n')
@@ -3507,7 +3507,7 @@ Make it fun, creative, grade-appropriate, and specific about what and how much t
     res = await fetch(WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: prompt }], max_tokens: 3000, temperature: 0.7 })
+      body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: prompt }], max_tokens: 4000, temperature: 0.7 })
     });
   } catch(netErr) {
     throw new Error('Network error: ' + netErr.message);
@@ -3520,12 +3520,26 @@ Make it fun, creative, grade-appropriate, and specific about what and how much t
   const data = await res.json();
   if (!data.choices || !data.choices[0]) throw new Error('Unexpected API response: ' + JSON.stringify(data).slice(0,120));
   const text = data.choices[0].message.content;
-  const match = text.match(/[\[{][\s\S]*[\]}]/);
-  if (!match) throw new Error('No JSON in response');
-  const cleaned = match[0]
+  // Extract JSON more robustly — handle truncated responses and markdown fences
+  let jsonStr = text
+    .replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/,'') // strip markdown fences
     .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]/g,'')
-    .replace(/\u2018|\u2019/g,"'")
-    .replace(/\u201C|\u201D/g,'"');
+    .replace(/\u2018|\u2019/g,"'").replace(/\u201C|\u201D/g,'"')
+    .trim();
+  // Find the JSON array or object
+  const match = jsonStr.match(/(\[[\s\S]*\]|\{[\s\S]*\})/);
+  if (!match) throw new Error('No JSON in response: ' + text.slice(0,200));
+  jsonStr = match[0];
+  // If JSON appears truncated (array doesn't close), try to salvage complete objects
+  if (jsonStr.startsWith('[') && !jsonStr.trimEnd().endsWith(']')) {
+    // Truncated array — extract complete objects only
+    const objects = [];
+    const objMatches = jsonStr.matchAll(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)?\}/g);
+    for (const m of objMatches) { try { objects.push(JSON.parse(m[0])); } catch(e) {} }
+    if (objects.length) jsonStr = JSON.stringify(objects);
+    else throw new Error('Truncated response with no parseable objects');
+  }
+  const cleaned = jsonStr;
   const parsed = JSON.parse(cleaned);
   if (type === 'writing') {
     const arr = [{type:'writing'}];
