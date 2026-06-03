@@ -842,11 +842,11 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
         <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Protects all streaks daily. Turn off when you return home.</div>
         <button id="vacation-toggle-btn" class="btn-primary" onclick="toggleVacationMode()" style="background:#0EA5E9">Loading...</button>
       </div>
-      <!-- Lesson Time Limits -->
+      <!-- Lesson Pace -->
       <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
-        <div style="font-weight:800;margin-bottom:10px">⏱ Lesson Time Limits</div>
-        <div id="timer-inputs" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px"></div>
-        <button class="btn-primary" onclick="saveTimerSettings()">Save Time Limits</button>
+        <div style="font-weight:800;margin-bottom:4px">⏱ Lesson Pace</div>
+        <div id="timer-inputs" style="margin-bottom:12px"></div>
+        <button class="btn-primary" onclick="saveTimerSettings()">Save Pace Settings</button>
       </div>
       <!-- Change Kid PIN -->
       <div class="card" style="background:#F8F9FF;box-shadow:none;border:2px solid var(--border)">
@@ -1403,7 +1403,8 @@ const DEFAULT_STATE = {
   dailyStreak:{lauren:{count:0,lastDate:''},andrew:{count:0,lastDate:''},tester:{count:0,lastDate:''}},
   skipDay:{lauren:0,andrew:0,tester:0},
   selectedVoice: null,
-  lessonTimers:{spelling:15,math:15,reading:15,writing:15},
+  lessonTimers:{spelling:15,math:15,reading:15,writing:15}, // legacy — kept for compatibility
+  lessonPace:{spelling:25,math:35,reading:45,writing:0}, // seconds per question
   brainBucksMilestones:{lauren:[],andrew:[],tester:[]},
   bonusChallenges: [],
   lessonHistory: {lauren:[], andrew:[], tester:[]},
@@ -1649,7 +1650,7 @@ async function pullState() {
     const sharedData = await fbGet(getFamilyPath('shared')) || {};
 
     // Merge parent settings into state (non-destructive)
-    const parentFields = ['pin','kidPins','rewards','rewardsUpdatedAt','coinMax','lessonTimers','selectedVoice',
+    const parentFields = ['pin','kidPins','rewards','rewardsUpdatedAt','coinMax','lessonTimers','lessonPace','selectedVoice',
                           'difficultyLevel','vacationMode','paceData','adaptiveQ',
                           'perfectWeekClaimed','levelsUpdatedAt','incompleteWeekPenalized','soundsOff','autoAdvance',
                           'excusedToday','excusedDays','parentMessages','coinLog','penalizedDays','missedDayAlerts','approvedWritingIds'];
@@ -1844,6 +1845,7 @@ async function pushParentData() {
       rewardsUpdatedAt: state.rewardsUpdatedAt || 0,
       coinMax: state.coinMax,
       lessonTimers: state.lessonTimers,
+      lessonPace: state.lessonPace || {spelling:25,math:35,reading:45,writing:0},
       selectedVoice: state.selectedVoice,
       difficultyLevel: state.difficultyLevel,
       vacationMode: state.vacationMode || false,
@@ -3084,7 +3086,10 @@ function _renderKidDashboardInner() {
       const lvl = gradeLevels[curIdx];
       const lvlName = lvl ? _safeName(lvl.name) || subjectId : subjectId;
       const streakScores = getStreakScores(currentKidId, subjectId);
-      const mins = timerMins[subjectId] || 15;
+      const pace = (state.lessonPace && state.lessonPace[subjectId]) || {spelling:25,math:35,reading:45,writing:0}[subjectId] || 30;
+      const estQCount = getAdaptiveQuestionCount(currentKidId, subjectId);
+      const estSecs = subjectId === 'writing' ? 0 : Math.max(180, estQCount * pace);
+      const mins = subjectId === 'writing' ? null : Math.round(estSecs / 60);
 
       const div = document.createElement('div');
       div.className = 'subject-card' + (locked?' completed':'');
@@ -3112,7 +3117,7 @@ function _renderKidDashboardInner() {
             ? '<div style="font-size:11px;color:#EF4444;font-weight:700;margin-top:4px">✍️ Finish Writing Redo first</div>'
             : isRedoWriting
               ? '<div style="font-size:11px;color:#EF4444;font-weight:700;margin-top:4px">🔄 Redo required</div>'
-              : '<div class="subj-status" style="font-size:11px;color:var(--muted);margin-top:4px">⏱ ' + mins + ' min</div>')
+              : '<div class="subj-status" style="font-size:11px;color:var(--muted);margin-top:4px">' + (subjectId === 'writing' ? '✏️ No time limit' : '⏱ ~' + mins + ' min') + '</div>')
         + streakHtml
         + (locked ? '<div style="position:absolute;top:10px;right:10px;background:#2ECC71;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:14px;">✓</div>' : '')
         + (redoLocked ? '<div style="position:absolute;top:10px;right:10px;background:#EF4444;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:14px;">🔒</div>' : '')
@@ -4943,11 +4948,42 @@ function exitLesson() {
 let _timerInterval = null;
 function startLessonTimer() {
   stopLessonTimer();
-  const subjectId = lessonState ? lessonState.subjectId : null;
-  const timers = state.lessonTimers || {spelling:15,math:15,reading:15,writing:15};
-  const totalSeconds = (timers[subjectId] || 15) * 60;
-  if (lessonState) lessonState.timerSeconds = 0;
-  if (lessonState) lessonState.timerTotal = totalSeconds;
+  if (!lessonState) return;
+  const subjectId = lessonState.subjectId;
+
+  // Writing has no countdown — just track elapsed time
+  if (subjectId === 'writing') {
+    lessonState.timerSeconds = 0;
+    lessonState.timerTotal = 0;
+    const el = document.getElementById('lesson-timer');
+    if (el) el.textContent = '';
+    _timerInterval = setInterval(function() {
+      if (!lessonState) { stopLessonTimer(); return; }
+      lessonState.timerSeconds++;
+    }, 1000);
+    return;
+  }
+
+  // Calculate total seconds based on question count and pace
+  const pace = (state.lessonPace && state.lessonPace[subjectId]) || {spelling:25,math:35,reading:45}[subjectId] || 30;
+  const qCount = lessonState.questions ? lessonState.questions.length : 10;
+
+  let totalSeconds;
+  if (subjectId === 'reading') {
+    // Reading: estimate passage reading time from word count + per-question time
+    const story = lessonState.readingStory || '';
+    const wordCount = story.split(/\s+/).filter(Boolean).length;
+    const readingTimeSec = Math.round((wordCount / 150) * 60); // 150 words/min avg
+    totalSeconds = readingTimeSec + (qCount * pace);
+  } else {
+    totalSeconds = qCount * pace;
+  }
+
+  // Enforce reasonable bounds: at least 3 min, at most 30 min
+  totalSeconds = Math.max(180, Math.min(1800, totalSeconds));
+
+  lessonState.timerSeconds = 0;
+  lessonState.timerTotal = totalSeconds;
   const el = document.getElementById('lesson-timer');
   if (el) { el.textContent = _formatTimer(totalSeconds); el.classList.remove('warn'); }
 
@@ -4958,7 +4994,7 @@ function startLessonTimer() {
     const el = document.getElementById('lesson-timer');
     if (el) {
       el.textContent = _formatTimer(remaining);
-      el.classList.toggle('warn', remaining <= 120); // warn at 2 min
+      el.classList.toggle('warn', remaining <= 120);
     }
     if (remaining === 0) {
       stopLessonTimer();
@@ -6402,27 +6438,32 @@ function renderMilestoneBar(kidId) {
 function renderTimerInputs() {
   const container = document.getElementById('timer-inputs');
   if (!container) return;
-  const timers = state.lessonTimers || {spelling:15,math:15,reading:15,writing:15};
+  const pace = state.lessonPace || {spelling:25,math:35,reading:45,writing:0};
   const subjects = [
-    {id:'spelling', label:'🔤 Spelling'},
-    {id:'math',     label:'🧮 Math'},
-    {id:'reading',  label:'📖 Reading'},
-    {id:'writing',  label:'✏️ Writing'}
+    {id:'spelling', label:'🔤 Spelling', hint:'~25 sec recommended'},
+    {id:'math',     label:'🧮 Math',     hint:'~35 sec recommended'},
+    {id:'reading',  label:'📖 Reading',  hint:'~45 sec per question + passage time'},
   ];
-  container.innerHTML = subjects.map(function(s) {
-    return '<div><label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">' + s.label + ' (min)</label>'
-      + '<input type="number" min="1" max="60" id="timer-' + s.id + '" value="' + (timers[s.id] || 15) + '" style="width:100%;padding:8px;border:2px solid var(--border);border-radius:8px;font-size:14px;font-weight:700"></div>';
-  }).join('');
+  container.innerHTML = '<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Timer is calculated automatically: <strong>question count × seconds per question</strong>. Writing has no countdown.</div>'
+    + subjects.map(function(s) {
+      return '<div style="margin-bottom:8px">'
+        + '<label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">' + s.label + ' — seconds per question</label>'
+        + '<div style="display:flex;align-items:center;gap:8px">'
+        + '<input type="number" min="5" max="120" id="pace-' + s.id + '" value="' + (pace[s.id] || 30) + '" style="width:80px;padding:8px;border:2px solid var(--border);border-radius:8px;font-size:14px;font-weight:700;text-align:center">'
+        + '<span style="font-size:12px;color:var(--muted)">' + s.hint + '</span>'
+        + '</div></div>';
+    }).join('');
 }
 
 function saveTimerSettings() {
-  if (!state.lessonTimers) state.lessonTimers = {};
-  ['spelling','math','reading','writing'].forEach(function(s) {
-    const el = document.getElementById('timer-' + s);
-    if (el) state.lessonTimers[s] = Math.max(1, Math.min(60, parseInt(el.value) || 15));
+  if (!state.lessonPace) state.lessonPace = {};
+  ['spelling','math','reading'].forEach(function(s) {
+    const el = document.getElementById('pace-' + s);
+    if (el) state.lessonPace[s] = Math.max(5, Math.min(120, parseInt(el.value) || 30));
   });
+  state.lessonPace.writing = 0; // writing never has a countdown
   saveState();
-  showToast('✅ Time limits saved!');
+  showToast('✅ Pace settings saved!');
 }
 
 function renderKidPinReset() {
