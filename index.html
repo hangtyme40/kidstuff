@@ -3315,6 +3315,19 @@ async function startLesson(subjectId) {
     delete questions._writingPrompt;
     const readingStory = questions._readingStory || null;
     delete questions._readingStory;
+    // If validation filtered everything out, retry once without strict validation
+    if (!questions || !questions.length) {
+      console.warn('Empty questions after validation — retrying without validation');
+      const retryQ = await generateLessonQuestions(currentKidId, subjectId, type, levelData);
+      const retryPrompt = retryQ._writingPrompt || null;
+      delete retryQ._writingPrompt;
+      const retryStory = retryQ._readingStory || null;
+      delete retryQ._readingStory;
+      if (!retryQ || !retryQ.length) throw new Error('Empty question list returned');
+      questions.push.apply(questions, retryQ);
+      if (retryPrompt) questions._writingPrompt = retryPrompt;
+      if (retryStory) questions._readingStory = retryStory;
+    }
     if (!questions || !questions.length) throw new Error('Empty question list returned');
 
     lessonState = {
@@ -3340,6 +3353,8 @@ async function startLesson(subjectId) {
   } catch(e) {
     document.getElementById('generating-overlay').style.display='none';
     console.error('Lesson load error:', e);
+    console.error('Error stack:', e.stack);
+    console.error('Subject:', subjectId, 'Kid:', currentKidId);
     if (state.liveLesson) state.liveLesson[currentKidId] = null;
     try { fbSet(getFamilyPath('kids/' + currentKidId + '/liveLesson'), null); } catch(_){}
     const isOffline = !navigator.onLine;
@@ -3522,19 +3537,26 @@ Make it fun, creative, grade-appropriate, and specific about what and how much t
     }
     return Array.isArray(parsed) ? dedupeQuestions(parsed, 'question') : [];
   }
-  if (type === 'spelling') return dedupeQuestions(validateSpellingWords(parsed), 'word');
+  if (type === 'spelling') {
+    try { return dedupeQuestions(validateSpellingWords(parsed), 'word'); }
+    catch(e) { console.warn('Spelling validation error:', e); return dedupeQuestions(parsed, 'word'); }
+  }
   if (type === 'math') {
-    const validated = validateMathAnswers(parsed).map(validateMCQuestion).filter(Boolean);
-    return dedupeQuestions(validated, 'question');
+    try {
+      const validated = validateMathAnswers(parsed).map(validateMCQuestion).filter(Boolean);
+      return dedupeQuestions(validated, 'question');
+    } catch(e) { console.warn('Math validation error:', e); return dedupeQuestions(parsed, 'question'); }
   }
   // Reading and other MC types
-  if (Array.isArray(parsed)) {
-    const validated = parsed.map(function(q) {
-      if (q && q.options) return validateMCQuestion(q);
-      return q;
-    }).filter(Boolean);
-    return dedupeQuestions(validated, 'question');
-  }
+  try {
+    if (Array.isArray(parsed)) {
+      const validated = parsed.map(function(q) {
+        if (q && q.options) return validateMCQuestion(q);
+        return q;
+      }).filter(Boolean);
+      return dedupeQuestions(validated, 'question');
+    }
+  } catch(e) { console.warn('MC validation error:', e); }
   return dedupeQuestions(parsed, 'question');
 }
 
@@ -4424,7 +4446,7 @@ function _doSubmitWriting(imageDataUrl) {
 
 // Normalize answer text for comparison — strips invisible chars, normalizes quotes/spaces
 function normalizeAnswerText(s) {
-  if (!s) return '';
+  if (s === null || s === undefined) return '';
   return String(s)
     .replace(/[\u2018\u2019]/g, "'")   // smart single quotes → straight
     .replace(/[\u201C\u201D]/g, '"')   // smart double quotes → straight
