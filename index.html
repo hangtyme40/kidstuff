@@ -3512,6 +3512,19 @@ Make it fun, creative, grade-appropriate, and specific about what and how much t
   } catch(netErr) {
     throw new Error('Network error: ' + netErr.message);
   }
+  // On rate limit (429), retry with faster fallback model
+  if (res.status === 429) {
+    console.warn('Rate limit on primary model — falling back to llama-3.1-8b-instant');
+    try {
+      res = await fetch(WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'llama-3.1-8b-instant', messages: [{ role: 'user', content: prompt }], max_tokens: 4000, temperature: 0.7 })
+      });
+    } catch(netErr) {
+      throw new Error('Network error on fallback: ' + netErr.message);
+    }
+  }
   if (!res.ok) {
     let errBody = '';
     try { errBody = await res.text(); } catch(e) {}
