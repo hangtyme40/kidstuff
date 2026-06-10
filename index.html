@@ -553,7 +553,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
   <div class="app-header">
     <div><div class="logo">Kid<span>Stuff</span></div><div class="header-sub" id="lesson-header-sub">Lesson</div></div>
     <div style="display:flex;align-items:center;gap:10px;">
-      <div class="lesson-timer" id="lesson-timer">0:00</div>
+      <div class="lesson-timer" id="lesson-timer" style="display:none"></div>
       <button class="back-btn" onclick="exitLesson()">Exit</button>
     </div>
   </div>
@@ -3117,7 +3117,7 @@ function _renderKidDashboardInner() {
             ? '<div style="font-size:11px;color:#EF4444;font-weight:700;margin-top:4px">✍️ Finish Writing Redo first</div>'
             : isRedoWriting
               ? '<div style="font-size:11px;color:#EF4444;font-weight:700;margin-top:4px">🔄 Redo required</div>'
-              : '<div class="subj-status" style="font-size:11px;color:var(--muted);margin-top:4px">' + (subjectId === 'writing' ? '✏️ No time limit' : '⏱ ~' + mins + ' min') + '</div>')
+              : '<div class="subj-status" style="font-size:11px;color:var(--muted);margin-top:4px">' + (subjectId === 'writing' ? '✏️ No time limit' : '⏱ 13 min minimum') + '</div>')
         + streakHtml
         + (locked ? '<div style="position:absolute;top:10px;right:10px;background:#2ECC71;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:14px;">✓</div>' : '')
         + (redoLocked ? '<div style="position:absolute;top:10px;right:10px;background:#EF4444;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:14px;">🔒</div>' : '')
@@ -3385,7 +3385,7 @@ async function startLesson(subjectId) {
   }
 }
 
-async function generateLessonQuestions(kidId, subjectId, type, levelData, bonusTopic) {
+async function generateLessonQuestions(kidId, subjectId, type, levelData, bonusTopic, batchSize) {
   const kid = state.kids.find(k=>k.id===kidId) || {name:'Student'};
   const diffName = ['','easy','medium','hard'][state.difficultyLevel[kidId]||2];
   const levelDesc = levelData ? levelData.desc : '';
@@ -3420,7 +3420,7 @@ async function generateLessonQuestions(kidId, subjectId, type, levelData, bonusT
   }
 
   let prompt = '';
-  const qCount = getAdaptiveQuestionCount(kidId, type);
+  const qCount = batchSize || getAdaptiveQuestionCount(kidId, type);
   const readingQCount = Math.max(4, Math.round(qCount * 0.8));
   const kid2 = state.kids.find(k=>k.id===kidId) || {};
   const gradeNum = kid2.grade !== undefined ? parseInt(kid2.grade) : 3;
@@ -3575,7 +3575,9 @@ Make it fun, creative, grade-appropriate, and specific about what and how much t
   }
   if (type === 'math') {
     try {
-      const validated = validateMathAnswers(parsed).map(validateMCQuestion).filter(Boolean);
+      let validated = validateMathAnswers(parsed).map(validateMCQuestion).filter(Boolean);
+      // Second pass: AI validates its own answers
+      validated = await validateMathWithAI(validated, kidId);
       return dedupeQuestions(validated, 'question');
     } catch(e) { console.warn('Math validation error:', e); return dedupeQuestions(parsed, 'question'); }
   }
@@ -3701,6 +3703,56 @@ function validateSpellingWords(questions) {
   return validated;
 }
 
+// Second-pass AI validation for math answers
+// Sends questions back to AI to verify correctness, fixing wrong answers
+async function validateMathWithAI(questions, kidId) {
+  if (!questions || !questions.length) return questions;
+  try {
+    const items = questions.map(function(q, i) {
+      return i + '. Question: ' + q.question + ' | Answer: ' + q.answer
+        + (q.options ? ' | Options: ' + q.options.join(', ') : '');
+    }).join('\n');
+    const prompt = 'You are a math teacher checking answers. For each item below, verify the answer is mathematically correct.\n'
+      + 'If an answer is WRONG, provide the correct answer.\n'
+      + 'Return ONLY a JSON array with objects: {"index":N,"correct":true/false,"answer":"correct answer"}\n'
+      + 'Do not include any other text.\n\n' + items;
+    const res = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({model:'llama-3.3-70b-versatile', messages:[{role:'user',content:prompt}], max_tokens:1000, temperature:0})
+    });
+    if (!res.ok) return questions; // if validation call fails, use original
+    const data = await res.json();
+    const text = data.choices && data.choices[0] ? data.choices[0].message.content : '';
+    const match = text.match(/\[[\s\S]*\]/);
+    if (!match) return questions;
+    const results = JSON.parse(match[0]);
+    const fixed = questions.slice();
+    results.forEach(function(r) {
+      const idx = r.index;
+      if (idx >= 0 && idx < fixed.length && !r.correct && r.answer) {
+        console.warn('AI math fix:', fixed[idx].question, '| Was:', fixed[idx].answer, '| Now:', r.answer);
+        fixed[idx] = Object.assign({}, fixed[idx], {answer: String(r.answer)});
+        // If MC, find matching option or replace first
+        if (fixed[idx].options) {
+          const normAns = normalizeAnswerText(String(r.answer));
+          const matchIdx = fixed[idx].options.findIndex(function(o) {
+            return normalizeAnswerText(String(o)) === normAns;
+          });
+          if (matchIdx === -1) {
+            fixed[idx].options = fixed[idx].options.slice();
+            fixed[idx].options[0] = String(r.answer);
+          }
+        }
+      }
+    });
+    return fixed;
+  } catch(e) {
+    console.warn('Math AI validation error:', e);
+    return questions; // fall back to original on any error
+  }
+}
+
 function validateMCQuestion(q) {
   if (!q || !q.options || !q.answer) return q;
   const resolvedAns = resolveAnswer(q.answer, q.options);
@@ -3747,8 +3799,8 @@ function dedupeQuestions(arr, key) {
 function renderQuestion() {
   const ls = lessonState;
   const total = ls.questions.length;
-  document.getElementById('lesson-progress').textContent = 'Q ' + (ls.currentQ+1) + ' of ' + total;
-  document.getElementById('lesson-header-sub').textContent = 'Question ' + (ls.currentQ+1) + ' of ' + total;
+  document.getElementById('lesson-progress').textContent = 'Q ' + (ls.currentQ+1);
+  document.getElementById('lesson-header-sub').textContent = 'Question ' + (ls.currentQ+1);
   document.getElementById('lesson-progress-bar').style.width = Math.round((ls.currentQ/total)*100) + '%';
 
   // Show reading story panel if this is a reading lesson with a continuous story
@@ -4553,6 +4605,21 @@ function answersMatch(val, answer) {
     const vn2 = parseFraction(vStrip), an2 = parseFraction(aStrip);
     if (vn2 !== null && an2 !== null && Math.abs(vn2 - an2) < 0.0001) return true;
   }
+  // Word-order independence for reading comprehension answers
+  // e.g. "potatoes and meat" == "meat and potatoes"
+  const STOP_WORDS = new Set(['a','an','the','and','or','but','of','in','on','at','to','for','is','are','was','were','it','its','with','that','this','these','those']);
+  function keyWords(s) {
+    return s.replace(/[^a-z0-9\s]/g,'').split(/\s+/).filter(function(w){ return w.length > 1 && !STOP_WORDS.has(w); });
+  }
+  const vWords = keyWords(vLow);
+  const aWords = keyWords(aLow);
+  if (vWords.length > 0 && aWords.length > 0) {
+    // For short answers (≤3 key words), require 100% match
+    // For longer answers, require 80% of correct answer's key words present
+    const threshold = aWords.length <= 3 ? 1.0 : 0.8;
+    const matchCount = aWords.filter(function(w){ return vWords.includes(w); }).length;
+    if (matchCount / aWords.length >= threshold) return true;
+  }
   return false;
 }
 
@@ -4763,11 +4830,51 @@ function showLockedModal(subj, prog) {
 function nextQuestion() {
   lessonState.currentQ++;
   if (lessonState.currentQ >= lessonState.questions.length) {
-    finishLesson();
+    // Batch exhausted — check if we've hit the 13-minute minimum
+    const elapsed = lessonState.timerSeconds || 0;
+    const minSeconds = lessonState.subjectType === 'writing' ? 0 : 13 * 60;
+    if (minSeconds > 0 && elapsed < minSeconds) {
+      // Under 13 min — fetch next batch of 5 silently
+      _fetchNextBatch();
+    } else {
+      finishLesson();
+    }
   } else {
     renderQuestion();
     window.scrollTo(0,0);
   }
+}
+
+async function _fetchNextBatch() {
+  // Show subtle loading indicator between questions
+  const content = document.querySelector('#screen-lesson .lesson-content');
+  if (content) content.innerHTML = '<div style="text-align:center;padding:60px 20px;"><div style="font-size:32px;margin-bottom:12px">⏳</div><div style="font-family:\'Baloo 2\',cursive;font-size:18px;font-weight:800;color:var(--primary)">Getting next questions...</div></div>';
+
+  try {
+    const levelData = getCurrentLevelDataForLesson();
+    const batchSize = 5;
+    const newQuestions = await generateLessonQuestions(
+      currentKidId, lessonState.subjectId, lessonState.subjectType, levelData, null, batchSize
+    );
+    if (newQuestions && newQuestions.length) {
+      // Continue counting from where we left off
+      lessonState.questions = lessonState.questions.concat(newQuestions);
+      renderQuestion();
+      window.scrollTo(0,0);
+    } else {
+      finishLesson();
+    }
+  } catch(e) {
+    console.warn('Batch fetch error:', e);
+    finishLesson();
+  }
+}
+
+function getCurrentLevelDataForLesson() {
+  if (!lessonState) return null;
+  const levels = getCurrentGradeLevel(currentKidId, lessonState.subjectId);
+  const idx = getCurrentLevelIndex(currentKidId, lessonState.subjectId);
+  return levels[idx] || levels[0];
 }
 
 
@@ -4976,57 +5083,15 @@ let _timerInterval = null;
 function startLessonTimer() {
   stopLessonTimer();
   if (!lessonState) return;
-  const subjectId = lessonState.subjectId;
-
-  // Writing has no countdown — just track elapsed time
-  if (subjectId === 'writing') {
-    lessonState.timerSeconds = 0;
-    lessonState.timerTotal = 0;
-    const el = document.getElementById('lesson-timer');
-    if (el) el.textContent = '';
-    _timerInterval = setInterval(function() {
-      if (!lessonState) { stopLessonTimer(); return; }
-      lessonState.timerSeconds++;
-    }, 1000);
-    return;
-  }
-
-  // Calculate total seconds based on question count and pace
-  const pace = (state.lessonPace && state.lessonPace[subjectId]) || {spelling:25,math:35,reading:45}[subjectId] || 30;
-  const qCount = lessonState.questions ? lessonState.questions.length : 10;
-
-  let totalSeconds;
-  if (subjectId === 'reading') {
-    // Reading: estimate passage reading time from word count + per-question time
-    const story = lessonState.readingStory || '';
-    const wordCount = story.split(/\s+/).filter(Boolean).length;
-    const readingTimeSec = Math.round((wordCount / 150) * 60); // 150 words/min avg
-    totalSeconds = readingTimeSec + (qCount * pace);
-  } else {
-    totalSeconds = qCount * pace;
-  }
-
-  // Enforce reasonable bounds: at least 3 min, at most 30 min
-  totalSeconds = Math.max(180, Math.min(1800, totalSeconds));
-
+  // All subjects track time silently — no countdown displayed
+  // Writing and continuous lessons use elapsed time for pacing data only
   lessonState.timerSeconds = 0;
-  lessonState.timerTotal = totalSeconds;
+  lessonState.timerTotal = 0;
   const el = document.getElementById('lesson-timer');
-  if (el) { el.textContent = _formatTimer(totalSeconds); el.classList.remove('warn'); }
-
+  if (el) el.style.display = 'none';
   _timerInterval = setInterval(function() {
     if (!lessonState) { stopLessonTimer(); return; }
     lessonState.timerSeconds++;
-    const remaining = Math.max(0, totalSeconds - lessonState.timerSeconds);
-    const el = document.getElementById('lesson-timer');
-    if (el) {
-      el.textContent = _formatTimer(remaining);
-      el.classList.toggle('warn', remaining <= 120);
-    }
-    if (remaining === 0) {
-      stopLessonTimer();
-      timeExpired();
-    }
   }, 1000);
 }
 
