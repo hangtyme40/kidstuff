@@ -3612,7 +3612,12 @@ function validateMathAnswers(questions) {
   if (!Array.isArray(questions)) return questions;
   return questions.map(function(q) {
     if (!q || !q.question) return q;
-    const exprMatch = String(q.question).match(/([\d\s\+\-×\*xX÷\/\(\)\.]+)\s*=\s*\??$/);
+    // Try end-of-question format first: "N op N ="
+    let exprMatch = String(q.question).match(/([\d\s\+\-×\*xX÷\/\(\)\.]+)\s*=\s*\??$/);
+    // Also try "what is N op N" format anywhere in question
+    if (!exprMatch) {
+      exprMatch = String(q.question).match(/(?:what\s+is\s+|find\s+|calculate\s+|solve\s+|evaluate\s+)?([\d]+\s*[\+\-×\*xX÷\/]\s*[\d]+(?:\s*[\+\-×\*xX÷\/]\s*[\d]+)*)/i);
+    }
     if (!exprMatch) return q;
     const correctVal = evalSimpleMath(exprMatch[1]);
     if (correctVal === null) return q;
