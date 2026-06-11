@@ -549,6 +549,24 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 </div>
 
 <!-- LESSON -->
+<!-- SPELLING STUDY SCREEN -->
+<div id="screen-spelling-study" class="screen">
+  <div class="app-header">
+    <div><div class="logo">Kid<span>Stuff</span></div><div class="header-sub">Study Time 📚</div></div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div id="study-timer-display" style="font-family:'Baloo 2',cursive;font-size:20px;font-weight:800;color:var(--primary);background:#EEF2FF;border-radius:20px;padding:4px 14px;"></div>
+      <button class="back-btn" onclick="exitSpellingStudy()">Exit</button>
+    </div>
+  </div>
+  <div class="content">
+    <div style="font-family:'Baloo 2',cursive;font-size:22px;font-weight:800;margin-bottom:4px;text-align:center">🔤 Study Your Words</div>
+    <div style="font-size:14px;color:var(--muted);text-align:center;margin-bottom:18px">Listen to each word, then take the test when you're ready!</div>
+    <div id="study-word-list" style="margin-bottom:20px"></div>
+    <button id="study-ready-btn" class="btn-primary" onclick="startSpellingTest()" style="width:100%;font-size:18px;padding:16px;">✅ I'm Ready — Start the Test!</button>
+    <div id="study-time-up-msg" style="display:none;text-align:center;background:#FFF5F5;border:2px solid #FCA5A5;border-radius:12px;padding:14px;margin-top:12px;font-weight:800;color:#EF4444;font-size:15px;">⏰ Time's up — ready to start?</div>
+  </div>
+</div>
+
 <div id="screen-lesson" class="screen">
   <div class="app-header">
     <div><div class="logo">Kid<span>Stuff</span></div><div class="header-sub" id="lesson-header-sub">Lesson</div></div>
@@ -3335,6 +3353,7 @@ async function startLesson(subjectId) {
     }
     if (!questions || !questions.length) throw new Error('Empty question list returned');
 
+    // Set up lessonState
     lessonState = {
       subjectId, subjectName: _safeName(levelData.name), subjectIcon: icon, subjectType: type,
       questions: type === 'writing' ? [{type:'writing'}] : questions,
@@ -3351,6 +3370,13 @@ async function startLesson(subjectId) {
     if (!state.liveLesson) state.liveLesson = {};
     state.liveLesson[currentKidId] = { subject: _safeName(levelData.name), icon: icon, startedAt: Date.now() };
     try { fbSet(getFamilyPath('kids/' + currentKidId + '/liveLesson'), state.liveLesson[currentKidId]); } catch(_){}
+
+    // Spelling gets a study phase first
+    if (type === 'spelling') {
+      showSpellingStudy(questions, _safeName(levelData.name), icon);
+      return;
+    }
+
     showScreen('screen-lesson');
     document.getElementById('lesson-title').textContent = icon + ' ' + _safeName(levelData.name);
     startLessonTimer();
@@ -3420,7 +3446,8 @@ async function generateLessonQuestions(kidId, subjectId, type, levelData, bonusT
   }
 
   let prompt = '';
-  const qCount = batchSize || getAdaptiveQuestionCount(kidId, type);
+  // Spelling always uses 15 words for the study/test cycle
+  const qCount = (type === 'spelling') ? 15 : (batchSize || getAdaptiveQuestionCount(kidId, type));
   const readingQCount = Math.max(4, Math.round(qCount * 0.8));
   const kid2 = state.kids.find(k=>k.id===kidId) || {};
   const gradeNum = kid2.grade !== undefined ? parseInt(kid2.grade) : 3;
@@ -3835,6 +3862,80 @@ function renderQuestion() {
     renderShortQ(c, q); return;
   }
   renderTypedQ(c, q);
+}
+
+// ── SPELLING STUDY PHASE ─────────────────────────────────
+let _studyTimer = null;
+let _studyWords = [];
+
+function showSpellingStudy(words, levelName, icon) {
+  _studyWords = words;
+  // Render word list
+  const list = document.getElementById('study-word-list');
+  list.innerHTML = words.map(function(q, i) {
+    return '<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:white;border:2px solid var(--border);border-radius:12px;margin-bottom:8px;">'
+      + '<div style="font-family:\'Baloo 2\',cursive;font-size:16px;font-weight:800;color:var(--muted);min-width:24px;text-align:right">' + (i+1) + '.</div>'
+      + '<div style="flex:1;font-family:\'Baloo 2\',cursive;font-size:22px;font-weight:800;color:var(--text);letter-spacing:1px">' + q.word + '</div>'
+      + '<button onclick="speakWord(\'' + escQ(q.word) + '\')" style="background:#EEF2FF;border:none;border-radius:10px;padding:8px 12px;font-size:20px;cursor:pointer;flex-shrink:0;">🔊</button>'
+      + '</div>';
+  }).join('');
+
+  // Start 15-minute study timer
+  let remaining = 15 * 60;
+  const timerEl = document.getElementById('study-timer-display');
+  const timeUpMsg = document.getElementById('study-time-up-msg');
+  if (timerEl) timerEl.textContent = '15:00';
+  if (timeUpMsg) timeUpMsg.style.display = 'none';
+
+  clearInterval(_studyTimer);
+  _studyTimer = setInterval(function() {
+    remaining--;
+    if (timerEl) {
+      const m = Math.floor(remaining / 60);
+      const s = remaining % 60;
+      timerEl.textContent = m + ':' + String(s).padStart(2,'0');
+      // Turn red in last 60 seconds
+      timerEl.style.background = remaining <= 60 ? '#FEE2E2' : '#EEF2FF';
+      timerEl.style.color = remaining <= 60 ? '#EF4444' : 'var(--primary)';
+    }
+    if (remaining <= 0) {
+      clearInterval(_studyTimer);
+      if (timerEl) timerEl.textContent = '0:00';
+      if (timeUpMsg) timeUpMsg.style.display = 'block';
+      // Scroll to ready button
+      const btn = document.getElementById('study-ready-btn');
+      if (btn) btn.scrollIntoView({behavior:'smooth'});
+    }
+  }, 1000);
+
+  document.getElementById('lesson-title') && (document.getElementById('lesson-title').textContent = icon + ' ' + levelName);
+  showScreen('screen-spelling-study');
+}
+
+function startSpellingTest() {
+  clearInterval(_studyTimer);
+  // Randomize word order for the test
+  const shuffled = _studyWords.slice().sort(function() { return Math.random() - 0.5; });
+  // Set up lessonState with shuffled words
+  lessonState.questions = shuffled;
+  lessonState.currentQ = 0;
+  lessonState.answers = [];
+  lessonState.correct = 0;
+  lessonState.wrongAnswers = [];
+  lessonState.timerSeconds = 0;
+  lessonState.startTime = Date.now();
+  showScreen('screen-lesson');
+  document.getElementById('lesson-title').textContent = lessonState.subjectIcon + ' ' + lessonState.subjectName;
+  startLessonTimer();
+  renderQuestion();
+}
+
+function exitSpellingStudy() {
+  clearInterval(_studyTimer);
+  if (state.liveLesson) state.liveLesson[currentKidId] = null;
+  try { fbSet(getFamilyPath('kids/' + currentKidId + '/liveLesson'), null); } catch(_){}
+  lessonState = null;
+  showScreen('screen-kid');
 }
 
 function renderSpellingQ(c, q) {
@@ -4835,11 +4936,12 @@ function showLockedModal(subj, prog) {
 function nextQuestion() {
   lessonState.currentQ++;
   if (lessonState.currentQ >= lessonState.questions.length) {
-    // Batch exhausted — check if we've hit the 13-minute minimum
+    // Spelling is a fixed 15-word test — always end when done
+    if (lessonState.subjectType === 'spelling') { finishLesson(); return; }
+    // Other subjects: check if we've hit the 13-minute minimum
     const elapsed = lessonState.timerSeconds || 0;
     const minSeconds = lessonState.subjectType === 'writing' ? 0 : 13 * 60;
     if (minSeconds > 0 && elapsed < minSeconds) {
-      // Under 13 min — fetch next batch of 5 silently
       _fetchNextBatch();
     } else {
       finishLesson();
@@ -5077,8 +5179,10 @@ function finishLesson() {
 function exitLesson() {
   if (confirm('Exit lesson? Progress won\'t be saved.')) {
     stopLessonTimer();
+    clearInterval(_studyTimer);
     if (state.liveLesson) state.liveLesson[currentKidId] = null;
     try { fbSet(getFamilyPath('kids/' + currentKidId + '/liveLesson'), null); } catch(_){}
+    lessonState = null;
     showScreen('screen-kid');
   }
 }
