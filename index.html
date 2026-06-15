@@ -3902,11 +3902,13 @@ function showSpellingStudy(words, levelName, icon) {
   _studyWords = words;
   // Render word list
   const list = document.getElementById('study-word-list');
+  // Store words globally so speaker buttons can access hints by index
+  window._studyWordList = words;
   list.innerHTML = words.map(function(q, i) {
     return '<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:white;border:2px solid var(--border);border-radius:12px;margin-bottom:8px;">'
       + '<div style="font-family:\'Baloo 2\',cursive;font-size:16px;font-weight:800;color:var(--muted);min-width:24px;text-align:right">' + (i+1) + '.</div>'
       + '<div style="flex:1;font-family:\'Baloo 2\',cursive;font-size:22px;font-weight:800;color:var(--text);letter-spacing:1px">' + q.word + '</div>'
-      + '<button onclick="speakWord(\'' + escQ(q.word) + '\')" style="background:#EEF2FF;border:none;border-radius:10px;padding:8px 12px;font-size:20px;cursor:pointer;flex-shrink:0;">🔊</button>'
+      + '<button onclick="speakStudyWord(' + i + ')" style="background:#EEF2FF;border:none;border-radius:10px;padding:8px 12px;font-size:20px;cursor:pointer;flex-shrink:0;">🔊</button>'
       + '</div>';
   }).join('');
 
@@ -4063,6 +4065,21 @@ function setVoice(name) {
 
 function testVoice() {
   speakWordFull('practice', 'She needed to practice every single day.');
+}
+
+// Speak a word from the study list — word only, no hint sentence during study phase
+function speakStudyWord(index) {
+  const words = window._studyWordList || [];
+  if (index < 0 || index >= words.length) return;
+  const word = words[index].word;
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const voice = getSelectedVoice();
+  const u = new SpeechSynthesisUtterance(word);
+  if (voice) u.voice = voice;
+  u.rate = 0.75;
+  u.pitch = 1.05;
+  window.speechSynthesis.speak(u);
 }
 
 function speakWord(word) { speakWordFull(word, null); }
