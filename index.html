@@ -495,6 +495,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
     <div><div class="logo">Kid<span>Stuff</span></div><div class="header-sub" id="kid-header-sub">Today's Lessons</div></div>
     <div style="display:flex;align-items:center;gap:10px;">
       <div style="font-size:11px;color:rgba(255,255,255,0.6);font-weight:600;text-align:right;" class="last-synced-ts"></div>
+      <button onclick="kidRefresh()" id="kid-refresh-btn" style="background:rgba(255,255,255,0.18);border:none;border-radius:10px;padding:7px 10px;font-size:18px;cursor:pointer;color:white;" title="Refresh">🔄</button>
       <button onclick="toggleKidSettings()" style="background:rgba(255,255,255,0.18);border:none;border-radius:10px;padding:7px 10px;font-size:18px;cursor:pointer;color:white;">⚙️</button>
     </div>
   </div>
@@ -1671,7 +1672,7 @@ async function pullState() {
     const parentFields = ['pin','kidPins','rewards','rewardsUpdatedAt','coinMax','lessonTimers','lessonPace','selectedVoice',
                           'difficultyLevel','vacationMode','paceData','adaptiveQ',
                           'perfectWeekClaimed','levelsUpdatedAt','incompleteWeekPenalized','soundsOff','autoAdvance',
-                          'excusedToday','excusedDays','parentMessages','coinLog','penalizedDays','missedDayAlerts','approvedWritingIds'];
+                          'excusedToday','excusedDays','parentMessages','coinLog','penalizedDays','missedDayAlerts','approvedWritingIds','dismissedAlertIds'];
     parentFields.forEach(function(f) {
       if (parentData[f] !== undefined) state[f] = parentData[f];
     });
@@ -1738,12 +1739,12 @@ async function pullState() {
     });
 
     // Merge shared queues — deduplicate by id
-    // redoNotices: take remote as authoritative (don't merge with local — avoids resurrection of cleared notices)
+    // redoNotices: take remote as authoritative
     state.redoNotices = sharedData.redoNotices || [];
-    // bonusChallenges: take remote as authoritative so kid devices see parent-assigned challenges
+    // bonusChallenges: take remote as authoritative
     state.bonusChallenges = sharedData.bonusChallenges || state.bonusChallenges || [];
-    // Other queues: merge remote + local, deduplicate by id
-    ['writingQueue','redemptionQueue','flaggedReview'].forEach(function(q) {
+    // redemptionQueue and flaggedReview: merge remote + local
+    ['redemptionQueue','flaggedReview'].forEach(function(q) {
       const remoteArr = sharedData[q] || [];
       const localArr = state[q] || [];
       const seen = new Set();
@@ -1753,13 +1754,23 @@ async function pullState() {
         seen.add(key); return true;
       });
     });
-    // Remove any writing items that have already been approved — prevents resurrection
+
+    // Writing queue — read from each kid's individual path (no merge conflict possible)
     const approvedIds = state.approvedWritingIds || [];
-    if (approvedIds.length) {
-      state.writingQueue = (state.writingQueue || []).filter(function(w) {
-        return !approvedIds.includes(w.id);
+    const dismissedIds = state.dismissedAlertIds || [];
+    state.writingQueue = [];
+    const kidWritingPromises = state.kids
+      .filter(function(k){ return k.id !== 'tester'; })
+      .map(async function(k) {
+        try {
+          const kidQueue = await fbGet(getFamilyPath('kids/' + k.id + '/writingQueue')) || [];
+          const filtered = Array.isArray(kidQueue) ? kidQueue.filter(function(w) {
+            return !approvedIds.includes(w.id);
+          }) : [];
+          state.writingQueue = state.writingQueue.concat(filtered);
+        } catch(e) { console.warn('Kid writing queue pull error:', k.id, e); }
       });
-    }
+    await Promise.all(kidWritingPromises);
 
     // Migrations
     if (!state.lessonTimers) state.lessonTimers = {spelling:15,math:15,reading:15,writing:15};
@@ -1879,7 +1890,8 @@ async function pushParentData() {
       parentMessages: state.parentMessages || {},
       coinLog: state.coinLog || {},
       missedDayAlerts: state.missedDayAlerts || [],
-      approvedWritingIds: state.approvedWritingIds || []
+      approvedWritingIds: state.approvedWritingIds || [],
+      dismissedAlertIds: state.dismissedAlertIds || []
     };
     await fbSet(getFamilyPath('parent'), parentPayload);
   } catch(e) {
@@ -1890,13 +1902,7 @@ async function pushParentData() {
 // Push shared queues
 async function pushSharedData() {
   try {
-    // Strip out already-approved writing items so kid devices can't resurrect them
-    const approvedIds = state.approvedWritingIds || [];
-    const cleanQueue = (state.writingQueue || []).filter(function(w) {
-      return !approvedIds.includes(w.id);
-    });
     await fbSet(getFamilyPath('shared'), {
-      writingQueue: cleanQueue,
       redemptionQueue: state.redemptionQueue || [],
       flaggedReview: state.flaggedReview || [],
       redoNotices: state.redoNotices || [],
@@ -1904,6 +1910,19 @@ async function pushSharedData() {
     });
   } catch(e) {
     console.warn('pushSharedData error:', e);
+  }
+}
+
+// Push a single kid's writing queue to their own path
+async function pushKidWritingQueue(kidId) {
+  try {
+    const approvedIds = state.approvedWritingIds || [];
+    const kidQueue = (state.writingQueue || []).filter(function(w) {
+      return w.kidId === kidId && !approvedIds.includes(w.id);
+    });
+    await fbSet(getFamilyPath('kids/' + kidId + '/writingQueue'), kidQueue);
+  } catch(e) {
+    console.warn('pushKidWritingQueue error:', e);
   }
 }
 
@@ -1933,9 +1952,19 @@ function saveState() {
     offlineQueue.push(pushState);
     return;
   }
-  _suppressRealtimeUntil = Date.now() + 5000;
+  _suppressRealtimeUntil = Date.now() + 2000; // reduced from 5s — shorter window means fewer missed kid events
   // Short debounce — prevents flooding Firebase on rapid changes but still near-instant
   syncTimer = setTimeout(pushState, 300);
+  // After suppression ends, do one refresh to catch any kid events we may have missed
+  setTimeout(function() {
+    const parent = document.getElementById('screen-parent');
+    if (parent && parent.classList.contains('active')) {
+      pullState().then(function() {
+        renderOverviewActionCards();
+        updateTabBadges();
+      }).catch(function(){});
+    }
+  }, 2500);
 }
 
 let _realtimeES = null;
@@ -1982,6 +2011,7 @@ function startRealtimeListener() {
         pullState().then(function() {
           const parent = document.getElementById('screen-parent');
           if (parent && parent.classList.contains('active')) {
+            renderOverviewActionCards();
             renderParentKidSummary();
             updateTabBadges();
           }
@@ -4618,17 +4648,19 @@ function submitWriting() {
 
 function _doSubmitWriting(imageDataUrl) {
   if (!state.writingQueue) state.writingQueue = [];
-  state.writingQueue.push({
+  const entry = {
     id: 'w'+Date.now(), kidId: currentKidId,
     prompt: lessonState.writingPrompt,
     kidAnswer: imageDataUrl,
     kidAnswerType: 'drawing',
     isRedo: lessonState.isRedo || false,
     status: 'pending', date: getLocalDateStr()
-  });
-  writingPages = []; // reset for next time
+  };
+  state.writingQueue.push(entry);
+  writingPages = [];
   localStorage.setItem('kidstuff_cache', JSON.stringify(state));
-  pushSharedData().catch(function(e){ console.warn('Writing submit push error:', e); });
+  // Push to kid's OWN Firebase path — no merge conflicts with parent device
+  pushKidWritingQueue(currentKidId).catch(function(e){ console.warn('Writing submit push error:', e); });
   showFeedback(true, '✅ Submitted! Your parent will review it.');
   document.getElementById('writing-submit-btn').style.display='none';
   recordAnswer(true); showNextBtn();
@@ -5676,7 +5708,8 @@ function approveWriting(id) {
   localStorage.setItem('kidstuff_cache', JSON.stringify(state));
   // Push both — parent data has approvedWritingIds, shared has writingQueue
   pushParentData().catch(function(e){ console.warn('Approve push error:', e); });
-  pushSharedData().catch(function(e){ console.warn('Approve shared push error:', e); });
+  // Clear the kid's writing queue on their path — removes approved item from their Firebase path
+  pushKidWritingQueue(w.kidId).catch(function(e){ console.warn('Approve kid queue push error:', e); });
 
   const earnMsg = coinsToAward > 0 ? ' +🧠 ' + coinsToAward + ' Brain Bucks!'
     : alreadyApproved ? ' (already approved)' : ' (no Brain Bucks — redo submission)';
@@ -7132,6 +7165,17 @@ function useSkipDay(kidId) {
   }
 }
 
+function kidRefresh() {
+  const btn = document.getElementById('kid-refresh-btn');
+  if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
+  pullState().then(function() {
+    renderKidDashboard();
+    if (btn) { btn.textContent = '🔄'; btn.disabled = false; }
+  }).catch(function() {
+    if (btn) { btn.textContent = '🔄'; btn.disabled = false; }
+  });
+}
+
 function toggleKidSettings() {
   const panel = document.getElementById('kid-settings-panel');
   if (!panel) return;
@@ -7346,8 +7390,16 @@ function renderOverviewActionCards() {
   if (!el) return;
   const cards = [];
 
-  // 1. Missed day alerts — pending parent decision
-  (state.missedDayAlerts||[]).forEach(function(alert) {
+  const dismissedIds = state.dismissedAlertIds || [];
+  const cutoff14 = new Date(); cutoff14.setDate(cutoff14.getDate() - 14);
+  // Show only non-dismissed alerts within 14 days
+  (state.missedDayAlerts||[])
+    .filter(function(alert) {
+      if (dismissedIds.includes(alert.id)) return false;
+      const d = new Date(alert.date + 'T12:00:00');
+      return d >= cutoff14;
+    })
+    .forEach(function(alert) {
     const d = new Date(alert.date + 'T12:00:00');
     const dayLabel = d.toLocaleDateString(undefined, {weekday:'long', month:'short', day:'numeric'});
     cards.push(
@@ -7428,7 +7480,10 @@ function confirmMissedDayPenalty(alertId) {
     if (!state.penalizedDays[alert.kidId]) state.penalizedDays[alert.kidId] = [];
     state.penalizedDays[alert.kidId].push(alert.date);
   }
+  // Remove from alerts AND add to dismissed IDs so other devices can't resurface it
   state.missedDayAlerts = (state.missedDayAlerts||[]).filter(function(a){ return a.id !== alertId; });
+  if (!state.dismissedAlertIds) state.dismissedAlertIds = [];
+  if (!state.dismissedAlertIds.includes(alertId)) state.dismissedAlertIds.push(alertId);
   saveState();
   showToast('📉 ' + alert.penalty + ' 🧠 Brain Bucks deducted from ' + alert.kidName + '.');
   renderOverviewActionCards();
@@ -7439,13 +7494,15 @@ function confirmMissedDayPenalty(alertId) {
 function excuseMissedDay(alertId) {
   const alert = (state.missedDayAlerts||[]).find(function(a){ return a.id===alertId; });
   if (!alert) return;
-  // Add to excused days so it won't trigger again
   if (!state.excusedDays) state.excusedDays = {};
   if (!state.excusedDays[alert.kidId]) state.excusedDays[alert.kidId] = [];
   if (!state.excusedDays[alert.kidId].includes(alert.date)) {
     state.excusedDays[alert.kidId].push(alert.date);
   }
+  // Remove from alerts AND add to dismissed IDs
   state.missedDayAlerts = (state.missedDayAlerts||[]).filter(function(a){ return a.id !== alertId; });
+  if (!state.dismissedAlertIds) state.dismissedAlertIds = [];
+  if (!state.dismissedAlertIds.includes(alertId)) state.dismissedAlertIds.push(alertId);
   saveState();
   showToast('🤒 ' + alert.kidName + ' excused for ' + alert.date + ' — no penalty.');
   renderOverviewActionCards();
@@ -7754,6 +7811,14 @@ function runMigrations() {
     }
     state._streakReset4sub = true;
     localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+  }
+
+  // Nuke ALL parent messages — old ones are stale and causing confusion
+  if (!state._parentMsgNuked) {
+    state.parentMessages = {};
+    state._parentMsgNuked = true;
+    localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+    console.log('Migration: cleared all parent messages');
   }
 
   // One-time: reset penalty guards for new notification-based system
