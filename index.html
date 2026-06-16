@@ -3511,26 +3511,31 @@ Use exactly ${mcCount} mc and ${typedCount} typed questions. All content must be
     prompt = `Generate a reading comprehension lesson for a ${gradeLabel} student practicing "${levelName}" (${levelDesc}).
 Difficulty: ${diffName}. Student: ${kid.name}.${topicNote}${wrongContext}
 ${gradeLine}
-The story and questions must use vocabulary and sentence structures appropriate for ${gradeLabel}. Questions should match the comprehension skills expected at this grade level.
+The story and questions must use vocabulary and sentence structures appropriate for ${gradeLabel}.
 
 First write one complete, engaging short story (8-12 sentences). Then write ${readingQCount} multiple choice questions about it.
-Each question should reference a specific part of the story.
+
+CRITICAL RULES — read carefully before generating:
+1. Every question's correct answer MUST be explicitly stated in the story. Do not ask about anything that requires inference or is not directly in the text.
+2. Before writing each question, find the exact sentence in the story that supports the answer. If you cannot point to a specific sentence, do not write that question.
+3. The correct answer must NOT repeat information already given in the question itself. Example: if the question says "Maya and her dad were hiking", the answer cannot be "her dad" since he was already mentioned.
+4. All 4 answer options must be plausible but only ONE must be correct based on the story.
+5. The "answer" field must exactly match one of the 4 options — copy it character-for-character.
+6. Do not generate questions about characters, events, or details that are NOT in the story.
 
 Return ONLY valid JSON object, no markdown:
 {
   "story": "The full story text here as one paragraph...",
   "questions": [
-    {"question":"COMPREHENSION QUESTION","hint":"(optional: e.g. 'See paragraph 2')","options":["option A","option B","option C","option D"],"answer":"option A"},
+    {"question":"COMPREHENSION QUESTION","options":["option A","option B","option C","option D"],"answer":"option A","storyRef":"The exact sentence from the story that supports this answer"},
     ...
   ]
 }
 
-Rules:
 - Story must be age-appropriate, fun, and relevant to "${levelName}"
 - All ${readingQCount} questions must be multiple choice with 4 full text options
-- The answer field must exactly match one of the options
-- No placeholder text
-- The hint field is optional but helpful (e.g. "Look at the second sentence" or "Think about what Maya said")`;
+- Include a "storyRef" field with the exact supporting sentence for each question — this ensures you verify the answer exists in the story
+- No placeholder text`;
 
   } else if (type === 'writing') {
     const recentWritingPrompts = (state.lessonHistory[kidId] || [])
@@ -3618,11 +3623,31 @@ Make it fun, creative, grade-appropriate, and specific about what and how much t
   }
   if (type === 'reading') {
     if (parsed.story && parsed.questions) {
-      const qs = dedupeQuestions(parsed.questions.map(function(q) {
+      const story = parsed.story;
+      let qs = parsed.questions.map(function(q) {
         return Object.assign({type:'mc'}, q);
-      }), 'question');
-      qs._readingStory = parsed.story;
-      return qs;
+      });
+      // Validate questions against the story
+      try {
+        qs = qs.map(function(q) {
+          if (!q || !q.options) return null;
+          // If storyRef provided, verify it appears in the story
+          if (q.storyRef) {
+            const refWords = q.storyRef.toLowerCase().replace(/[^a-z\s]/g,'').split(/\s+/).filter(function(w){ return w.length > 3; });
+            const storyLower = story.toLowerCase();
+            const found = refWords.length === 0 || refWords.filter(function(w){ return storyLower.includes(w); }).length >= Math.ceil(refWords.length * 0.7);
+            if (!found) { console.warn('Reading: storyRef not in story, dropping:', q.question); return null; }
+          }
+          return validateMCQuestion(q);
+        }).filter(Boolean);
+        // If too many dropped, run AI verification
+        if (qs.length < Math.max(3, Math.floor(parsed.questions.length * 0.6))) {
+          qs = await validateReadingQuestionsWithAI(qs.length > 0 ? qs : parsed.questions, story);
+        }
+      } catch(e) { console.warn('Reading validation error:', e); }
+      const result = dedupeQuestions(qs, 'question');
+      result._readingStory = story;
+      return result;
     }
     return Array.isArray(parsed) ? dedupeQuestions(parsed, 'question') : [];
   }
@@ -3638,7 +3663,7 @@ Make it fun, creative, grade-appropriate, and specific about what and how much t
       return dedupeQuestions(validated, 'question');
     } catch(e) { console.warn('Math validation error:', e); return dedupeQuestions(parsed, 'question'); }
   }
-  // Reading and other MC types
+  // Other MC types
   try {
     if (Array.isArray(parsed)) {
       const validated = parsed.map(function(q) {
@@ -3649,6 +3674,51 @@ Make it fun, creative, grade-appropriate, and specific about what and how much t
     }
   } catch(e) { console.warn('MC validation error:', e); }
   return dedupeQuestions(parsed, 'question');
+}
+
+// AI verification pass for reading — checks each answer is actually in the story
+async function validateReadingQuestionsWithAI(questions, story) {
+  if (!questions || !questions.length || !story) return questions;
+  try {
+    const items = questions.map(function(q, i) {
+      return i + '. Q: ' + q.question + '\n   Answer: ' + q.answer + '\n   Options: ' + (q.options||[]).join(', ');
+    }).join('\n\n');
+    const prompt = 'Story:\n' + story + '\n\n'
+      + 'For each question below, verify the correct answer is explicitly stated in the story.\n'
+      + 'Return ONLY JSON array, no other text: [{"index":N,"valid":true/false,"correctAnswer":"answer from story"}]\n'
+      + 'Set valid:false if the answer cannot be found in the story. Provide correctAnswer from the story text.\n\n'
+      + items;
+    const res = await fetch(WORKER_URL, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({model:'llama-3.3-70b-versatile', messages:[{role:'user',content:prompt}], max_tokens:1000, temperature:0})
+    });
+    if (!res.ok) return questions;
+    const data = await res.json();
+    const text = data.choices && data.choices[0] ? data.choices[0].message.content : '';
+    const match = text.match(/\[[\s\S]*\]/);
+    if (!match) return questions;
+    const results = JSON.parse(match[0]);
+    return questions.map(function(q, i) {
+      const r = results.find(function(x){ return x.index === i; });
+      if (!r) return q;
+      if (!r.valid) { console.warn('Reading: dropping invalid Q:', q.question); return null; }
+      if (r.correctAnswer && normalizeAnswerText(r.correctAnswer) !== normalizeAnswerText(q.answer)) {
+        console.warn('Reading: fixing answer:', q.question, '→', r.correctAnswer);
+        const fixed = Object.assign({}, q, {answer: r.correctAnswer});
+        // Make sure corrected answer is in options
+        const matchIdx = (q.options||[]).findIndex(function(o){ return normalizeAnswerText(o) === normalizeAnswerText(r.correctAnswer); });
+        if (matchIdx === -1 && q.options) {
+          fixed.options = q.options.slice();
+          fixed.options[0] = r.correctAnswer;
+        }
+        return fixed;
+      }
+      return q;
+    }).filter(Boolean);
+  } catch(e) {
+    console.warn('Reading AI validation error:', e);
+    return questions;
+  }
 }
 
 // Evaluate simple arithmetic — used to catch AI math errors before showing kids
