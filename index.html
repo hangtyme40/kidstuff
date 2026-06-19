@@ -1952,20 +1952,26 @@ function saveState() {
     offlineQueue.push(pushState);
     return;
   }
-  _suppressRealtimeUntil = Date.now() + 2000; // reduced from 5s — shorter window means fewer missed kid events
+  _suppressRealtimeUntil = Date.now() + 2000;
   // Short debounce — prevents flooding Firebase on rapid changes but still near-instant
   syncTimer = setTimeout(pushState, 300);
-  // After suppression ends, do one refresh to catch any kid events we may have missed
-  setTimeout(function() {
+  // Debounced refresh — only one fires even if saveState is called many times in a row
+  clearTimeout(_overviewRefreshTimer);
+  _overviewRefreshTimer = setTimeout(function() {
     const parent = document.getElementById('screen-parent');
     if (parent && parent.classList.contains('active')) {
+      // Preserve scroll position across the re-render
+      const scrollEl = document.getElementById('parent-tab-content');
+      const savedScroll = scrollEl ? scrollEl.scrollTop : 0;
       pullState().then(function() {
         renderOverviewActionCards();
         updateTabBadges();
+        if (scrollEl) scrollEl.scrollTop = savedScroll;
       }).catch(function(){});
     }
   }, 2500);
 }
+let _overviewRefreshTimer = null;
 
 let _realtimeES = null;
 let _realtimeRetryTimer = null;
@@ -7440,11 +7446,13 @@ function checkIncompleteWeekPenalty(kidId) {
     const skipDays = (state.skipDay && state.skipDay[kidId]) || 0;
     if (skipDays > 0) continue;
 
-    // Already have an alert for this kid+day
+    // Already have an alert for this kid+day (active or previously dismissed)
+    const alertId = 'alert_' + kidId + '_' + dayStr;
     const alertExists = state.missedDayAlerts.some(function(a) {
       return a.kidId === kidId && a.date === dayStr;
     });
-    if (alertExists) continue;
+    const alertDismissed = (state.dismissedAlertIds || []).includes(alertId);
+    if (alertExists || alertDismissed) continue;
 
     // Already penalized this specific day
     if (state.penalizedDays[kidId].includes(dayStr)) continue;
