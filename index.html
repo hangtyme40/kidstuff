@@ -1827,6 +1827,10 @@ async function pushKidData(kidId) {
   if (!kidId) return;
   try {
     const kid = state.kids.find(k => k.id === kidId);
+    const approvedIds = state.approvedWritingIds || [];
+    const kidWritingQueue = (state.writingQueue || []).filter(function(w) {
+      return w.kidId === kidId && !approvedIds.includes(w.id);
+    });
     const kidPayload = {
       info: kid || null,
       progress: (state.progress || {})[kidId] || {},
@@ -1837,7 +1841,8 @@ async function pushKidData(kidId) {
       skipDay: (state.skipDay || {})[kidId] || 0,
       unlockedToday: (state.unlockedToday || {})[kidId] || {},
       lessonHistory: (state.lessonHistory || {})[kidId] || [],
-      coinsUpdatedAt: (state.coinsUpdatedAt || {})[kidId] || 0
+      coinsUpdatedAt: (state.coinsUpdatedAt || {})[kidId] || 0,
+      writingQueue: kidWritingQueue
     };
     await fbSet(getFamilyPath('kids/' + kidId), kidPayload);
   } catch(e) {
@@ -1997,6 +2002,8 @@ function startRealtimeListener() {
       if (Date.now() < _suppressRealtimeUntil) return; // our own push, skip
       clearTimeout(_realtimeRetryTimer);
       _realtimeRetryTimer = setTimeout(function() {
+        const scrollEl = document.getElementById('parent-tab-content');
+        const savedScroll = scrollEl ? scrollEl.scrollTop : 0;
         pullState().then(function() {
           const parent = document.getElementById('screen-parent');
           const kid = document.getElementById('screen-kid');
@@ -2004,6 +2011,7 @@ function startRealtimeListener() {
             renderOverviewActionCards(); // sync alert cards across devices immediately
             renderParentKidSummary();
             updateTabBadges();
+            if (scrollEl) scrollEl.scrollTop = savedScroll;
           }
           if (kid && kid.classList.contains('active')) renderKidDashboard();
         }).catch(e => console.warn('Realtime pull error:', e));
@@ -2014,12 +2022,15 @@ function startRealtimeListener() {
       if (Date.now() < _suppressRealtimeUntil) return;
       clearTimeout(_realtimeRetryTimer);
       _realtimeRetryTimer = setTimeout(function() {
+        const scrollEl = document.getElementById('parent-tab-content');
+        const savedScroll = scrollEl ? scrollEl.scrollTop : 0;
         pullState().then(function() {
           const parent = document.getElementById('screen-parent');
           if (parent && parent.classList.contains('active')) {
             renderOverviewActionCards();
             renderParentKidSummary();
             updateTabBadges();
+            if (scrollEl) scrollEl.scrollTop = savedScroll;
           }
         }).catch(e => console.warn('Realtime patch pull error:', e));
       }, 1200);
@@ -3646,9 +3657,9 @@ Make it fun, creative, grade-appropriate, and specific about what and how much t
           }
           return validateMCQuestion(q);
         }).filter(Boolean);
-        // If too many dropped, run AI verification
-        if (qs.length < Math.max(3, Math.floor(parsed.questions.length * 0.6))) {
-          qs = await validateReadingQuestionsWithAI(qs.length > 0 ? qs : parsed.questions, story);
+        // Always run AI verification — local checks alone aren't catching everything
+        if (qs.length > 0) {
+          qs = await validateReadingQuestionsWithAI(qs, story);
         }
       } catch(e) { console.warn('Reading validation error:', e); }
       const result = dedupeQuestions(qs, 'question');
@@ -3704,10 +3715,17 @@ async function validateReadingQuestionsWithAI(questions, story) {
     const match = text.match(/\[[\s\S]*\]/);
     if (!match) return questions;
     const results = JSON.parse(match[0]);
+    // Phrases that indicate the AI couldn't find a real answer — treat these as invalid regardless of the valid flag
+    const NON_ANSWER_PATTERNS = /not (?:stated|mentioned|specified|given|found|in the|available)|cannot be determined|no information|unknown|n\/a/i;
     return questions.map(function(q, i) {
       const r = results.find(function(x){ return x.index === i; });
       if (!r) return q;
-      if (!r.valid) { console.warn('Reading: dropping invalid Q:', q.question); return null; }
+      const correctAnsStr = String(r.correctAnswer || '');
+      const looksLikeNonAnswer = NON_ANSWER_PATTERNS.test(correctAnsStr);
+      if (!r.valid || looksLikeNonAnswer) {
+        console.warn('Reading: dropping invalid Q:', q.question, '| AI said:', correctAnsStr);
+        return null;
+      }
       if (r.correctAnswer && normalizeAnswerText(r.correctAnswer) !== normalizeAnswerText(q.answer)) {
         console.warn('Reading: fixing answer:', q.question, '→', r.correctAnswer);
         const fixed = Object.assign({}, q, {answer: r.correctAnswer});
@@ -5652,6 +5670,10 @@ function clearRedoNotice(kidId) {
 
 function renderWritingApprovals() {
   const el = document.getElementById('writing-approvals-list');
+  if (!el) return;
+  // Preserve scroll position — this function gets called frequently by background refreshes
+  const scrollContainer = document.getElementById('parent-tab-content') || window;
+  const savedScroll = scrollContainer === window ? window.scrollY : scrollContainer.scrollTop;
   const cutoff2days = new Date(); cutoff2days.setDate(cutoff2days.getDate() - 2);
   function parseWDate(str) {
     if (!str) return null;
@@ -5684,11 +5706,19 @@ function renderWritingApprovals() {
       </div>
     </div>`;
   }).join('');
+  // Restore scroll position — the images loading can shift layout height
+  if (scrollContainer === window) {
+    window.scrollTo(0, savedScroll);
+  } else {
+    scrollContainer.scrollTop = savedScroll;
+  }
 }
 
 function renderFlaggedList() {
   const el = document.getElementById('flagged-list');
   if (!el) return;
+  const scrollContainer = document.getElementById('parent-tab-content') || window;
+  const savedScroll = scrollContainer === window ? window.scrollY : scrollContainer.scrollTop;
   const items = (state.flaggedReview||[]).filter(function(f){ return f.status==='pending'; });
   if (!items.length) {
     el.innerHTML='<div class="empty-state"><div class="empty-icon">✅</div><p>No flagged questions.</p></div>';
@@ -5718,6 +5748,8 @@ function renderFlaggedList() {
     document.getElementById('flag-accept-'+f.id).onclick = (function(fid){ return function(){ resolveFlag(fid, true); }; })(f.id);
     document.getElementById('flag-wrong-'+f.id).onclick = (function(fid){ return function(){ resolveFlag(fid, false); }; })(f.id);
   });
+  if (scrollContainer === window) { window.scrollTo(0, savedScroll); }
+  else { scrollContainer.scrollTop = savedScroll; }
 }
 
 function resolveFlag(id, award) {
