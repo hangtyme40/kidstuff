@@ -1920,14 +1920,19 @@ async function pushSharedData() {
 
 // Push a single kid's writing queue to their own path
 async function pushKidWritingQueue(kidId) {
+  console.log('[WRITING DEBUG] pushKidWritingQueue called for', kidId, 'at', new Date().toLocaleString());
   try {
     const approvedIds = state.approvedWritingIds || [];
     const kidQueue = (state.writingQueue || []).filter(function(w) {
       return w.kidId === kidId && !approvedIds.includes(w.id);
     });
-    await fbSet(getFamilyPath('kids/' + kidId + '/writingQueue'), kidQueue);
+    console.log('[WRITING DEBUG] Pushing queue:', JSON.stringify(kidQueue.map(function(w){return {id:w.id,status:w.status};})));
+    const path = getFamilyPath('kids/' + kidId + '/writingQueue');
+    console.log('[WRITING DEBUG] Target path:', path);
+    await fbSet(path, kidQueue);
+    console.log('[WRITING DEBUG] Push SUCCEEDED for', kidId);
   } catch(e) {
-    console.warn('pushKidWritingQueue error:', e);
+    console.error('[WRITING DEBUG] Push FAILED for', kidId, '— Error:', e.message, e.stack);
   }
 }
 
@@ -4758,6 +4763,7 @@ function submitWriting() {
 }
 
 function _doSubmitWriting(imageDataUrl) {
+  console.log('[WRITING DEBUG] _doSubmitWriting called. currentKidId:', currentKidId, 'lessonState exists:', !!lessonState);
   if (!state.writingQueue) state.writingQueue = [];
   const entry = {
     id: 'w'+Date.now(), kidId: currentKidId,
@@ -4768,10 +4774,16 @@ function _doSubmitWriting(imageDataUrl) {
     status: 'pending', date: getLocalDateStr()
   };
   state.writingQueue.push(entry);
+  console.log('[WRITING DEBUG] Entry added to local state. Queue length now:', state.writingQueue.length);
   writingPages = [];
   localStorage.setItem('kidstuff_cache', JSON.stringify(state));
+  console.log('[WRITING DEBUG] Saved to localStorage. Calling pushKidWritingQueue...');
   // Push to kid's OWN Firebase path — no merge conflicts with parent device
-  pushKidWritingQueue(currentKidId).catch(function(e){ console.warn('Writing submit push error:', e); });
+  pushKidWritingQueue(currentKidId).catch(function(e){ console.error('[WRITING DEBUG] Writing submit push error (outer catch):', e); });
+  // Redundant backup push via pushKidData in case the dedicated path write fails silently
+  setTimeout(function() {
+    pushKidData(currentKidId).catch(function(e){ console.error('[WRITING DEBUG] Backup pushKidData error:', e); });
+  }, 1000);
   showFeedback(true, '✅ Submitted! Your parent will review it.');
   document.getElementById('writing-submit-btn').style.display='none';
   recordAnswer(true); showNextBtn();
