@@ -1755,25 +1755,28 @@ async function pullState() {
       });
     });
 
-    // Writing queue — read from each kid's individual path (non-fatal if any fail)
-    const approvedIds = state.approvedWritingIds || [];
-    state.writingQueue = [];
-    const kidWritingPromises = state.kids
-      .filter(function(k){ return k.id !== 'tester'; })
-      .map(function(k) {
-        return fbGet(getFamilyPath('kids/' + k.id + '/writingQueue'))
-          .then(function(kidQueue) {
-            const filtered = Array.isArray(kidQueue) ? kidQueue.filter(function(w) {
-              return !approvedIds.includes(w.id);
-            }) : [];
-            state.writingQueue = state.writingQueue.concat(filtered);
-          })
-          .catch(function(e) {
-            console.warn('Kid writing queue pull error (non-fatal):', k.id, e.message);
-            // Don't throw — let other kids' queues still load
-          });
-      });
-    await Promise.all(kidWritingPromises);
+    // Writing queue — only load on parent devices, not kid devices
+    // Kids don't need to see the queue, and the extra reads cause login failures on slow connections
+    const isParentSession = _currentUser && !_currentUser.kidOnly;
+    if (isParentSession) {
+      const approvedIds = state.approvedWritingIds || [];
+      state.writingQueue = [];
+      const kidWritingPromises = state.kids
+        .filter(function(k){ return k.id !== 'tester'; })
+        .map(function(k) {
+          return fbGet(getFamilyPath('kids/' + k.id + '/writingQueue'))
+            .then(function(kidQueue) {
+              const filtered = Array.isArray(kidQueue) ? kidQueue.filter(function(w) {
+                return !approvedIds.includes(w.id) && w.kidAnswer !== '[image]'; // skip placeholder entries
+              }) : [];
+              state.writingQueue = state.writingQueue.concat(filtered);
+            })
+            .catch(function(e) {
+              console.warn('Kid writing queue pull error (non-fatal):', k.id, e.message);
+            });
+        });
+      await Promise.all(kidWritingPromises);
+    }
 
     // Migrations
     if (!state.lessonTimers) state.lessonTimers = {spelling:15,math:15,reading:15,writing:15};
@@ -1831,8 +1834,12 @@ async function pushKidData(kidId) {
   try {
     const kid = state.kids.find(k => k.id === kidId);
     const approvedIds = state.approvedWritingIds || [];
+    // Include writing queue but strip large image data — images stay in the dedicated writingQueue path
+    // This prevents the kids node from becoming too large to read
     const kidWritingQueue = (state.writingQueue || []).filter(function(w) {
       return w.kidId === kidId && !approvedIds.includes(w.id);
+    }).map(function(w) {
+      return Object.assign({}, w, { kidAnswer: '[image]' }); // placeholder — actual image is in dedicated path
     });
     const kidPayload = {
       info: kid || null,
