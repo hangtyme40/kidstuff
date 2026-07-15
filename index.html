@@ -2188,35 +2188,39 @@ function goStudents() {
 async function loadFamilyByCode(code) {
   console.log('[FAMILY] loadFamilyByCode called with code:', code);
   try {
-    console.log('[FAMILY] Getting Firebase token...');
     const token = await getFirebaseToken();
     console.log('[FAMILY] Got token. Fetching family data...');
     const res = await fetch(FIREBASE_URL + '/familyCodes/' + code + '.json?auth=' + token);
     console.log('[FAMILY] Fetch status:', res.status);
     const data = await res.json();
-    console.log('[FAMILY] Family data:', JSON.stringify(data));
+    console.log('[FAMILY] Family data uid:', data && data.uid);
     if (!data || !data.uid) {
-      console.log('[FAMILY] No uid found — showing family code screen');
       document.getElementById('family-code-error') && (document.getElementById('family-code-error').textContent = 'Family code not found. Check with your parent.');
       showScreen('screen-family-code');
       return;
     }
-    console.log('[FAMILY] Setting _currentUser...');
     _currentUser = { uid: data.uid, email: '', displayName: data.familyName || '', kidOnly: true };
     localStorage.setItem('kidstuff_familyCode', code);
     localStorage.setItem('kidstuff_user', JSON.stringify(_currentUser));
-    console.log('[FAMILY] Calling pullState...');
-    try {
-      await pullState();
-      console.log('[FAMILY] pullState succeeded');
-    } catch(pullErr) {
-      console.warn('[FAMILY] pullState failed (non-fatal):', pullErr.message);
-    }
-    console.log('[FAMILY] Showing kid select screen...');
+    try { await pullState(); } catch(e) { console.warn('[FAMILY] pullState non-fatal:', e.message); }
     showScreen('screen-kid-select');
-    console.log('[FAMILY] Done — should be on kid select now');
   } catch(e) {
-    console.error('[FAMILY] OUTER catch — loadFamilyByCode failed:', e.message, e.stack);
+    console.error('[FAMILY] Failed:', e.message);
+    // Last resort — if we know the uid from a previous session in any form, use it
+    const storedUser = localStorage.getItem('kidstuff_user');
+    if (storedUser) {
+      try {
+        const u = JSON.parse(storedUser);
+        if (u && u.uid && u.kidOnly) {
+          console.warn('[FAMILY] Using cached user as fallback');
+          _currentUser = u;
+          try { await pullState(); } catch(e2) { console.warn('[FAMILY] pullState fallback non-fatal:', e2.message); }
+          showScreen('screen-kid-select');
+          return;
+        }
+      } catch(e3) {}
+    }
+    document.getElementById('family-code-error') && (document.getElementById('family-code-error').textContent = 'Connection error. Check your WiFi and try again.');
     showScreen('screen-family-code');
   }
 }
@@ -8246,24 +8250,12 @@ updateLastSyncedDisplay();
   const params = new URLSearchParams(window.location.search);
   const fCode = params.get('f');
   if (fCode) {
-    // Store and go straight to student flow
     localStorage.setItem('kidstuff_familyCode', fCode.toUpperCase());
-    const hasCachedUser = loadAuthSession();
-    if (!hasCachedUser || !_currentUser || _currentUser.kidOnly) {
-      // Need to load family data with a token — use anonymous for read-only kid access
-      try {
-        await loadFamilyByCode(fCode.toUpperCase());
-      } catch(e) {
-        showScreen('screen-landing');
-      }
-      return;
-    }
   }
 
   // Check if parent session exists
   const hasCachedUser = loadAuthSession();
   if (hasCachedUser && _currentUser && !_currentUser.kidOnly) {
-    // Parent session — restore and go to dashboard
     try {
       await afterParentLogin();
     } catch(e) {
@@ -8273,14 +8265,26 @@ updateLastSyncedDisplay();
     return;
   }
 
-  // Kid-only session (family code stored)
+  // Kid-only session — use stored user if available, skip family code entry
+  if (hasCachedUser && _currentUser && _currentUser.kidOnly && _currentUser.uid) {
+    // Already have auth context — go straight to kid select
+    try {
+      await pullState();
+    } catch(e) {
+      console.warn('pullState on kid restore failed (non-fatal):', e.message);
+    }
+    showScreen('screen-kid-select');
+    return;
+  }
+
+  // No stored kid session — try family code
   const savedCode = localStorage.getItem('kidstuff_familyCode');
-  if (savedCode && (!_currentUser || _currentUser.kidOnly)) {
+  if (savedCode) {
     try {
       await loadFamilyByCode(savedCode);
       return;
     } catch(e) {
-      // Fall through to landing
+      console.warn('loadFamilyByCode failed:', e.message);
     }
   }
 
