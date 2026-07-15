@@ -2180,7 +2180,13 @@ async function loadFamilyByCode(code) {
     _currentUser = { uid: data.uid, email: '', displayName: data.familyName || '', kidOnly: true };
     localStorage.setItem('kidstuff_familyCode', code);
     localStorage.setItem('kidstuff_user', JSON.stringify(_currentUser));
-    await pullState();
+    // Pull state — non-fatal if it partially fails (e.g. writing queue reads)
+    try {
+      await pullState();
+    } catch(pullErr) {
+      console.warn('pullState error in loadFamilyByCode (non-fatal):', pullErr);
+      // Still proceed to kid select — we have enough to show the app
+    }
     showScreen('screen-kid-select');
   } catch(e) {
     console.warn('loadFamilyByCode error:', e);
