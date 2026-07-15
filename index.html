@@ -1755,20 +1755,23 @@ async function pullState() {
       });
     });
 
-    // Writing queue — read from each kid's individual path (no merge conflict possible)
+    // Writing queue — read from each kid's individual path (non-fatal if any fail)
     const approvedIds = state.approvedWritingIds || [];
-    const dismissedIds = state.dismissedAlertIds || [];
     state.writingQueue = [];
     const kidWritingPromises = state.kids
       .filter(function(k){ return k.id !== 'tester'; })
-      .map(async function(k) {
-        try {
-          const kidQueue = await fbGet(getFamilyPath('kids/' + k.id + '/writingQueue')) || [];
-          const filtered = Array.isArray(kidQueue) ? kidQueue.filter(function(w) {
-            return !approvedIds.includes(w.id);
-          }) : [];
-          state.writingQueue = state.writingQueue.concat(filtered);
-        } catch(e) { console.warn('Kid writing queue pull error:', k.id, e); }
+      .map(function(k) {
+        return fbGet(getFamilyPath('kids/' + k.id + '/writingQueue'))
+          .then(function(kidQueue) {
+            const filtered = Array.isArray(kidQueue) ? kidQueue.filter(function(w) {
+              return !approvedIds.includes(w.id);
+            }) : [];
+            state.writingQueue = state.writingQueue.concat(filtered);
+          })
+          .catch(function(e) {
+            console.warn('Kid writing queue pull error (non-fatal):', k.id, e.message);
+            // Don't throw — let other kids' queues still load
+          });
       });
     await Promise.all(kidWritingPromises);
 
