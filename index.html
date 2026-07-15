@@ -2186,29 +2186,37 @@ function goStudents() {
 }
 
 async function loadFamilyByCode(code) {
+  console.log('[FAMILY] loadFamilyByCode called with code:', code);
   try {
+    console.log('[FAMILY] Getting Firebase token...');
     const token = await getFirebaseToken();
+    console.log('[FAMILY] Got token. Fetching family data...');
     const res = await fetch(FIREBASE_URL + '/familyCodes/' + code + '.json?auth=' + token);
+    console.log('[FAMILY] Fetch status:', res.status);
     const data = await res.json();
+    console.log('[FAMILY] Family data:', JSON.stringify(data));
     if (!data || !data.uid) {
+      console.log('[FAMILY] No uid found — showing family code screen');
       document.getElementById('family-code-error') && (document.getElementById('family-code-error').textContent = 'Family code not found. Check with your parent.');
       showScreen('screen-family-code');
       return;
     }
-    // Set family context to this uid (read-only kid access)
+    console.log('[FAMILY] Setting _currentUser...');
     _currentUser = { uid: data.uid, email: '', displayName: data.familyName || '', kidOnly: true };
     localStorage.setItem('kidstuff_familyCode', code);
     localStorage.setItem('kidstuff_user', JSON.stringify(_currentUser));
-    // Pull state — non-fatal if it partially fails (e.g. writing queue reads)
+    console.log('[FAMILY] Calling pullState...');
     try {
       await pullState();
+      console.log('[FAMILY] pullState succeeded');
     } catch(pullErr) {
-      console.warn('pullState error in loadFamilyByCode (non-fatal):', pullErr);
-      // Still proceed to kid select — we have enough to show the app
+      console.warn('[FAMILY] pullState failed (non-fatal):', pullErr.message);
     }
+    console.log('[FAMILY] Showing kid select screen...');
     showScreen('screen-kid-select');
+    console.log('[FAMILY] Done — should be on kid select now');
   } catch(e) {
-    console.warn('loadFamilyByCode error:', e);
+    console.error('[FAMILY] OUTER catch — loadFamilyByCode failed:', e.message, e.stack);
     showScreen('screen-family-code');
   }
 }
