@@ -1663,8 +1663,20 @@ async function pullState() {
 
     // Pull parent settings
     const parentData = await fbGet(getFamilyPath('parent')) || {};
-    // Pull each kid's data
-    const kidsData = await fbGet(getFamilyPath('kids')) || {};
+    // Pull kid data — on kid devices only pull the active kid's data to keep payload small
+    let kidsData = {};
+    if (_currentUser && _currentUser.kidOnly) {
+      if (currentKidId) {
+        // Active kid session — pull only their data (lesson history, progress, etc.)
+        const kidData = await fbGet(getFamilyPath('kids/' + currentKidId)) || {};
+        kidsData[currentKidId] = kidData;
+      }
+      // On kid-select screen (no currentKidId): skip kids data pull entirely —
+      // state.kids (names/emojis) comes from parent data which is already pulled above
+    } else {
+      // Parent device — pull all kids data for dashboard
+      kidsData = await fbGet(getFamilyPath('kids')) || {};
+    }
     // Pull shared queues
     const sharedData = await fbGet(getFamilyPath('shared')) || {};
 
